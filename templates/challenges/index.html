@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load cg_filters %}
+{% block title %}Central de Desafios — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/challenges.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="challenges-wrapper">
+<div class="challenges-container">
+
+    <div class="page-header">
+        <h1 class="page-title font-tech">// CENTRAL DE DESAFIOS</h1>
+        <p class="page-sub font-tech">{{ today|date:"d/m/Y" }} — MISSÕES ATIVAS</p>
+    </div>
+
+    <div class="challenge-grid">
+
+        {% for quiz in quizzes %}
+            {% with status=quiz_status|get_item:quiz.id %}
+            {% if status != 'concluido' %}
+            <div class="challenge-card tipo-quiz status-{{ status }} card-enter">
+                <div class="challenge-card-top">
+                    <span class="challenge-type-badge font-tech">
+                        <i class="bi bi-patch-question"></i> QUIZ
+                    </span>
+                    <span class="challenge-status-badge font-tech status-{{ status }}">
+                        {% if status == 'em_andamento' %}
+                            <i class="bi bi-hourglass-split"></i> EM ANDAMENTO
+                        {% else %}
+                            <i class="bi bi-unlock"></i> DISPONÍVEL
+                        {% endif %}
+                    </span>
+                </div>
+                <h3 class="challenge-title">{{ quiz.titulo }}</h3>
+                {% if quiz.descricao %}
+                <p class="challenge-desc">{{ quiz.descricao|truncatechars:100 }}</p>
+                {% endif %}
+                <div class="challenge-meta">
+                    <span class="meta-item"><i class="bi bi-star-fill"></i> {{ quiz.total_xp_possivel }} XP</span>
+                    <span class="meta-item"><i class="bi bi-coin"></i> {{ quiz.coin_reward }} Coins</span>
+                    <span class="meta-item">
+                        <i class="bi bi-clock"></i>
+                        {% if quiz.time_limit_seconds %}{{ quiz.time_limit_seconds|floatformat:0 }}s{% else %}Livre{% endif %}
+                    </span>
+                    <span class="meta-item"><i class="bi bi-list-ol"></i> {{ quiz.questions.count }} questões</span>
+                </div>
+                <div class="challenge-footer">
+                    {% if status == 'em_andamento' %}
+                        <a href="{% url 'minigames:take_quiz' quiz.id %}" class="btn-challenge tipo-quiz warning">
+                            <i class="bi bi-arrow-right-circle"></i> CONTINUAR
+                        </a>
+                    {% else %}
+                        <a href="{% url 'minigames:start_quiz' quiz.id %}" class="btn-challenge tipo-quiz">
+                            <i class="bi bi-play-fill"></i> INICIAR
+                        </a>
+                    {% endif %}
+                    <span class="expires-label font-tech">até {{ quiz.available_until|date:"d/m" }}</span>
+                </div>
+            </div>
+            {% endif %}
+            {% endwith %}
+        {% endfor %}
+
+        {% if pw_disponivel and pw_status != 'concluido' and pw_status != 'falhou' %}
+        <div class="challenge-card tipo-password status-{{ pw_status }} card-enter">
+            <div class="challenge-card-top">
+                <span class="challenge-type-badge font-tech tipo-password-badge">
+                    <i class="bi bi-key-fill"></i> COFRE DE SENHAS
+                </span>
+                <span class="challenge-status-badge font-tech status-{{ pw_status }}">
+                    {% if pw_status == 'em_andamento' %}
+                        <i class="bi bi-hourglass-split"></i> EM ANDAMENTO
+                    {% else %}
+                        <i class="bi bi-unlock"></i> DISPONÍVEL
+                    {% endif %}
+                </span>
+            </div>
+            <h3 class="challenge-title">Cofre de Senhas</h3>
+            <p class="challenge-desc">Crie uma senha que satisfaça todos os requisitos antes que o tempo acabe.</p>
+            <div class="challenge-meta">
+                <span class="meta-item"><i class="bi bi-star-fill"></i> {{ pw_config.xp_reward }} XP</span>
+                <span class="meta-item"><i class="bi bi-coin"></i> {{ pw_config.coin_reward }} Coins</span>
+                <span class="meta-item">
+                    <i class="bi bi-clock"></i>
+                    {% if pw_config.time_limit_seconds %}{{ pw_config.time_limit_seconds }}s{% else %}Livre{% endif %}
+                </span>
+                <span class="meta-item">
+                    <i class="bi bi-list-check"></i>
+                    {{ pw_config.rules_count_easy|add:pw_config.rules_count_medium|add:pw_config.rules_count_hard }} regras
+                </span>
+            </div>
+            <div class="challenge-footer">
+                {% if pw_status == 'em_andamento' %}
+                    <a href="{% url 'minigames:password_play' %}" class="btn-challenge tipo-password warning">
+                        <i class="bi bi-arrow-right-circle"></i> CONTINUAR
+                    </a>
+                {% else %}
+                    <a href="{% url 'minigames:password_play' %}" class="btn-challenge tipo-password">
+                        <i class="bi bi-play-fill"></i> INICIAR
+                    </a>
+                {% endif %}
+                <span class="expires-label font-tech">disponível hoje</span>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    {% if not quizzes and not pw_disponivel %}
+    <div class="empty-state">
+        <i class="bi bi-calendar-x"></i>
+        <p class="font-tech">// NENHUMA MISSÃO DISPONÍVEL HOJE</p>
+        <span>Volte amanhã para novos desafios.</span>
+    </div>
+    {% endif %}
+
+</div>
+</div>
+{% endblock %}

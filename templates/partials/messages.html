@@ -1,0 +1,13 @@
+{% if messages %}
+<div class="messages-wrapper">
+    {% for message in messages %}
+    <div class="cg-alert cg-alert-{{ message.tags }} d-flex align-items-center gap-2">
+        <i class="bi {% if message.tags == 'error' %}bi-shield-exclamation{% else %}bi-info-circle{% endif %}"></i>
+        <span>{{ message }}</span>
+        <button type="button" class="ms-auto cg-alert-close" onclick="this.parentElement.remove()">
+            <i class="bi bi-x"></i>
+        </button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}

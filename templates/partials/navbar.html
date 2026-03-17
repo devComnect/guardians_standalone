@@ -1,0 +1,59 @@
+{% load static %}
+<nav class="cg-navbar">
+    <div class="cg-navbar-inner">
+
+        <!-- Logo -->
+        <a href="{% url 'core:home' %}" class="cg-logo">
+            <span class="logo-bracket">[</span>
+            <span class="logo-text">COMNECT</span>
+            <span class="logo-accent">GUARDIANS</span>
+            <span class="logo-bracket">]</span>
+        </a>
+
+        <!-- Nav Links -->
+        <ul class="cg-nav-links">
+            <li><a href="{% url 'core:home' %}"          class="cg-nav-item {% if request.resolver_match.app_name == 'core' %}active{% endif %}">
+                <i class="bi bi-house-door"></i> Base
+            </a></li>
+            <li><a href="{% url 'challenges:index' %}"   class="cg-nav-item {% if request.resolver_match.app_name == 'challenges' %}active{% endif %}">
+                <i class="bi bi-lightning-charge"></i> Desafios
+            </a></li>
+            <li><a href="{% url 'rankings:index' %}"     class="cg-nav-item {% if request.resolver_match.app_name == 'rankings' %}active{% endif %}">
+                <i class="bi bi-bar-chart-line"></i> Rankings
+            </a></li>
+            <li><a href="{% url 'store:index' %}"        class="cg-nav-item {% if request.resolver_match.app_name == 'store' %}active{% endif %}">
+                <i class="bi bi-shop"></i> Loja
+            </a></li>
+            <li><a href="{% url 'feedback:index' %}"     class="cg-nav-item {% if request.resolver_match.app_name == 'feedback' %}active{% endif %}">
+                <i class="bi bi-chat-square-text"></i> Feedback
+            </a></li>
+        </ul>
+
+        <!-- Player HUD (direita) -->
+        <div class="cg-player-hud">
+            {% if user.player %}
+            <span class="hud-stat">
+                <i class="bi bi-star-fill text-warning"></i>
+                Lv.{{ user.player.level }}
+            </span>
+            <span class="hud-stat">
+                <i class="bi bi-coin" style="color: var(--neon-gold)"></i>
+                {{ user.player.coins }}
+            </span>
+            {% endif %}
+            <a href="{% url 'profiles:index' %}" class="hud-avatar" title="{{ user.username }}">
+                {% if user.player.avatar %}
+                    <img src="{{ user.player.avatar.url }}" alt="avatar">
+                {% else %}
+                    <i class="bi bi-person-fill"></i>
+                {% endif %}
+            </a>
+            <a href="{% url 'accounts:logout' %}" class="hud-logout" title="Sair">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+
+    </div>
+    <!-- Scanline decorativa -->
+    <div class="navbar-scanline"></div>
+</nav>

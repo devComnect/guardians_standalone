@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Comnect Guardians — Acesso{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/login.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="login-scene">
+
+    <!-- Grid de fundo animado -->
+    <div class="login-grid"></div>
+
+    <!-- Partículas de canto -->
+    <div class="corner-accent top-left"></div>
+    <div class="corner-accent top-right"></div>
+    <div class="corner-accent bottom-left"></div>
+    <div class="corner-accent bottom-right"></div>
+
+    <div class="login-panel">
+
+        <!-- Header do painel -->
+        <div class="panel-header">
+            <div class="panel-header-bar"></div>
+            <div class="panel-logo">
+                <span class="logo-bracket">[</span>
+                <span class="logo-text">COMNECT</span>
+                <span class="logo-accent">GUARDIANS</span>
+                <span class="logo-bracket">]</span>
+            </div>
+            <p class="panel-subtitle">// SISTEMA DE ACESSO CORPORATIVO</p>
+            <div class="panel-header-bar"></div>
+        </div>
+
+        <!-- Status indicator -->
+        <div class="status-row">
+            <span class="status-dot"></span>
+            <span class="status-text font-tech">SISTEMA ONLINE</span>
+            <span class="status-ver font-tech">v2.0.0</span>
+        </div>
+
+        {% include 'partials/messages.html' %}
+
+        <!-- Form -->
+        <form method="POST" action="{% url 'accounts:login' %}" class="login-form" autocomplete="off">
+            {% csrf_token %}
+
+            <div class="field-group">
+                <label class="field-label font-tech" for="username">
+                    <i class="bi bi-person-badge"></i> IDENTIFICAÇÃO
+                </label>
+                <div class="field-wrapper">
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        class="field-input font-tech"
+                        placeholder="usuario.corporativo"
+                        required
+                        autofocus
+                    >
+                    <div class="field-line"></div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label class="field-label font-tech" for="password">
+                    <i class="bi bi-shield-lock"></i> AUTENTICAÇÃO
+                </label>
+                <div class="field-wrapper">
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        class="field-input font-tech"
+                        placeholder="••••••••••••"
+                        required
+                    >
+                    <div class="field-line"></div>
+                    <!-- Toggle senha -->
+                    <button type="button" class="field-eye" onclick="togglePassword()">
+                        <i class="bi bi-eye" id="eye-icon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-login font-tech">
+                <span class="btn-text">INICIAR SESSÃO</span>
+                <i class="bi bi-arrow-right-circle btn-arrow"></i>
+                <div class="btn-glow"></div>
+            </button>
+
+        </form>
+
+        <!-- Footer do painel -->
+        <div class="panel-footer font-tech">
+            <span>// ACESSO RESTRITO A COLABORADORES</span>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePassword() {
+    const input = document.getElementById('password');
+    const icon  = document.getElementById('eye-icon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+</script>
+{% endblock %}

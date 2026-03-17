@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Resultado — {{ quiz.titulo }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/quiz.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="result-wrapper">
+    <div class="result-panel {% if is_perfect %}result-perfect{% elif attempt.timer_expired %}result-fail{% elif attempt.abandoned %}result-abandoned{% endif %}">
+
+        <div class="result-strip"></div>
+
+        <div class="result-icon">
+            {% if is_perfect %}
+                <i class="bi bi-trophy-fill"></i>
+            {% elif attempt.timer_expired %}
+                <i class="bi bi-alarm-fill"></i>
+            {% elif attempt.abandoned %}
+                <i class="bi bi-flag-fill"></i>
+            {% else %}
+                <i class="bi bi-check-circle-fill"></i>
+            {% endif %}
+        </div>
+
+        <h1 class="result-title font-tech">
+            {% if is_perfect %}// PONTUAÇÃO MÁXIMA
+            {% elif attempt.timer_expired %}// TEMPO ESGOTADO
+            {% elif attempt.abandoned %}// PROTOCOLO ABANDONADO
+            {% else %}// AVALIAÇÃO CONCLUÍDA
+            {% endif %}
+        </h1>
+
+        <p class="result-quiz-name">{{ quiz.titulo }}</p>
+
+        <div class="result-stats">
+            <div class="result-stat">
+                <span class="stat-big font-tech">{{ attempt.xp_earned }}</span>
+                <span class="stat-lbl">XP GANHO</span>
+            </div>
+            <div class="result-stat">
+                <span class="stat-big font-tech">{{ attempt.total_correct }}/{{ total_questions }}</span>
+                <span class="stat-lbl">ACERTOS</span>
+            </div>
+            <div class="result-stat">
+                <span class="stat-big font-tech">{{ max_xp }}</span>
+                <span class="stat-lbl">XP MÁXIMO</span>
+            </div>
+        </div>
+
+        {% if attempt.timer_expired %}
+        <p class="result-msg font-tech">// O tempo limite foi atingido. Pontuação zerada.</p>
+        {% elif attempt.abandoned %}
+        <p class="result-msg font-tech">// Protocolo encerrado antecipadamente.</p>
+        {% elif not is_perfect %}
+        <p class="result-msg font-tech">// Obtenha pontuação máxima com um Token de Retake.</p>
+        {% endif %}
+
+        <div class="result-actions">
+            <a href="{% url 'challenges:index' %}" class="btn-result">
+                <i class="bi bi-arrow-left"></i> VOLTAR AOS DESAFIOS
+            </a>
+            <a href="{% url 'core:home' %}" class="btn-result secondary">
+                <i class="bi bi-house-door"></i> BASE
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

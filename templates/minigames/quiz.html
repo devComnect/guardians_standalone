@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ quiz.titulo }} — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/quiz.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="quiz-container" data-timer="{{ remaining_time }}">
+
+    <!-- HUD -->
+    <header class="quiz-hud">
+        <div class="hud-box">
+            <span class="hud-label font-tech">TIMER</span>
+            <div id="timer-display" class="hud-value font-tech">
+                {% if quiz.time_limit_seconds %}--:--{% else %}LIVRE{% endif %}
+            </div>
+        </div>
+
+        <div class="hud-progress-box">
+            <span class="hud-label font-tech">PROGRESSO</span>
+            <div class="hud-progress-bar">
+                <div class="hud-progress-fill" id="progress-fill" style="width:0%"></div>
+            </div>
+            <span class="hud-progress-text font-tech" id="progress-text">1 / {{ questions|length }}</span>
+        </div>
+
+        <div class="hud-box">
+            <span class="hud-label font-tech">AVALIAÇÃO</span>
+            <div class="hud-value font-tech" style="font-size:0.8rem; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                {{ quiz.titulo|upper }}
+            </div>
+        </div>
+
+        <button type="button" id="abort-btn" class="hud-abort-btn" title="Abandonar">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </header>
+
+    <!-- Quiz Form -->
+    <main class="quiz-main">
+        <form method="POST" action="{% url 'minigames:submit_quiz' quiz.id %}" id="quiz-form" autocomplete="off">
+            {% csrf_token %}
+            <input type="hidden" name="timer_expired" id="timer_expired_input" value="false">
+            <input type="hidden" name="abandoned"     id="abandoned_input"     value="false">
+
+            <div class="card-viewport">
+
+                {% for question in questions %}
+                <div class="question-slide" id="step-{{ forloop.counter0 }}" data-index="{{ forloop.counter0 }}">
+
+                    <div class="question-meta-bar">
+                        <span class="q-num font-tech">QUESTÃO {{ forloop.counter|stringformat:"02d" }}</span>
+                        <span class="q-xp font-tech">+{{ question.xp_points }} XP</span>
+                    </div>
+
+                    <h2 class="question-text">{{ question.question_text }}</h2>
+
+                    {% if question.allow_multiple %}
+                    <p class="question-hint font-tech">// Selecione todas as respostas corretas</p>
+                    {% endif %}
+
+                    <div class="options-list">
+                        {% for option in question.options.all %}
+                        <label class="option-label">
+                            <input
+                                type="{% if question.allow_multiple %}checkbox{% else %}radio{% endif %}"
+                                name="question_{{ question.id }}"
+                                value="{{ option.id }}"
+                                class="option-input visually-hidden">
+                            <div class="option-body">
+                                <div class="option-marker"></div>
+                                <span class="option-text">{{ option.option_text }}</span>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+
+                </div>
+                {% endfor %}
+
+                <!-- Navegação -->
+                <div class="quiz-nav">
+                    <button type="button" id="prev-btn" class="btn-quiz-nav" style="visibility:hidden;">
+                        <i class="bi bi-caret-left-fill"></i> VOLTAR
+                    </button>
+                    <button type="button" id="next-btn" class="btn-quiz-nav primary">
+                        PRÓXIMA <i class="bi bi-caret-right-fill"></i>
+                    </button>
+                    <button type="button" id="submit-btn" class="btn-quiz-nav finish" style="display:none;">
+                        FINALIZAR <i class="bi bi-check-lg"></i>
+                    </button>
+                </div>
+
+            </div><!-- card-viewport -->
+        </form>
+
+        <!-- Aviso de segurança -->
+        <div class="security-notice font-tech">
+            <i class="bi bi-shield-lock-fill"></i>
+            PROTOCOLO ATIVO — NÃO SAIA DA PÁGINA. DESCONEXÃO = FALHA IMEDIATA.
+        </div>
+    </main>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Bloqueios de segurança ───────────────────────────
+    document.addEventListener('copy',        e => e.preventDefault());
+    document.addEventListener('cut',         e => e.preventDefault());
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('keydown', e => {
+        const blocked = (e.ctrlKey && ['c','x','a','u','s','p'].includes(e.key.toLowerCase()))
+                      || e.key === 'F12'
+                      || e.key === 'PrintScreen';
+        if (blocked) e.preventDefault();
+    });
+    // Alerta ao tentar fechar/atualizar
+    window.addEventListener('beforeunload', function (e) {
+        if (!formSubmitted) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+    // ── Setup ────────────────────────────────────────────
+    const container   = document.getElementById('quiz-container');
+    const form        = document.getElementById('quiz-form');
+    const steps       = document.querySelectorAll('.question-slide');
+    const totalSteps  = steps.length;
+    const prevBtn     = document.getElementById('prev-btn');
+    const nextBtn     = document.getElementById('next-btn');
+    const submitBtn   = document.getElementById('submit-btn');
+    const abortBtn    = document.getElementById('abort-btn');
+    const timerEl     = document.getElementById('timer-display');
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+
+    let currentIndex  = 0;
+    let formSubmitted = false;
+
+    // ── Timer ────────────────────────────────────────────
+    let timeRemaining = parseFloat(container.dataset.timer);
+    if (timeRemaining > 0) {
+        const interval = setInterval(() => {
+            timeRemaining--;
+            const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+            const s = Math.floor(timeRemaining % 60).toString().padStart(2, '0');
+            timerEl.textContent = `${m}:${s}`;
+
+            if (timeRemaining <= 30) timerEl.classList.add('timer-danger');
+            if (timeRemaining <= 0) {
+                clearInterval(interval);
+                document.getElementById('timer_expired_input').value = 'true';
+                formSubmitted = true;
+                form.submit();
+            }
+        }, 1000);
+    }
+
+    // ── Navegação ────────────────────────────────────────
+    function showStep(index) {
+        steps.forEach(s => { s.style.display = 'none'; s.classList.remove('active'); });
+        steps[index].style.display = 'block';
+        setTimeout(() => steps[index].classList.add('active'), 10);
+
+        prevBtn.style.visibility = index === 0 ? 'hidden' : 'visible';
+        const isLast = index === totalSteps - 1;
+        nextBtn.style.display   = isLast ? 'none'        : 'inline-flex';
+        submitBtn.style.display = isLast ? 'inline-flex' : 'none';
+
+        const pct = ((index + 1) / totalSteps) * 100;
+        progressFill.style.width = `${pct}%`;
+        progressText.textContent = `${index + 1} / ${totalSteps}`;
+    }
+
+    // ── Seleção visual ───────────────────────────────────
+    document.querySelectorAll('.option-input').forEach(input => {
+        const isRadio = input.type === 'radio';
+        input.addEventListener('change', function () {
+            if (isRadio) {
+                // Limpa outros na mesma questão
+                document.querySelectorAll(`input[name="${input.name}"]`).forEach(i => {
+                    i.closest('.option-label').querySelector('.option-body').classList.remove('selected');
+                });
+            }
+            const body = this.closest('.option-label').querySelector('.option-body');
+            if (this.checked) body.classList.add('selected');
+            else              body.classList.remove('selected');
+        });
+    });
+
+    // ── Validação ────────────────────────────────────────
+    function isCurrentValid() {
+        return !!steps[currentIndex].querySelector('input:checked');
+    }
+
+    function shakeCard() {
+        const card = document.querySelector('.card-viewport');
+        card.classList.add('shake');
+        setTimeout(() => card.classList.remove('shake'), 400);
+    }
+
+    nextBtn.addEventListener('click', () => {
+        if (!isCurrentValid()) { shakeCard(); return; }
+        if (currentIndex < totalSteps - 1) { currentIndex++; showStep(currentIndex); }
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (currentIndex > 0) { currentIndex--; showStep(currentIndex); }
+    });
+
+    submitBtn.addEventListener('click', () => {
+        if (!isCurrentValid()) { shakeCard(); return; }
+        formSubmitted = true;
+        form.submit();
+    });
+
+    // ── Abandonar ────────────────────────────────────────
+    abortBtn.addEventListener('click', () => {
+        if (confirm('ATENÇÃO: Deseja abandonar o protocolo?\n\nSua pontuação parcial será registrada.')) {
+            document.getElementById('abandoned_input').value = 'true';
+            formSubmitted = true;
+            form.submit();
+        }
+    });
+
+    showStep(0);
+});
+</script>
+{% endblock %}

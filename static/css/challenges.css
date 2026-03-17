@@ -1,0 +1,218 @@
+/* ═══════════════════════════════════════════════
+   Central de Desafios
+   ═══════════════════════════════════════════════ */
+
+/* ── Entrada da página ── */
+@keyframes page-fade-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.challenges-wrapper {
+    min-height: calc(100vh - 60px);
+    padding: 32px 24px;
+    animation: page-fade-in 0.4s ease both;
+}
+
+.challenges-container { max-width: 1100px; margin: 0 auto; }
+
+.page-header  { margin-bottom: 32px; }
+.page-title   { font-size: 1.3rem; letter-spacing: 4px; color: var(--neon-blue); margin: 0 0 4px; }
+.page-sub     { font-size: 0.65rem; letter-spacing: 3px; color: var(--text-dim); margin: 0; }
+
+/* ── Grid ── */
+.challenge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+/* ── Animação de entrada dos cards ── */
+@keyframes card-enter {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.card-enter {
+    animation: card-enter 0.35s ease both;
+}
+
+/* Atraso escalonado para cada card */
+.card-enter:nth-child(1) { animation-delay: 0.05s; }
+.card-enter:nth-child(2) { animation-delay: 0.10s; }
+.card-enter:nth-child(3) { animation-delay: 0.15s; }
+.card-enter:nth-child(4) { animation-delay: 0.20s; }
+.card-enter:nth-child(5) { animation-delay: 0.25s; }
+
+/* ── Card base ── */
+.challenge-card {
+    background: var(--panel-bg);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-left: 3px solid transparent;
+    clip-path: polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.challenge-card:hover {
+    transform: translateY(-4px);
+}
+
+/* ── Identidade por tipo ── */
+
+/* QUIZ — azul */
+.challenge-card.tipo-quiz {
+    border-left-color: var(--neon-blue);
+}
+.challenge-card.tipo-quiz:hover {
+    box-shadow: 0 8px 24px rgba(13,202,240,0.12);
+}
+
+/* PASSWORD — amarelo */
+.challenge-card.tipo-password {
+    border-left-color: var(--neon-gold);
+}
+.challenge-card.tipo-password:hover {
+    box-shadow: 0 8px 24px rgba(252,238,10,0.1);
+}
+
+/* ── Status ── */
+.challenge-card.status-em_andamento { opacity: 1; }
+
+/* ── Topo do card ── */
+.challenge-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ── Badge tipo ── */
+.challenge-type-badge {
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    padding: 3px 8px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Quiz badge — azul */
+.tipo-quiz .challenge-type-badge {
+    color: var(--neon-blue);
+    border: 1px solid rgba(13,202,240,0.3);
+}
+
+/* Password badge — amarelo */
+.tipo-password-badge,
+.tipo-password .challenge-type-badge {
+    color: var(--neon-gold);
+    border: 1px solid rgba(252,238,10,0.3);
+}
+
+/* ── Badge status ── */
+.challenge-status-badge {
+    font-size: 0.6rem;
+    letter-spacing: 1.5px;
+    padding: 3px 8px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.status-disponivel   { color: var(--neon-green); border: 1px solid rgba(5,217,232,0.3); }
+.status-em_andamento { color: var(--neon-gold);  border: 1px solid rgba(252,238,10,0.3); }
+
+/* ── Conteúdo ── */
+.challenge-title { font-size: 1rem; font-weight: 700; color: #e0e0e0; margin: 0; }
+.challenge-desc  { font-size: 0.82rem; color: var(--text-muted); margin: 0; line-height: 1.5; }
+
+.challenge-meta  { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.meta-item {
+    font-family: var(--tech-font);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.meta-item .bi-star-fill { color: var(--neon-gold); }
+.meta-item .bi-coin      { color: var(--neon-gold); }
+
+/* ── Footer ── */
+.challenge-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    margin-top: auto;
+}
+
+/* ── Botões ── */
+.btn-challenge {
+    font-family: var(--tech-font);
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 8px 18px;
+    text-decoration: none;
+    clip-path: polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.2s;
+    border: 1px solid;
+}
+
+/* Quiz — azul */
+.btn-challenge.tipo-quiz {
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
+}
+.btn-challenge.tipo-quiz:hover {
+    background: var(--neon-blue);
+    color: #000;
+    box-shadow: 0 0 16px rgba(13,202,240,0.35);
+}
+
+/* Password — amarelo */
+.btn-challenge.tipo-password {
+    border-color: var(--neon-gold);
+    color: var(--neon-gold);
+}
+.btn-challenge.tipo-password:hover {
+    background: var(--neon-gold);
+    color: #000;
+    box-shadow: 0 0 16px rgba(252,238,10,0.3);
+}
+
+/* Em andamento */
+.btn-challenge.warning {
+    opacity: 0.85;
+}
+
+.btn-challenge.disabled {
+    border-color: #333;
+    color: #444;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.expires-label {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+}
+
+/* ── Empty state ── */
+.empty-state { text-align: center; padding: 80px 20px; color: var(--text-dim); }
+.empty-state i    { font-size: 3rem; opacity: 0.2; display: block; margin-bottom: 20px; }
+.empty-state p    { font-size: 0.75rem; letter-spacing: 3px; margin-bottom: 8px; }
+.empty-state span { font-size: 0.85rem; }

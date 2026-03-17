@@ -1,0 +1,448 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Base — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="home-wrapper">
+<div class="home-container">
+
+    <!-- ═══ COLUNA ESQUERDA — Player Card ═══ -->
+    <aside class="player-aside">
+        <div class="player-card">
+
+            <!-- Topo colorido por classe -->
+            <div class="player-card-strip classe-{{ player.classe|default:'guardian' }}"></div>
+
+            <!-- Avatar + Frame -->
+            <div class="avatar-zone">
+                <div class="avatar-frame-outer classe-{{ player.classe|default:'guardian' }}">
+                    <div class="avatar-frame-inner">
+                        {% if player.avatar %}
+                            <img src="{{ player.avatar.url }}" alt="avatar" class="avatar-img">
+                        {% else %}
+                            <div class="avatar-placeholder">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <!-- Ícone de classe no canto -->
+                    <div class="classe-badge classe-{{ player.classe|default:'guardian' }}">
+                        {% if player.classe == 'guardian' %}<i class="bi bi-shield-fill"></i>
+                        {% elif player.classe == 'analyst' %}<i class="bi bi-graph-up"></i>
+                        {% elif player.classe == 'sentinel' %}<i class="bi bi-eye-fill"></i>
+                        {% elif player.classe == 'hacker' %}<i class="bi bi-terminal-fill"></i>
+                        {% else %}<i class="bi bi-shield-fill"></i>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info do player -->
+            <div class="player-info">
+                <h2 class="player-name">{{ player.display_name|default:request.user.username }}</h2>
+                <p class="player-classe font-tech classe-txt-{{ player.classe|default:'guardian' }}">
+                    // {{ player.get_classe_display|default:'Guardian' }}
+                </p>
+            </div>
+
+            <!-- Barra de XP -->
+            <div class="xp-section">
+                <div class="xp-header">
+                    <span class="font-tech xp-label">EXP</span>
+                    <span class="font-tech xp-value">
+                        {% if player %}
+                            {{ player.xp_total }} / {{ player.xp_para_proximo_nivel }}
+                        {% else %}0 / 500{% endif %}
+                    </span>
+                </div>
+                <div class="xp-bar-bg">
+                    {% if player %}
+                        {% widthratio player.xp_total player.xp_para_proximo_nivel 100 as xp_pct %}
+                        <div class="xp-bar-fill" style="width: {{ xp_pct }}%"></div>
+                    {% else %}
+                        <div class="xp-bar-fill" style="width: 0%"></div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="player-stats">
+                <div class="stat-box">
+                    <span class="stat-val font-tech">{{ player.level|default:'1' }}</span>
+                    <span class="stat-key">LEVEL</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-val font-tech">{{ player.coins|default:'0' }}</span>
+                    <span class="stat-key">COINS</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-val font-tech streak-val">
+                        {{ player.streak_days|default:'0' }}
+                        <i class="bi bi-fire"></i>
+                    </span>
+                    <span class="stat-key">STREAK</span>
+                </div>
+            </div>
+
+            <!-- Ações rápidas -->
+            <div class="player-actions">
+                <a href="{% url 'profiles:index' %}" class="btn-player-action">
+                    <i class="bi bi-person-gear"></i> Meu Perfil
+                </a>
+                <a href="{% url 'challenges:index' %}" class="btn-player-action primary">
+                    <i class="bi bi-lightning-charge-fill"></i> Jogar
+                </a>
+            </div>
+
+            <!-- Card Patrulha Diária -->
+            <div class="patrol-card-wrapper">
+                {% if patrol_done %}
+                    {% if patrol_won %}
+                    <div class="patrol-card-static patrol-status-done">
+                        <i class="bi bi-shield-check fs-4"></i>
+                        <div class="patrol-card-info">
+                            <span>SISTEMA PROTEGIDO</span>
+                            <small>Patrulha concluída com sucesso</small>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="patrol-card-static patrol-status-failed">
+                        <i class="bi bi-shield-x fs-4"></i>
+                        <div class="patrol-card-info">
+                            <span>SISTEMA COMPROMETIDO</span>
+                            <small>Patrulha falhou hoje</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <div class="patrol-card-static patrol-status-ready"
+                        id="btn-trigger-patrol"
+                        data-bs-toggle="modal"
+                        data-bs-target="#patrolGameModal">
+                        <i class="bi bi-unlock-fill fs-4"></i>
+                        <div class="patrol-card-info">
+                            <span>PATRULHA DIÁRIA</span>
+                            <small>Sistema vulnerável — iniciar protocolo</small>
+                        </div>
+                        <i class="bi bi-chevron-right ms-auto opacity-50"></i>
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </aside>
+
+    <!-- Modal Codebreaker — fora do player-card, antes de fechar home-container -->
+    <div class="modal fade" id="patrolGameModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm" style="max-width:480px">
+            <div class="modal-content patrol-modal-content">
+
+                <!-- Header -->
+                <div class="patrol-modal-header">
+                    <div class="patrol-modal-title font-tech">
+                        <span class="patrol-modal-dot"></span>
+                        // CODEBREAKER — PATRULHA DIÁRIA
+                    </div>
+                    <button type="button" class="patrol-modal-close" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Legenda compacta -->
+                <div class="patrol-legend">
+                    <div class="patrol-legend-item">
+                        <span class="patrol-dot dot-correct"></span>
+                        <span>Certo · único</span>
+                    </div>
+                    <div class="patrol-legend-item">
+                        <span class="patrol-dot dot-correct-multi"></span>
+                        <span>Certo · repetido</span>
+                    </div>
+                    <div class="patrol-legend-item">
+                        <span class="patrol-dot dot-present"></span>
+                        <span>Errado · único</span>
+                    </div>
+                    <div class="patrol-legend-item">
+                        <span class="patrol-dot dot-multi"></span>
+                        <span>Errado · repetido</span>
+                    </div>
+                    <div class="patrol-legend-item">
+                        <span class="patrol-dot dot-absent"></span>
+                        <span>Ausente</span>
+                    </div>
+                </div>
+
+                <!-- Histórico de tentativas -->
+                <div id="codebreaker-history" class="patrol-history"></div>
+
+                <!-- Input -->
+                <div class="patrol-input-zone">
+                    <div class="patrol-digits" id="patrol-display">
+                        <span class="patrol-digit" id="pd-0">_</span>
+                        <span class="patrol-digit" id="pd-1">_</span>
+                        <span class="patrol-digit" id="pd-2">_</span>
+                        <span class="patrol-digit" id="pd-3">_</span>
+                    </div>
+                    <input type="text" id="patrol-input" class="patrol-input-hidden"
+                        maxlength="4" autocomplete="off" inputmode="numeric">
+                </div>
+
+                <!-- Footer -->
+                <div class="patrol-footer">
+                    <span class="font-tech patrol-status-label">
+                        <span class="patrol-status-dot" id="patrol-status-dot"></span>
+                        <span id="patrol-status-text">AGUARDANDO</span>
+                    </span>
+                    <div class="patrol-attempts-display">
+                        <span class="font-tech" id="patrol-attempts-count">0</span>
+                        <span class="patrol-attempts-sep">/</span>
+                        <span class="font-tech">10</span>
+                        <span class="patrol-attempts-label">TENT.</span>
+                    </div>
+                    <button id="submit-patrol-guess" class="btn-patrol-submit font-tech">
+                        ENTER <i class="bi bi-arrow-return-left"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ COLUNA DIREITA — Mural ═══ -->
+    <main class="mural-main">
+
+        <div class="section-header">
+            <span class="section-title">// TRANSMISSÕES DO SISTEMA</span>
+            <span class="section-count font-tech">{{ posts|length }} POST{{ posts|length|pluralize:"S" }}</span>
+        </div>
+
+        {% if posts %}
+            <div class="mural-feed">
+            {% for post in posts %}
+                <article class="mural-post tipo-{{ post.tipo }} {% if post.fixado %}post-pinned{% endif %}">
+
+                    <div class="post-header">
+                        <div class="post-meta-left">
+                            {% if post.fixado %}
+                            <span class="pin-badge font-tech">
+                                <i class="bi bi-pin-angle-fill"></i> FIXADO
+                            </span>
+                            {% endif %}
+                            <span class="post-tipo-badge tipo-badge-{{ post.tipo }} font-tech">
+                                {% if post.tipo == 'aviso' %}<i class="bi bi-megaphone-fill"></i>
+                                {% elif post.tipo == 'evento' %}<i class="bi bi-calendar-event-fill"></i>
+                                {% elif post.tipo == 'novidade' %}<i class="bi bi-stars"></i>
+                                {% elif post.tipo == 'manutencao' %}<i class="bi bi-tools"></i>
+                                {% endif %}
+                                {{ post.get_tipo_display|upper }}
+                            </span>
+                        </div>
+                        <span class="post-date font-tech">
+                            {{ post.criado_em|date:"d/m/Y H:i" }}
+                        </span>
+                    </div>
+
+                    <h3 class="post-titulo">{{ post.titulo }}</h3>
+                    <div class="post-conteudo">{{ post.conteudo|linebreaksbr }}</div>
+
+                    <div class="post-footer">
+                        <span class="post-autor font-tech">
+                            <i class="bi bi-person-badge"></i>
+                            {{ post.autor.get_full_name|default:post.autor.username|default:"Sistema" }}
+                        </span>
+                    </div>
+
+                </article>
+            {% endfor %}
+            </div>
+
+        {% else %}
+            <div class="mural-empty">
+                <i class="bi bi-broadcast"></i>
+                <p class="font-tech">// NENHUMA TRANSMISSÃO ATIVA</p>
+                <span>O administrador ainda não publicou nenhum post.</span>
+            </div>
+        {% endif %}
+
+    </main>
+
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const patrolInput = document.getElementById('patrol-input');
+    const submitBtn   = document.getElementById('submit-patrol-guess');
+    const historyEl   = document.getElementById('codebreaker-history');
+    const attemptsEl  = document.getElementById('patrol-attempts-count');
+    const statusEl    = document.getElementById('patrol-status-text');
+    const statusDot   = document.getElementById('patrol-status-dot');
+    const digits      = [0,1,2,3].map(i => document.getElementById(`pd-${i}`));
+    const inputZone   = document.querySelector('.patrol-input-zone');
+    const triggerBtn  = document.getElementById('btn-trigger-patrol');
+
+    if (!triggerBtn) return;
+
+    const URLS = {
+        start: "{% url 'minigames:patrol_start' %}",
+        guess: "{% url 'minigames:patrol_guess' %}",
+    };
+
+    function getCookie(name) {
+        const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return v ? v.pop() : '';
+    }
+
+    function updateDigitDisplay(val) {
+        digits.forEach((d, i) => {
+            d.textContent = val[i] || '_';
+            d.classList.toggle('filled', !!val[i]);
+            d.classList.toggle('active', i === val.length && val.length < 4);
+        });
+        if (val.length === 0) digits[0].classList.add('active');
+    }
+
+    function setStatus(state, text) {
+        statusEl.textContent = text;
+        statusDot.className  = 'patrol-status-dot ' + state;
+    }
+
+    function renderRow(guess, feedback) {
+        const iconMap = {
+            correct:       'dot-correct',
+            correct_multi: 'dot-correct-multi',
+            present:       'dot-present',
+            multi:         'dot-multi',
+            absent:        'dot-absent',
+        };
+        const icons = feedback.map(f =>
+            `<span class="patrol-dot ${iconMap[f] || 'dot-absent'}"></span>`
+        ).join('');
+
+        const row = document.createElement('div');
+        row.className = 'patrol-row';
+        row.innerHTML = `
+            <span class="patrol-row-guess">${guess}</span>
+            <div class="patrol-row-icons">${icons}</div>`;
+        historyEl.appendChild(row);
+
+        // Scroll automático para a última tentativa
+        historyEl.scrollTop = historyEl.scrollHeight;
+    }
+
+    function lockInput() {
+        patrolInput.disabled        = true;
+        submitBtn.disabled          = true;
+        inputZone.style.opacity     = '0.4';
+        inputZone.style.pointerEvents = 'none';
+    }
+
+    // Foca input quando modal abre
+    const modalEl = document.getElementById('patrolGameModal');
+    modalEl.addEventListener('shown.bs.modal', () => {
+        patrolInput.focus();
+        updateDigitDisplay('');
+    });
+
+    triggerBtn.addEventListener('click', async () => {
+        historyEl.innerHTML = '';
+        updateDigitDisplay('');
+        setStatus('', 'INICIALIZANDO');
+
+        const res  = await fetch(URLS.start, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+        const data = await res.json();
+
+        if (!res.ok) { alert(data.message); return; }
+
+        if (data.status === 'resume') {
+            attemptsEl.textContent = data.attempts;
+            data.history.forEach(item => renderRow(item.guess, item.feedback));
+        } else {
+            attemptsEl.textContent = '0';
+        }
+
+        setStatus('active', 'ATIVO');
+        patrolInput.disabled        = false;
+        submitBtn.disabled          = false;
+        inputZone.style.opacity     = '1';
+        inputZone.style.pointerEvents = 'auto';
+    });
+
+    patrolInput.addEventListener('input', () => {
+        const val = patrolInput.value.replace(/\D/g, '').slice(0, 4);
+        patrolInput.value = val;
+        updateDigitDisplay(val);
+    });
+
+    if (inputZone) inputZone.addEventListener('click', () => patrolInput.focus());
+
+    async function submitGuess() {
+        const guess = patrolInput.value.trim();
+        if (guess.length !== 4) {
+            digits.forEach(d => d.style.borderColor = 'rgba(255,42,109,0.8)');
+            setTimeout(() => digits.forEach(d => d.style.borderColor = ''), 600);
+            return;
+        }
+        submitBtn.disabled = true;
+
+        const res  = await fetch(URLS.guess, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ guess }),
+        });
+        const data = await res.json();
+
+        if (data.feedback) renderRow(data.guess, data.feedback);
+
+        attemptsEl.textContent = data.attempts;
+        patrolInput.value      = '';
+        updateDigitDisplay('');
+
+        if (data.status === 'win') {
+            const msg = document.createElement('div');
+            msg.className = 'patrol-result-msg win';
+            msg.innerHTML = `ACESSO LIBERADO // +${data.xp_earned} XP &nbsp;·&nbsp; +${data.coins_earned} COINS`;
+            historyEl.appendChild(msg);
+            historyEl.scrollTop = historyEl.scrollHeight;
+            lockInput();
+            setStatus('win', 'CONCLUÍDO');
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(modalEl)?.hide();
+            }, 2500);
+            setTimeout(() => location.reload(), 2800);
+
+        } else if (data.status === 'lose') {
+            const msg = document.createElement('div');
+            msg.className = 'patrol-result-msg lose';
+            msg.innerHTML = `ACESSO NEGADO &nbsp;//&nbsp; CÓDIGO ERA: <strong>${data.secret}</strong>`;
+            historyEl.appendChild(msg);
+            historyEl.scrollTop = historyEl.scrollHeight;
+            lockInput();
+            setStatus('lose', 'FALHOU');
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(modalEl)?.hide();
+            }, 3000);
+            setTimeout(() => location.reload(), 3300);
+
+        } else {
+            submitBtn.disabled = false;
+            patrolInput.focus();
+            setStatus('active', 'ATIVO');
+        }
+    }
+
+    submitBtn.addEventListener('click', submitGuess);
+    patrolInput.addEventListener('keypress', e => { if (e.key === 'Enter') submitGuess(); });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+# ─── Core ───────────────────────────────────────────────
+Django==5.1.4
+python-decouple==3.8          # Lê variáveis do .env
+
+# ─── Banco de Dados ──────────────────────────────────────
+#mysqlclient==2.2.5            # Conector MySQL nativo (recomendado)
+# django-mysql==4.14.0        # Extras para MySQL (adicionar depois se precisar)
+
+# ─── Autenticação SSO ────────────────────────────────────
+# Escolha UMA opção conforme o seu ambiente corporativo:
+
+# OPÇÃO A — Active Directory / LDAP direto (on-premise)
+django-auth-ldap==4.8.0
+#python-ldap==3.4.4
+
+# OPÇÃO B — Azure AD / Okta / Keycloak via OIDC (nuvem/moderno)
+# mozilla-django-oidc==4.0.1
+
+# ─── Utilitários ─────────────────────────────────────────
+Pillow==11.0.0                # Upload de imagens (avatares, etc.)
+django-crispy-forms==2.3      # Forms com estilo
+crispy-bootstrap5==2024.10    # Bootstrap 5 para crispy
+whitenoise==6.8.2             # Servir static files em produção
+
+# ─── Dev / Debug ─────────────────────────────────────────
+django-debug-toolbar==4.4.6   # Debug toolbar (remover em produção)
