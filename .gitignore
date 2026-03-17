@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ambientes Virtuais
+venv/
+env/
+.venv/
+
+# Configurações sensíveis e Variáveis de Ambiente
+.env
+
+# Banco de Dados (MySQL geralmente é externo, mas caso use SQLite para testes rápidos)
+*.sqlite3
+
+# Static & Media
+staticfiles/
+media/
+# Se você quiser subir os arquivos da pasta 'static' base, não adicione 'static/' aqui.
+# Apenas 'staticfiles/' (gerada pelo collectstatic) e 'media/' (uploads de usuários).
+
+# IDEs e Editores
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+
+# Pasta de tradução (opcional)
+# locale/ (recomendo manter se você for traduzir o app)
