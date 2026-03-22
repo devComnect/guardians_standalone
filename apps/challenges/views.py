@@ -2,7 +2,8 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
-from apps.minigames.models import Quiz, QuizAttempt, PasswordGameConfig, PasswordAttempt
+from apps.minigames.models import (Quiz, QuizAttempt, PasswordGameConfig, PasswordAttempt, DecriptarAttempt, DecriptarConfig,
+                                   CodigoConfig, CodigoAttempt)
 
 
 @login_required
@@ -26,6 +27,40 @@ def index(request):
         else:
             quiz_status[quiz.id] = 'concluido'
 
+    # ── Decriptar ─────────────────────────────────────────
+    decriptar_config  = DecriptarConfig.objects.filter(ativo=True).first()
+    decriptar_today   = decriptar_config and decriptar_config.is_active_today()
+    decriptar_attempt = None
+    decriptar_status  = None
+
+    if decriptar_today:
+        decriptar_attempt = DecriptarAttempt.objects.filter(
+            player=request.user, date=today
+        ).first()
+        if not decriptar_attempt:
+            decriptar_status = 'disponivel'
+        elif not decriptar_attempt.is_completed:
+            decriptar_status = 'em_andamento'
+        else:
+            decriptar_status = 'concluido'
+
+    # ── Código ───────────────────────────────────────────
+    codigo_config  = CodigoConfig.objects.filter(ativo=True).first()
+    codigo_today   = bool(codigo_config and codigo_config.is_active_today())
+    codigo_attempt = None
+    codigo_status  = None
+
+    if codigo_today:
+        codigo_attempt = CodigoAttempt.objects.filter(
+            player=request.user, config=codigo_config, date=today
+        ).first()
+        if not codigo_attempt:
+            codigo_status = 'disponivel'
+        elif not codigo_attempt.is_completed:
+            codigo_status = 'em_andamento'
+        else:
+            codigo_status = 'concluido'
+
     # ── Cofre de Senhas ──
     pw_config     = PasswordGameConfig.get()
     pw_disponivel = pw_config.ativo and pw_config.is_active_today()
@@ -36,10 +71,6 @@ def index(request):
         pw_attempt = PasswordAttempt.objects.filter(
             player=request.user,
         ).order_by('-started_at').first()
-
-        print(f"DEBUG pw_attempt raw: {pw_attempt}")
-        print(f"DEBUG started_at: {pw_attempt.started_at if pw_attempt else 'None'}")
-        print(f"DEBUG today: {today}")
 
         # Verifica se a tentativa é de hoje
         if pw_attempt and pw_attempt.started_at.date() != today:
@@ -54,8 +85,6 @@ def index(request):
         else:
             pw_status = 'falhou'
 
-        print(f"DEBUG pw_status final: {pw_status}")
-
     return render(request, 'challenges/index.html', {
         'today':          today,
         'quizzes':        available_quizzes,
@@ -64,4 +93,12 @@ def index(request):
         'pw_disponivel':  pw_disponivel,
         'pw_status':      pw_status,
         'pw_attempt':     pw_attempt if pw_disponivel and pw_status not in (None, 'disponivel') else None,
+        'decriptar_config':  decriptar_config,
+        'decriptar_today':   decriptar_today,
+        'decriptar_attempt': decriptar_attempt,
+        'decriptar_status':  decriptar_status,
+        'codigo_config':  codigo_config,
+        'codigo_today':   codigo_today,
+        'codigo_attempt': codigo_attempt,
+        'codigo_status':  codigo_status,
     })

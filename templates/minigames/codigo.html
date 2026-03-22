@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Código — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/codigo.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="codigo-container"
+     data-attempt-id="{{ attempt.id }}"
+     data-word-length="{{ word_length }}"
+     data-max-attempts="{{ max_attempts }}"
+     data-timer="{{ remaining_time }}"
+     data-xp="{{ xp_reward }}">
+
+    <!-- HUD -->
+    <header class="cod-hud">
+        <div class="hud-block">
+            <span class="hud-label font-tech">TIMER</span>
+            <div id="timer-display" class="hud-value font-tech">
+                {% if config.time_limit_seconds %}--:--{% else %}LIVRE{% endif %}
+            </div>
+        </div>
+
+        <div class="hud-block hud-center">
+            <span class="hud-logo font-tech">// CÓDIGO</span>
+            <span class="hud-sub font-tech">{{ word_length }} LETRAS · {{ max_attempts }} TENTATIVAS</span>
+        </div>
+
+        <div class="hud-block hud-right">
+            <span class="hud-label font-tech">XP POTENCIAL</span>
+            <div class="hud-value font-tech" id="xp-display">{{ xp_reward }}</div>
+        </div>
+
+        <button type="button" id="abort-btn" class="hud-abort-btn" title="Abandonar">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </header>
+
+    <!-- Game -->
+    <main class="cod-main">
+
+        <!-- Tabuleiro -->
+        <div id="game-board" class="game-board"></div>
+
+        <!-- Console -->
+        <div id="console-msg" class="console-msg font-tech">
+            Aguardando input de comando...
+        </div>
+
+        <!-- Input -->
+        <div class="cod-controls">
+            <div class="input-wrapper">
+                <input
+                    type="text"
+                    id="word-input"
+                    class="cod-input font-tech"
+                    maxlength="{{ word_length }}"
+                    placeholder="INSIRA CÓDIGO DE {{ word_length }} LETRAS"
+                    autocomplete="off"
+                    autocorrect="off"
+                    spellcheck="false">
+            </div>
+
+            <div class="btn-row">
+                <button id="hint-btn" class="btn-cod btn-hint" title="Dica">
+                    <i class="bi bi-lightbulb"></i> DICA
+                </button>
+                <button id="submit-btn" class="btn-cod btn-submit">
+                    <i class="bi bi-terminal"></i> EXECUTAR
+                </button>
+            </div>
+        </div>
+
+        <!-- Legenda -->
+        <div class="legend font-tech">
+            <span class="legend-item correct-ex">CORRETO</span>
+            <span class="legend-item present-ex">PRESENTE</span>
+            <span class="legend-item absent-ex">AUSENTE</span>
+        </div>
+
+        <!-- Segurança -->
+        <div class="security-notice font-tech">
+            <i class="bi bi-shield-lock-fill"></i>
+            PROTOCOLO ATIVO — NÃO SAIA DA PÁGINA. DESCONEXÃO = FALHA IMEDIATA.
+        </div>
+
+    </main>
+</div>
+
+<script id="guesses-data" type="application/json">{{ guesses_payload|safe }}</script>
+<script>
+    window.CSRF_TOKEN = '{{ csrf_token }}';
+    window.WORD_HINT  = '{{ word_hint|escapejs }}';
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/codigo.js' %}"></script>
+{% endblock %}

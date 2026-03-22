@@ -30,7 +30,6 @@
                             </div>
                         {% endif %}
                     </div>
-                    <!-- Ícone de classe no canto -->
                     <div class="classe-badge classe-{{ player.classe|default:'guardian' }}">
                         {% if player.classe == 'guardian' %}<i class="bi bi-shield-fill"></i>
                         {% elif player.classe == 'analyst' %}<i class="bi bi-graph-up"></i>
@@ -48,25 +47,27 @@
                 <p class="player-classe font-tech classe-txt-{{ player.classe|default:'guardian' }}">
                     // {{ player.get_classe_display|default:'Guardian' }}
                 </p>
+                {% if ranking_pos %}
+                <span class="player-rank-badge font-tech">
+                    <i class="bi bi-bar-chart-fill"></i> #{{ ranking_pos }} no ranking
+                </span>
+                {% endif %}
             </div>
 
             <!-- Barra de XP -->
             <div class="xp-section">
                 <div class="xp-header">
-                    <span class="font-tech xp-label">EXP</span>
+                    <span class="font-tech xp-label">
+                        EXP — LV.{{ player.level|default:'1' }}
+                    </span>
                     <span class="font-tech xp-value">
                         {% if player %}
-                            {{ player.xp_total }} / {{ player.xp_para_proximo_nivel }}
-                        {% else %}0 / 500{% endif %}
+                            {{ player.xp_no_nivel_atual }} / {{ player.xp_necessario_nivel_atual }}
+                        {% else %}0 / 50{% endif %}
                     </span>
                 </div>
                 <div class="xp-bar-bg">
-                    {% if player %}
-                        {% widthratio player.xp_total player.xp_para_proximo_nivel 100 as xp_pct %}
-                        <div class="xp-bar-fill" style="width: {{ xp_pct }}%"></div>
-                    {% else %}
-                        <div class="xp-bar-fill" style="width: 0%"></div>
-                    {% endif %}
+                    <div class="xp-bar-fill" style="width: {% if player %}{{ player.xp_percentual }}{% else %}0{% endif %}%"></div>
                 </div>
             </div>
 
@@ -81,7 +82,7 @@
                     <span class="stat-key">COINS</span>
                 </div>
                 <div class="stat-box">
-                    <span class="stat-val font-tech streak-val">
+                    <span class="stat-val font-tech streak-val {% if player.streak_days >= 7 %}streak-hot{% endif %}">
                         {{ player.streak_days|default:'0' }}
                         <i class="bi bi-fire"></i>
                     </span>

@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Rankings — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/rankings.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="rankings-wrapper">
+<div class="rankings-container">
+
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title font-tech">// RANKINGS</h1>
+            {% if season %}
+            <p class="page-sub font-tech">
+                SEASON {{ season.numero }} — {{ season.nome|upper }}
+                &nbsp;·&nbsp;
+                <span class="{% if season.dias_restantes <= 7 %}timer-urgent{% endif %}">
+                    {{ season.dias_restantes }} DIA{{ season.dias_restantes|pluralize:"S" }} RESTANTE{{ season.dias_restantes|pluralize:"S" }}
+                </span>
+            </p>
+            {% else %}
+            <p class="page-sub font-tech">// NENHUMA TEMPORADA ATIVA</p>
+            {% endif %}
+        </div>
+
+        {% if minha_posicao %}
+        <div class="my-position-hud">
+            <span class="my-pos-label font-tech">SUA POSIÇÃO</span>
+            <span class="my-pos-value font-tech">#{{ minha_posicao.posicao }}</span>
+            <span class="my-pos-val font-tech">{{ minha_posicao.valor }}
+                {% if categoria == 'xp' %}XP
+                {% elif categoria == 'moedas' %}⬡
+                {% else %}✓{% endif %}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if not season %}
+    <div class="empty-state">
+        <i class="bi bi-trophy"></i>
+        <p class="font-tech">// NENHUMA TEMPORADA ATIVA</p>
+        <span>Aguarde o início da próxima temporada.</span>
+    </div>
+    {% else %}
+
+    <!-- Tabs de categoria -->
+    <div class="rank-tabs">
+        <a href="?tab=xp"       class="rank-tab {% if categoria == 'xp' %}active{% endif %}">
+            <i class="bi bi-star-fill"></i> XP
+        </a>
+        <a href="?tab=ofensiva"  class="rank-tab {% if categoria == 'ofensiva' %}active{% endif %}">
+            <i class="bi bi-lightning-charge-fill"></i> OFENSIVA
+        </a>
+        <a href="?tab=moedas"   class="rank-tab {% if categoria == 'moedas' %}active{% endif %}">
+            <i class="bi bi-coin"></i> MOEDAS
+        </a>
+    </div>
+
+    <!-- Pódio top 3 -->
+    {% if podio or tabela %}
+    <div class="podium-section">
+        {% for snap in podio %}
+        <div class="podium-card pos-{{ forloop.counter }} {% if snap.player == request.user %}podium-mine{% endif %}">
+            <div class="podium-crown">
+                {% if forloop.counter == 1 %}<i class="bi bi-trophy-fill"></i>
+                {% elif forloop.counter == 2 %}<i class="bi bi-award-fill"></i>
+                {% else %}<i class="bi bi-patch-check-fill"></i>
+                {% endif %}
+            </div>
+
+            <div class="podium-avatar">
+                {% if snap.player.player.avatar %}
+                    <img src="{{ snap.player.player.avatar.url }}" alt="avatar">
+                {% else %}
+                    <i class="bi bi-person-fill"></i>
+                {% endif %}
+            </div>
+
+            <div class="podium-info">
+                <span class="podium-name">
+                    {{ snap.player.player.display_name|default:snap.player.username }}
+                </span>
+                <span class="podium-classe font-tech">
+                    {{ snap.player.player.get_classe_display|default:'—' }}
+                </span>
+            </div>
+
+            <div class="podium-valor font-tech">
+                {{ snap.valor }}
+                {% if categoria == 'xp' %}XP
+                {% elif categoria == 'moedas' %}⬡
+                {% else %}✓{% endif %}
+            </div>
+
+            <div class="podium-base"></div>
+            <div class="podium-number font-tech">#{{ forloop.counter }}</div>
+        </div>
+        {% empty %}
+        <div class="empty-state" style="padding: 40px;">
+            <i class="bi bi-people"></i>
+            <p class="font-tech">// SEM DADOS AINDA</p>
+            <span>Execute <code>python manage.py calcular_ranking</code> para gerar o ranking.</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Tabela 4º em diante -->
+    {% if tabela %}
+    <div class="rank-table">
+        <div class="rank-table-header font-tech">
+            <span>#</span>
+            <span>PLAYER</span>
+            <span>CLASSE</span>
+            <span>VALOR</span>
+        </div>
+
+        {% for snap in tabela %}
+        <div class="rank-row {% if snap.player == request.user %}rank-row-mine{% endif %}">
+            <span class="rank-pos font-tech">{{ snap.posicao }}</span>
+
+            <div class="rank-player">
+                <div class="rank-avatar">
+                    {% if snap.player.player.avatar %}
+                        <img src="{{ snap.player.player.avatar.url }}" alt="">
+                    {% else %}
+                        <i class="bi bi-person-fill"></i>
+                    {% endif %}
+                </div>
+                <span class="rank-name">
+                    {{ snap.player.player.display_name|default:snap.player.username }}
+                </span>
+            </div>
+
+            <span class="rank-classe font-tech">
+                {{ snap.player.player.get_classe_display|default:'—' }}
+            </span>
+
+            <span class="rank-valor font-tech">
+                {{ snap.valor }}
+                {% if categoria == 'xp' %}XP
+                {% elif categoria == 'moedas' %}⬡
+                {% else %}✓{% endif %}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-people"></i>
+        <p class="font-tech">// RANKING AINDA NÃO CALCULADO</p>
+        <span>Execute <code>python manage.py calcular_ranking</code> para popular o ranking.</span>
+    </div>
+    {% endif %}
+
+    <!-- Prêmios da temporada -->
+    {% if season.premio_descricao %}
+    <div class="prizes-panel">
+        <div class="prizes-header font-tech">
+            <i class="bi bi-gift-fill"></i> PRÊMIOS DA TEMPORADA
+        </div>
+        <div class="prizes-body">
+            {{ season.premio_descricao|linebreaksbr }}
+        </div>
+    </div>
+    {% endif %}
+
+    {% endif %}{# /season #}
+
+</div>
+</div>
+{% endblock %}

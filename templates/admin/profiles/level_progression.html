@@ -1,0 +1,72 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>📊 Tabela de Progressão de Níveis</h1>
+
+<p style="color:#8b949e; margin-bottom:20px;">
+    Fórmula: <code>XP = 50 × nível²·⁵</code> &nbsp;·&nbsp;
+    Curva agressiva: começa fácil, cresce rapidamente a partir do nível 10.
+</p>
+
+<table style="width:100%; border-collapse:collapse; font-family:monospace;">
+    <thead>
+        <tr style="background:#1f2833; color:#0dcaf0;">
+            <th style="padding:10px; text-align:left; border-bottom:2px solid #0dcaf0;">Nível</th>
+            <th style="padding:10px; text-align:left; border-bottom:2px solid #0dcaf0;">XP Total Necessário</th>
+            <th style="padding:10px; text-align:left; border-bottom:2px solid #0dcaf0;">XP Neste Nível</th>
+            <th style="padding:10px; text-align:left; border-bottom:2px solid #0dcaf0;">Dificuldade</th>
+            <th style="padding:10px; text-align:left; border-bottom:2px solid #0dcaf0;">Barra</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in tabela %}
+        <tr style="border-bottom:1px solid #2d3748;
+            {% if row.nivel <= 10 %}background:#0b1a0b;
+            {% elif row.nivel <= 25 %}background:#1a1a0b;
+            {% elif row.nivel <= 40 %}background:#1a0b0b;
+            {% else %}background:#1a0b1a;{% endif %}">
+
+            <td style="padding:8px 10px; font-weight:bold;
+                {% if row.nivel <= 10 %}color:#05d9e8;
+                {% elif row.nivel <= 25 %}color:#fcee0a;
+                {% elif row.nivel <= 40 %}color:#ff2a6d;
+                {% else %}color:#bd00ff;{% endif %}">
+                Lv. {{ row.nivel }}
+            </td>
+
+            <td style="padding:8px 10px; color:#e0e0e0;">
+                {{ row.xp_total|floatformat:0 }} XP
+            </td>
+
+            <td style="padding:8px 10px; color:#8b949e;">
+                +{{ row.xp_delta|floatformat:0 }} XP
+            </td>
+
+            <td style="padding:8px 10px;">
+                {% if row.dificuldade == 'Fácil' %}
+                    <span style="color:#05d9e8;">● Fácil</span>
+                {% elif row.dificuldade == 'Médio' %}
+                    <span style="color:#fcee0a;">● Médio</span>
+                {% elif row.dificuldade == 'Difícil' %}
+                    <span style="color:#ff2a6d;">● Difícil</span>
+                {% else %}
+                    <span style="color:#bd00ff;">● Extremo</span>
+                {% endif %}
+            </td>
+
+            <td style="padding:8px 10px;">
+                <div style="background:#0b0c10; border:1px solid #333;
+                            border-radius:2px; height:8px; width:200px; overflow:hidden;">
+                    <div style="height:100%;
+                        width:{% widthratio row.xp_total 500000 100 %}%;
+                        background:linear-gradient(90deg,#0dcaf0,#bd00ff);
+                        max-width:100%;"></div>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<br>
+<a href="../" style="color:#0dcaf0;">← Voltar para Players</a>
+{% endblock %}

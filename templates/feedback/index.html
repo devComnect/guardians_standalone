@@ -1,0 +1,373 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Feedback — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/feedback.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="feedback-wrapper">
+<div class="feedback-container">
+
+    <div class="page-header">
+        <h1 class="page-title font-tech">// FEEDBACK</h1>
+        <p class="page-sub font-tech">REPORTE BUGS · SUGIRA MELHORIAS · ENVIE VULNERABILIDADES</p>
+    </div>
+
+    <div class="feedback-layout">
+
+        <!-- ═══ FORMULÁRIO ═══ -->
+        <div class="feedback-form-panel">
+
+            <!-- Tabela de recompensas — antes do form -->
+            <div class="reward-table">
+                <button class="reward-table-title font-tech" id="reward-toggle" aria-expanded="false">
+                    <span><i class="bi bi-coin"></i> TABELA DE RECOMPENSAS</span>
+                    <i class="bi bi-chevron-down reward-chevron" id="reward-chevron"></i>
+                </button>
+                <div class="reward-table-body" id="reward-body" style="display:none;">
+                    <div class="reward-row">
+                        <span><i class="bi bi-lightbulb-fill" style="color:var(--neon-blue)"></i> Sugestão implementada</span>
+                        <span class="font-tech reward-val">{{ coin_config.coins_sugestao_implementada }} ⬡</span>
+                    </div>
+                    <div class="reward-row">
+                        <span><i class="bi bi-chat-square-text-fill" style="color:var(--neon-green)"></i> Feedback válido</span>
+                        <span class="font-tech reward-val">{{ coin_config.coins_feedback_valido }} ⬡</span>
+                    </div>
+                    <div class="reward-row">
+                        <span><i class="bi bi-bug-fill" style="color:var(--neon-gold)"></i> Bug confirmado</span>
+                        <span class="font-tech reward-val">{{ coin_config.coins_bug_confirmado }} ⬡</span>
+                    </div>
+                    <div class="reward-row">
+                        <span><i class="bi bi-shield-exclamation" style="color:var(--neon-red)"></i> Vulnerabilidade</span>
+                        <span class="font-tech reward-val">{{ coin_config.coins_vulnerabilidade }} ⬡</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-label font-tech">
+                <i class="bi bi-terminal"></i> NOVO PROTOCOLO
+            </div>
+
+            <form method="POST" action="{% url 'feedback:index' %}" class="fb-form" autocomplete="off" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- Tipo -->
+                <div class="fb-field">
+                    <label class="fb-label font-tech">// CATEGORIA</label>
+                    <div class="tipo-grid">
+                        {% for value, label in tipos %}
+                        <label class="tipo-option">
+                            <input type="radio" name="tipo" value="{{ value }}" class="visually-hidden" required
+                                {% if value == 'feedback' %}checked{% endif %}>
+                            <div class="tipo-btn font-tech tipo-{{ value }}">
+                                {% if value == 'sugestao' %}<i class="bi bi-lightbulb-fill"></i>
+                                {% elif value == 'feedback' %}<i class="bi bi-chat-square-text-fill"></i>
+                                {% elif value == 'bug' %}<i class="bi bi-bug-fill"></i>
+                                {% elif value == 'vulnerabilidade' %}<i class="bi bi-shield-exclamation"></i>
+                                {% endif %}
+                                <span>{{ label|upper }}</span>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Título -->
+                <div class="fb-field">
+                    <label class="fb-label font-tech" for="titulo">// TÍTULO</label>
+                    <input
+                        type="text"
+                        id="titulo"
+                        name="titulo"
+                        class="fb-input font-tech"
+                        placeholder="Descreva brevemente..."
+                        maxlength="200"
+                        required>
+                </div>
+
+                <!-- Descrição -->
+                <div class="fb-field">
+                    <label class="fb-label font-tech" for="descricao">// DESCRIÇÃO DETALHADA</label>
+                    <textarea
+                        id="descricao"
+                        name="descricao"
+                        class="fb-textarea font-tech"
+                        placeholder="Forneça o máximo de detalhes possível..."
+                        rows="6"
+                        required></textarea>
+                </div>
+
+                <!-- Upload de anexo -->
+                <div class="fb-field">
+                    <label class="fb-label font-tech">// ANEXO <span style="color:var(--text-dim);">(OPCIONAL)</span></label>
+                    <label class="fb-upload-area" id="upload-area">
+                        <input type="file" name="anexo" id="anexo-input" accept="image/png,image/jpeg,image/webp,image/gif" class="visually-hidden">
+                        <div class="upload-placeholder" id="upload-placeholder">
+                            <i class="bi bi-image"></i>
+                            <span class="font-tech">CLIQUE OU ARRASTE UMA IMAGEM</span>
+                            <span class="upload-hint">PNG · JPG · WEBP · GIF — máx. 5MB</span>
+                        </div>
+                        <div class="upload-preview" id="upload-preview" style="display:none;">
+                            <img id="preview-img" src="" alt="preview">
+                            <button type="button" class="upload-remove font-tech" id="remove-img">
+                                <i class="bi bi-x"></i> REMOVER
+                            </button>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Anônimo -->
+                <div class="fb-field fb-field-inline">
+                    <label class="fb-toggle">
+                        <input type="checkbox" name="anonimo" id="anonimo">
+                        <span class="toggle-track"></span>
+                        <span class="toggle-label font-tech">ENVIAR ANONIMAMENTE</span>
+                    </label>
+                    <span class="toggle-hint">Seu nome não aparecerá para os administradores.</span>
+                </div>
+
+                <!-- Aviso vulnerabilidade -->
+                <div class="vuln-notice font-tech" id="vuln-notice" style="display:none;">
+                    <i class="bi bi-shield-exclamation"></i>
+                    Reportes de vulnerabilidade são tratados com prioridade máxima e total confidencialidade.
+                </div>
+
+                <button type="submit" class="btn-submit-fb font-tech">
+                    <i class="bi bi-send-fill"></i>
+                    <span>TRANSMITIR PROTOCOLO</span>
+                    <div class="btn-glow"></div>
+                </button>
+
+            </form>
+        </div>
+
+        <!-- ═══ HISTÓRICO ═══ -->
+        <div class="feedback-history-panel">
+
+            <div class="panel-label font-tech">
+                <i class="bi bi-clock-history"></i> HISTÓRICO
+            </div>
+
+            {% if meus_feedbacks %}
+            <div class="history-feed">
+                {% for fb in meus_feedbacks %}
+                {% if not fb.coins_collected or fb.status != 'resolvido' %}
+                <div class="history-item tipo-{{ fb.tipo }}" id="fb-{{ fb.id }}">
+
+                    <div class="history-header">
+                        <div class="history-meta-left">
+                            <span class="history-tipo font-tech tipo-badge-{{ fb.tipo }}">
+                                {% if fb.tipo == 'sugestao' %}<i class="bi bi-lightbulb-fill"></i>
+                                {% elif fb.tipo == 'feedback' %}<i class="bi bi-chat-square-text-fill"></i>
+                                {% elif fb.tipo == 'bug' %}<i class="bi bi-bug-fill"></i>
+                                {% elif fb.tipo == 'vulnerabilidade' %}<i class="bi bi-shield-exclamation"></i>
+                                {% endif %}
+                                {{ fb.get_tipo_display|upper }}
+                            </span>
+                            <span class="history-status font-tech status-{{ fb.status }}">
+                                {% if fb.status == 'aberto' %}<i class="bi bi-circle-fill"></i>
+                                {% elif fb.status == 'em_analise' %}<i class="bi bi-hourglass-split"></i>
+                                {% elif fb.status == 'resolvido' %}<i class="bi bi-check-circle-fill"></i>
+                                {% elif fb.status == 'descartado' %}<i class="bi bi-x-circle-fill"></i>
+                                {% endif %}
+                                {{ fb.get_status_display|upper }}
+                            </span>
+                        </div>
+                        <span class="history-date font-tech">{{ fb.criado_em|date:"d/m/Y H:i" }}</span>
+                    </div>
+
+                    <h4 class="history-titulo">{{ fb.titulo }}</h4>
+                    <p class="history-desc">{{ fb.descricao|truncatechars:120 }}</p>
+
+                    {% if fb.anonimo %}
+                    <span class="anon-badge font-tech"><i class="bi bi-incognito"></i> ANÔNIMO</span>
+                    {% endif %}
+
+                    {% if fb.anexo %}
+                    <a href="{{ fb.anexo.url }}" target="_blank" class="history-anexo font-tech">
+                        <i class="bi bi-image"></i> VER ANEXO
+                    </a>
+                    {% endif %}
+
+                    <!-- Botão de coleta de moedas -->
+                    {% if fb.status == 'resolvido' and not fb.coins_collected and fb.coin_reward > 0 %}
+                    <button
+                        class="btn-coletar font-tech"
+                        data-id="{{ fb.id }}"
+                        data-coins="{{ fb.coin_reward }}">
+                        <span class="coletar-icon">⬡</span>
+                        <span class="coletar-text">COLETAR {{ fb.coin_reward }} MOEDA{{ fb.coin_reward|pluralize:"S" }}</span>
+                        <div class="coletar-particles" aria-hidden="true"></div>
+                    </button>
+                    {% endif %}
+
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+
+            {% else %}
+            <div class="history-empty">
+                <i class="bi bi-inbox"></i>
+                <p class="font-tech">// SEM REGISTROS</p>
+                <span>Seus feedbacks enviados aparecerão aqui.</span>
+            </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Mostra aviso ao selecionar "vulnerabilidade"
+document.querySelectorAll('input[name="tipo"]').forEach(radio => {
+    radio.addEventListener('change', function () {
+        const notice = document.getElementById('vuln-notice');
+        notice.style.display = this.value === 'vulnerabilidade' ? 'flex' : 'none';
+    });
+});
+
+// Realça o botão de tipo selecionado
+document.querySelectorAll('.tipo-option input').forEach(input => {
+    input.addEventListener('change', function () {
+        document.querySelectorAll('.tipo-btn').forEach(btn => btn.classList.remove('selected'));
+        this.closest('.tipo-option').querySelector('.tipo-btn').classList.add('selected');
+    });
+    // Estado inicial
+    if (input.checked) {
+        input.closest('.tipo-option').querySelector('.tipo-btn').classList.add('selected');
+    }
+});
+
+
+// Preview de imagem
+const input    = document.getElementById('anexo-input');
+const area     = document.getElementById('upload-area');
+const placeholder = document.getElementById('upload-placeholder');
+const preview  = document.getElementById('upload-preview');
+const previewImg = document.getElementById('preview-img');
+const removeBtn  = document.getElementById('remove-img');
+
+function showPreview(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        previewImg.src         = e.target.result;
+        placeholder.style.display = 'none';
+        preview.style.display     = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+input.addEventListener('change', () => { if (input.files[0]) showPreview(input.files[0]); });
+
+removeBtn.addEventListener('click', e => {
+    e.preventDefault();
+    input.value               = '';
+    previewImg.src            = '';
+    preview.style.display     = 'none';
+    placeholder.style.display = 'flex';
+});
+
+// Drag & drop
+area.addEventListener('dragover',  e => { e.preventDefault(); area.classList.add('drag-over'); });
+area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
+area.addEventListener('drop', e => {
+    e.preventDefault();
+    area.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        // Injeta no input
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        showPreview(file);
+    }
+});
+
+// ── Coletar moedas ──────────────────────────────
+document.querySelectorAll('.btn-coletar').forEach(btn => {
+    btn.addEventListener('click', async function () {
+        const fbId  = this.dataset.id;
+        const coins = parseInt(this.dataset.coins);
+        const item  = document.getElementById(`fb-${fbId}`);
+
+        this.classList.add('collecting');
+
+        // Partículas visuais
+        spawnCoins(this, coins);
+
+        try {
+            const res  = await fetch('/feedback/coletar-moedas/', {
+                method:  'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken':  window.CSRF_TOKEN || 
+                        document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '',
+                },
+                body: JSON.stringify({ feedback_id: fbId }),
+            });
+
+            const data = await res.json();
+
+            if (data.ok) {
+                // Atualiza saldo na navbar se existir
+                const coinEl = document.querySelector('.hud-stat .bi-coin + span') ||
+                               document.querySelector('.hud-stat');
+                // Aguarda animação e some com o item
+                setTimeout(() => {
+                    item.classList.add('fade-out');
+                    setTimeout(() => item.remove(), 650);
+                }, 600);
+            }
+
+        } catch(e) {
+            console.error(e);
+            this.classList.remove('collecting');
+        }
+    });
+});
+
+function spawnCoins(btn, count) {
+    const container = btn.querySelector('.coletar-particles');
+    const total = Math.min(count * 3, 12);
+    for (let i = 0; i < total; i++) {
+        const p = document.createElement('span');
+        p.textContent = '⬡';
+        p.style.cssText = `
+            position: absolute;
+            font-size: ${0.6 + Math.random() * 0.6}rem;
+            left: ${20 + Math.random() * 60}%;
+            top: 50%;
+            color: var(--neon-gold);
+            opacity: 1;
+            pointer-events: none;
+            animation: particle-fly ${0.5 + Math.random() * 0.5}s ease forwards;
+            animation-delay: ${Math.random() * 0.3}s;
+        `;
+        container.appendChild(p);
+        setTimeout(() => p.remove(), 1000);
+    }
+}
+
+// ── Tabela de recompensas colapsável ───────────
+const rewardToggle = document.getElementById('reward-toggle');
+const rewardBody   = document.getElementById('reward-body');
+
+if (rewardToggle && rewardBody) {
+    rewardToggle.addEventListener('click', function () {
+        const expanded = this.getAttribute('aria-expanded') === 'true';
+        this.setAttribute('aria-expanded', !expanded);
+        rewardBody.style.display = expanded ? 'none' : 'block';
+    });
+}
+</script>
+{% endblock %}

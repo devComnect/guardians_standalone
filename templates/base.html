@@ -36,7 +36,60 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-{% block extra_js %}
-{% endblock %}
+    <!-- Notificações — FORA do block extra_js para nunca ser sobrescrito pelas páginas filhas -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var notifBtn      = document.getElementById('notif-btn');
+        var notifDropdown = document.getElementById('notif-dropdown');
+        var markAllRead   = document.getElementById('mark-all-read');
+
+        if (!notifBtn || !notifDropdown) return;
+
+        // Abre e fecha o dropdown
+        notifBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            var isVisible = notifDropdown.style.display === 'block';
+            notifDropdown.style.display = isVisible ? 'none' : 'block';
+        });
+
+        // Fecha ao clicar fora do wrapper inteiro
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('#notif-wrapper')) return;
+            notifDropdown.style.display = 'none';
+        });
+
+        // Marcar todas como lidas
+        if (markAllRead) {
+            markAllRead.addEventListener('click', async function (e) {
+                e.stopPropagation();
+                var url  = notifBtn.dataset.urlLidas;
+                var csrf = notifBtn.dataset.csrf;
+
+                try {
+                    await fetch(url, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrf }
+                    });
+                } catch (err) {
+                    console.error('Erro ao marcar notificações:', err);
+                }
+
+                var list = document.querySelector('.notif-list');
+                if (list) {
+                    list.innerHTML = '<div class="notif-empty font-tech">// SEM NOTIFICAÇÕES</div>';
+                }
+                var badge = document.querySelector('.notif-badge');
+                if (badge) badge.remove();
+
+                notifDropdown.style.display = 'none';
+            });
+        }
+    });
+    </script>
+
+    <!-- Scripts específicos de cada página vêm aqui — APÓS o script de notificações -->
+    {% block extra_js %}{% endblock %}
+
 </body>
 </html>

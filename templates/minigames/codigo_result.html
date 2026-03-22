@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load cg_filters %} 
+
+{% block title %}Resultado — Código{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/codigo.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="result-wrapper">
+    <div class="result-panel {% if is_perfect %}result-perfect{% elif attempt.timer_expired or not attempt.won %}result-fail{% elif attempt.abandoned %}result-abandoned{% endif %}">
+
+        <div class="result-strip"></div>
+
+        <div class="result-icon">
+            {% if attempt.won %}
+                <i class="bi bi-trophy-fill"></i>
+            {% elif attempt.timer_expired %}
+                <i class="bi bi-alarm-fill"></i>
+            {% elif attempt.abandoned %}
+                <i class="bi bi-flag-fill"></i>
+            {% else %}
+                <i class="bi bi-x-circle-fill"></i>
+            {% endif %}
+        </div>
+
+        <h1 class="result-title font-tech">
+            {% if attempt.won and is_perfect %}// DECRIPTAÇÃO PERFEITA
+            {% elif attempt.won %}// CÓDIGO DECRIPTADO
+            {% elif attempt.timer_expired %}// TEMPO ESGOTADO
+            {% elif attempt.abandoned %}// PROTOCOLO ABANDONADO
+            {% else %}// CÓDIGO NÃO DECRIPTADO{% endif %}
+        </h1>
+
+        <!-- Replay do tabuleiro -->
+        <div class="result-board">
+            {% for g in attempt.guesses %}
+            <div class="result-row">
+                {% for fb in g.feedback %}
+                <div class="result-box {{ fb }}">
+                    {{ g.guess|letter_at:forloop.counter0 }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Palavra secreta revelada -->
+        <div class="result-secret">
+            <span class="secret-label font-tech">// PALAVRA SECRETA</span>
+            <div class="secret-word font-tech">{{ attempt.secret_word }}</div>
+        </div>
+
+        <div class="result-stats">
+            <div class="result-stat">
+                <span class="stat-big font-tech">{{ attempt.xp_earned }}</span>
+                <span class="stat-lbl">XP GANHO</span>
+            </div>
+            <div class="result-stat">
+                <span class="stat-big font-tech">{{ attempt.guesses|length }}/{{ config.max_attempts }}</span>
+                <span class="stat-lbl">TENTATIVAS</span>
+            </div>
+            <div class="result-stat">
+                <span class="stat-big font-tech">{{ attempt.coins_earned }}</span>
+                <span class="stat-lbl">COINS</span>
+            </div>
+        </div>
+
+        <div class="result-actions">
+            <a href="{% url 'challenges:index' %}" class="btn-result">
+                <i class="bi bi-arrow-left"></i> DESAFIOS
+            </a>
+            <a href="{% url 'core:home' %}" class="btn-result secondary">
+                <i class="bi bi-house-door"></i> BASE
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

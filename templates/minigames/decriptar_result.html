@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Resultado — Decriptar{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/decriptar.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="result-wrapper">
+    <div class="result-panel {% if is_perfect %}result-perfect{% elif attempt.timer_expired %}result-fail{% elif attempt.abandoned %}result-abandoned{% endif %}">
+
+        <div class="result-strip"></div>
+
+        <div class="result-icon">
+            {% if is_perfect %}<i class="bi bi-trophy-fill"></i>
+            {% elif attempt.timer_expired %}<i class="bi bi-alarm-fill"></i>
+            {% elif attempt.abandoned %}<i class="bi bi-flag-fill"></i>
+            {% else %}<i class="bi bi-shield-check"></i>{% endif %}
+        </div>
+
+        <h1 class="result-title font-tech">
+            {% if is_perfect %}// DECRIPTAÇÃO COMPLETA
+            {% elif attempt.timer_expired %}// TEMPO ESGOTADO
+            {% elif attempt.abandoned %}// MISSÃO ABANDONADA
+            {% else %}// SESSÃO ENCERRADA{% endif %}
+        </h1>
+
+        <p class="result-subtitle">Decriptar — {{ attempt.date|date:"d/m/Y" }}</p>
+
+        <div class="result-stats">
+            <div class="result-stat">
+                <span class="stat-big font-tech">{{ attempt.xp_earned }}</span>
+                <span class="stat-lbl">XP GANHO</span>
+            </div>
+            <div class="result-stat">
+                <span class="stat-big font-tech">{{ attempt.correct_count }}/{{ total_words }}</span>
+                <span class="stat-lbl">PALAVRAS</span>
+            </div>
+            <div class="result-stat">
+                <span class="stat-big font-tech">{{ attempt.coins_earned }}</span>
+                <span class="stat-lbl">COINS</span>
+            </div>
+        </div>
+
+        <!-- Palavras reveladas -->
+        <div class="result-words-reveal">
+            {% for w in attempt.words_sequence %}
+            <div class="revealed-word {% if w.solved %}revealed-correct{% else %}revealed-miss{% endif %}">
+                <i class="bi {% if w.solved %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %}"></i>
+                <span class="font-tech">{{ w.palavra }}</span>
+                {% if not w.solved and w.dica %}
+                <span class="revealed-hint">{{ w.dica }}</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if attempt.timer_expired %}
+        <p class="result-msg font-tech">// Tempo limite atingido. XP zerado.</p>
+        {% elif attempt.abandoned %}
+        <p class="result-msg font-tech">// Protocolo encerrado antecipadamente.</p>
+        {% endif %}
+
+        <div class="result-actions">
+            <a href="{% url 'challenges:index' %}" class="btn-result">
+                <i class="bi bi-arrow-left"></i> DESAFIOS
+            </a>
+            <a href="{% url 'core:home' %}" class="btn-result secondary">
+                <i class="bi bi-house-door"></i> BASE
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

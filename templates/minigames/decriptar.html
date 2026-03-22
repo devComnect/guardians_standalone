@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Decriptar — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/decriptar.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="decriptar-container"
+     data-attempt-id="{{ attempt.id }}"
+     data-max-lives="{{ config.max_lives }}"
+     data-timer="{{ remaining_time }}"
+     data-total="{{ total_words }}"
+     data-correct="{{ correct_count }}">
+
+    <!-- HUD -->
+    <header class="dcr-hud">
+        <div class="hud-block">
+            <span class="hud-label font-tech">TIMER</span>
+            <div id="timer-display" class="hud-value font-tech">
+                {% if config.time_limit_seconds %}--:--{% else %}LIVRE{% endif %}
+            </div>
+        </div>
+
+        <div class="hud-block hud-center">
+            <span class="hud-label font-tech">// DECRIPTAR</span>
+            <div class="hud-lives" id="lives-display">
+                {% for i in lives_range %}
+                <i class="bi bi-heart-fill life-icon"></i>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="hud-block hud-right">
+            <span class="hud-label font-tech">PROGRESSO</span>
+            <div class="hud-value font-tech" id="score-display">
+                {{ correct_count }} / {{ total_words }}
+            </div>
+        </div>
+
+        <button type="button" id="abort-btn" class="hud-abort-btn" title="Abandonar">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </header>
+
+    <!-- Game Body -->
+    <main class="dcr-main">
+
+        <!-- Dots de progresso -->
+        <div class="word-dots" id="word-dots"></div>
+
+        <!-- Palavra embaralhada -->
+        <div class="shuffled-zone">
+            <p class="zone-label font-tech">// DADOS ENCRIPTADOS</p>
+            <div class="shuffled-letters" id="shuffled-display"></div>
+        </div>
+
+        <!-- Grid de resposta -->
+        <div class="answer-zone">
+            <div class="answer-grid" id="answer-grid"></div>
+            <div class="console-output font-tech" id="console-output">
+                Aguardando chave de decriptação...
+            </div>
+        </div>
+
+        <!-- Dica -->
+        <div class="hint-zone" id="hint-zone" style="display:none;">
+            <i class="bi bi-lightbulb-fill"></i>
+            <span id="hint-text" class="font-tech"></span>
+        </div>
+
+        <!-- Controles -->
+        <div class="dcr-controls">
+            <div class="input-row">
+                <input
+                    type="text"
+                    id="word-input"
+                    class="dcr-input font-tech"
+                    placeholder="INSIRA A CHAVE..."
+                    autocomplete="off"
+                    autocorrect="off"
+                    spellcheck="false"
+                    maxlength="30">
+            </div>
+
+            <div class="btn-row">
+                <button id="prev-btn" class="btn-dcr btn-nav" disabled>
+                    <i class="bi bi-caret-left-fill"></i>
+                </button>
+                <button id="hint-btn" class="btn-dcr btn-hint">
+                    <i class="bi bi-lightbulb"></i> DICA
+                </button>
+                <button id="submit-btn" class="btn-dcr btn-submit">
+                    <i class="bi bi-terminal"></i> DECRIPTAR
+                </button>
+                <button id="next-btn" class="btn-dcr btn-nav" disabled>
+                    <i class="bi bi-caret-right-fill"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Aviso de segurança -->
+        <div class="security-notice font-tech">
+            <i class="bi bi-shield-lock-fill"></i>
+            PROTOCOLO ATIVO — NÃO SAIA DA PÁGINA. DESCONEXÃO = FALHA IMEDIATA.
+        </div>
+
+    </main>
+</div>
+
+<!-- Dados do jogo — sem palavras corretas -->
+<script id="words-data" type="application/json">{{ words_payload|safe }}</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/decriptar.js' %}"></script>
+
+<script>
+    window.CSRF_TOKEN = '{{ csrf_token }}';
+</script>
+{% endblock %}

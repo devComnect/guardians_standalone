@@ -250,3 +250,127 @@ body {
     animation: fade-out-down 0.3s ease both;
     pointer-events: none;
 }
+
+/* ── Notificações ── */
+.notif-wrapper {
+    position: relative;
+    z-index: 9999;
+}
+
+.notif-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    position: relative;
+    transition: color 0.2s;
+    z-index: 9999;
+}
+
+.notif-btn i {
+    pointer-events: none;
+}
+
+.notif-btn:hover { color: var(--neon-blue); }
+
+.notif-badge {
+    position: absolute;
+    top: -2px; right: -2px;
+    background: var(--neon-red);
+    color: #fff;
+    font-size: 0.55rem;
+    font-family: var(--tech-font);
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    animation: badge-pulse 2s ease infinite;
+    pointer-events: none;
+}
+
+@keyframes badge-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(255,42,109,0.4); }
+    50%      { box-shadow: 0 0 0 5px rgba(255,42,109,0); }
+}
+
+.notif-dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    width: 320px;
+    background: #0f1117;                          /* ← sólido, sem transparência */
+    border: 1px solid rgba(69,162,158,0.4);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.8);       /* ← sombra forte */
+    z-index: 99999;                               /* ← acima de tudo */
+    clip-path: polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+    animation: notif-in 0.2s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes notif-in {
+    from { opacity:0; transform:translateY(-8px) scale(0.97); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.notif-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    font-size: 0.58rem;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: #0f1117;                          /* ← garante fundo no header */
+}
+
+.notif-mark-all {
+    background: transparent;
+    border: 1px solid #333;
+    color: var(--text-dim);
+    font-size: 0.55rem;
+    letter-spacing: 2px;
+    padding: 3px 8px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+}
+.notif-mark-all:hover { border-color: var(--neon-blue); color: var(--neon-blue); }
+
+.notif-list {
+    max-height: 360px;
+    overflow-y: auto;
+    background: #0f1117;                          /* ← fundo na lista */
+}
+
+.notif-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.2s;
+    cursor: default;
+    background: #0f1117;                          /* ← fundo em cada item */
+}
+.notif-item:hover { background: rgba(255,255,255,0.03); }
+
+.notif-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
+
+.tipo-level_up    .notif-icon { color: var(--neon-gold); }
+.tipo-perk_unlock .notif-icon { color: var(--neon-blue); }
+.tipo-conquista   .notif-icon { color: var(--neon-purple); }
+.tipo-sistema     .notif-icon { color: var(--text-dim); }
+
+.notif-content { display: flex; flex-direction: column; gap: 3px; }
+.notif-titulo  { font-size: 0.72rem; letter-spacing: 1px; color: #fff; }
+.notif-msg     { font-size: 0.7rem; color: var(--text-muted); line-height: 1.4; }
+.notif-time    { font-size: 0.58rem; letter-spacing: 1px; color: var(--text-dim); margin-top: 2px; }
+
+.notif-empty {
+    padding: 28px;
+    text-align: center;
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    background: #0f1117;
+}

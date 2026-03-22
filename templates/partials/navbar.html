@@ -41,6 +41,40 @@
                 {{ user.player.coins }}
             </span>
             {% endif %}
+            <!-- Notificações -->
+            <div class="notif-wrapper" id="notif-wrapper">
+                <button class="notif-btn" id="notif-btn" title="Notificações"
+                    data-url-lidas="{% url 'profiles:notif_lidas' %}"
+                    data-csrf="{{ csrf_token }}">
+                    <i class="bi bi-bell-fill"></i>
+                    {% if notificacoes_count %}
+                    <span class="notif-badge">{{ notificacoes_count }}</span>
+                    {% endif %}
+                </button>
+
+                <div class="notif-dropdown" id="notif-dropdown" style="display:none;">
+                    <div class="notif-header font-tech">
+                        <span>// NOTIFICAÇÕES</span>
+                        <button class="notif-mark-all font-tech" id="mark-all-read">LIMPAR</button>
+                    </div>
+                    <div class="notif-list">
+                        {% for notif in notificacoes_nao_lidas %}
+                        <div class="notif-item tipo-{{ notif.tipo }}" data-id="{{ notif.id }}">
+                            <i class="bi {{ notif.icone }} notif-icon"></i>
+                            <div class="notif-content">
+                                <span class="notif-titulo font-tech">{{ notif.titulo }}</span>
+                                {% if notif.mensagem %}
+                                <span class="notif-msg">{{ notif.mensagem|truncatechars:80 }}</span>
+                                {% endif %}
+                                <span class="notif-time font-tech">{{ notif.criado_em|timesince }} atrás</span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="notif-empty font-tech">// SEM NOTIFICAÇÕES</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
             <a href="{% url 'profiles:index' %}" class="hud-avatar" title="{{ user.username }}">
                 {% if user.player.avatar %}
                     <img src="{{ user.player.avatar.url }}" alt="avatar">

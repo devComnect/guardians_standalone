@@ -717,3 +717,40 @@
     background: rgba(255,42,109,0.08);
     color: #ff2a6d;
 }
+
+/* Rank badge no perfil */
+.player-rank-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.62rem;
+    letter-spacing: 2px;
+    color: var(--neon-gold);
+    border: 1px solid rgba(252,238,10,0.25);
+    padding: 3px 10px;
+    border-radius: 2px;
+    margin-top: 4px;
+    background: rgba(252,238,10,0.04);
+}
+
+/* XP next level hint */
+.xp-next {
+    font-size: 0.55rem;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    text-align: right;
+    margin-top: 4px;
+}
+
+/* Streak quente (7+ dias) */
+.streak-hot {
+    color: #ff6b35 !important;
+    text-shadow: 0 0 12px rgba(255,107,53,0.6);
+}
+.streak-hot i {
+    animation: fire-pulse 0.8s ease infinite alternate;
+}
+@keyframes fire-pulse {
+    from { transform: scale(1);    color: #ff6b35; }
+    to   { transform: scale(1.2);  color: #fcee0a; }
+}
