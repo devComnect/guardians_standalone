@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mercado Negro — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/store.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="store-wrapper">
+<div class="store-container">
+
+    <div class="page-header">
+        <h1 class="page-title font-tech">// MERCADO NEGRO</h1>
+        <p class="page-sub font-tech">ADQUIRA UPGRADES · MONTE SUA BUILD · DOMINE O SISTEMA</p>
+    </div>
+
+    <div class="store-layout">
+
+        <div class="store-panel">
+            
+            <div class="wallet-box">
+                <div class="wallet-row">
+                    <span><i class="bi bi-wallet-fill" style="color:var(--neon-gold)"></i> SALDO DISPONÍVEL</span>
+                    <span class="font-tech wallet-val" id="player-coins">{{ player.coins }} ⬡</span>
+                </div>
+            </div>
+
+            <div class="panel-label font-tech">
+                <i class="bi bi-cart4"></i> SLOTS GERADOS 
+                <span class="history-count" style="margin-left: auto;">SYS.DATE: {{ daily.date|date:"d/m/Y" }}</span>
+            </div>
+
+            <div class="store-grid" id="loja-items">
+                {% for slot in slots %}
+                <div class="store-card rarity-{{ slot.item.raridade|lower }}">
+                    <div class="card-header">
+                        <span class="card-tipo font-tech type-{{ slot.item.tipo }}">
+                            <i class="bi bi-cpu-fill"></i> {{ slot.item.get_tipo_display|upper }}
+                        </span>
+                        <span class="card-rarity font-tech rarity-badge-{{ slot.item.raridade|lower }}">
+                            {{ slot.item.raridade }}
+                        </span>
+                    </div>
+
+                    <h4 class="card-titulo">{{ slot.item.name }}</h4>
+                    <p class="card-desc">{{ slot.item.description }}</p>
+
+                    <div class="card-footer">
+                        <span class="price-tag font-tech {% if slot.tem_desconto %}discount{% endif %}">
+                            {{ slot.preco_final }} ⬡
+                        </span>
+                        <button class="btn-action btn-buy font-tech" data-id="{{ slot.item.item_id }}">
+                            COMPRAR
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="history-empty">
+                    <i class="bi bi-hdd-network"></i>
+                    <p class="font-tech">// SEM DADOS</p>
+                    <span>Nenhum upgrade disponível no cache atual.</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <button type="button" class="btn-submit-fb font-tech" id="btn-reroll" style="margin-top: 24px;">
+                <i class="bi bi-arrow-repeat"></i>
+                <span>FORÇAR REROLL [ <span id="reroll-cost">{{ reroll_custo }}</span> ⬡ ]</span>
+                <div class="btn-glow"></div>
+            </button>
+        </div>
+
+        <div class="store-panel sidebar-panel">
+            <div class="panel-label font-tech">
+                <i class="bi bi-motherboard"></i> BUILD ATUAL (PASSIVOS)
+            </div>
+
+            <div class="inventory-slots">
+                {% for slot_num, p_item in inventario.passivos.items %}
+                <div class="slot-item {% if p_item %}occupied rarity-{{ p_item.item.raridade|lower }}{% else %}empty{% endif %}">
+                    <span class="slot-num font-tech">0{{ slot_num }}</span>
+                    
+                    {% if p_item %}
+                        <h4 class="slot-titulo">{{ p_item.item.name }}</h4>
+                        <p class="slot-desc">{{ p_item.item.get_effect_display }}</p>
+                        <button class="btn-sell font-tech" data-id="{{ p_item.item.item_id }}">
+                            <i class="bi bi-cash-coin"></i> VENDER (50%)
+                        </button>
+                    {% else %}
+                        <div class="slot-empty-state">
+                            <i class="bi bi-dash-square-dotted"></i>
+                            <span class="font-tech">SLOT VAZIO</span>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="vuln-notice font-tech" style="margin-top:20px; display:flex;">
+                <i class="bi bi-info-square"></i>
+                Máximo de 4 upgrades passivos ativos simultaneamente. Consumíveis vão para o inventário de carga.
+            </div>
+        </div>
+
+    </div>
+</div>
+</div>
+
+<script>
+    window.STORE_URLS = {
+        reroll: "{% url 'store:ajax_reroll' %}",
+        comprar: "{% url 'store:ajax_comprar' %}",
+        vender: "{% url 'store:ajax_vender' %}"
+    };
+</script>
+<script src="{% static 'js/store.js' %}"></script>
+{% endblock %}

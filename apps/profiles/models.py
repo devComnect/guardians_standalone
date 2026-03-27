@@ -240,3 +240,112 @@ class OfensivaConfig(models.Model):
     def get(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+    
+
+class AchievementConfig(models.Model):
+    """Config singleton — define quantas conquistas podem ficar em destaque."""
+    max_destaques = models.PositiveSmallIntegerField(
+        default=5,
+        help_text='Quantas conquistas em destaque aplicam bônus simultaneamente'
+    )
+    class Meta:
+        verbose_name = 'Config — Conquistas'
+        verbose_name_plural = 'Config — Conquistas'
+
+    def __str__(self):
+        return f'Máx. destaques: {self.max_destaques}'
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
+class Achievement(models.Model):
+
+    TRIGGER_CHOICES = [
+        # Volume / contagem
+        ('quiz_count',       'Nº de Quizzes concluídos'),
+        ('quiz_perfect',     'Nº de Quizzes com 100%'),
+        ('minigame_count',   'Nº de Minigames concluídos'),
+        ('decriptar_count',  'Nº de Decriptar concluídos'),
+        ('codigo_count',     'Nº de Código concluídos'),
+        ('patrol_count',     'Nº de Patrulhas concluídas'),
+        ('all_daily_count',  'Nº de dias com todos os desafios feitos'),
+        # Progressão
+        ('level_reached',    'Level atingido'),
+        ('streak_days',      'Streak de dias consecutivos'),
+        ('ofensiva',         'Pontos de ofensiva'),
+        ('xp_total',         'XP total acumulado'),
+        # Loja / social
+        ('shop_count',       'Nº de itens comprados na loja'),
+        ('feedback_count',   'Nº de feedbacks enviados'),
+        ('vulnerability',    'Reportou uma vulnerabilidade'),
+        # Sazonais
+        ('season_top1',      'Terminou temporada em 1º'),
+        ('season_top3',      'Terminou temporada no Top 3'),
+    ]
+
+    BONUS_TYPE_CHOICES = [
+        ('global_xp_pct',    'Bônus XP Global (%)'),
+        ('quiz_xp_pct',      'Bônus XP em Quiz (%)'),
+        ('minigame_xp_pct',  'Bônus XP em Minigames (%)'),
+        ('patrol_xp_pct',    'Bônus XP em Patrulha (%)'),
+        ('anagram_xp_pct',   'Bônus XP em Decriptar (%)'),
+        ('termo_xp_pct',     'Bônus XP em Código (%)'),
+        ('pw_xp_pct',        'Bônus XP em Cofre de Senhas (%)'),
+        ('coin_pct',         'Bônus de Moedas (%)'),
+        ('ofensiva_teto',    'Aumenta teto de ofensiva (+N)'),
+        ('streak_shield',    'Proteção de streak (dias)'),
+    ]
+
+    RARIDADE_CHOICES = [
+        ('comum',      'Comum'),
+        ('rara',       'Rara'),
+        ('epica',      'Épica'),
+        ('lendaria',   'Lendária'),
+    ]
+
+    code            = models.CharField(max_length=40, unique=True)
+    nome            = models.CharField(max_length=100)
+    descricao       = models.TextField()
+    imagem          = models.CharField(max_length=200, blank=True,
+                        help_text='Caminho relativo em static/ (ex: img/conquistas/nome.png)')
+    raridade        = models.CharField(max_length=10, choices=RARIDADE_CHOICES, default='comum')
+    trigger_type    = models.CharField(max_length=20, choices=TRIGGER_CHOICES)
+    trigger_value   = models.PositiveIntegerField(default=1,
+                        help_text='Valor necessário para desbloquear (ex: 5 quizzes)')
+    bonus_type      = models.CharField(max_length=20, choices=BONUS_TYPE_CHOICES,
+                        blank=True, null=True)
+    bonus_value     = models.FloatField(default=0,
+                        help_text='Valor do bônus quando em destaque')
+    ativo           = models.BooleanField(default=True)
+    ordem           = models.PositiveSmallIntegerField(default=0,
+                        help_text='Ordem de exibição no perfil')
+
+    class Meta:
+        verbose_name = 'Conquista'
+        verbose_name_plural = 'Conquistas'
+        ordering = ['trigger_type', 'trigger_value']
+
+    def __str__(self):
+        return f'[{self.code}] {self.nome} ({self.get_raridade_display()})'
+
+
+class PlayerAchievement(models.Model):
+    player          = models.ForeignKey(User, on_delete=models.CASCADE,
+                        related_name='achievements')
+    achievement     = models.ForeignKey(Achievement, on_delete=models.CASCADE,
+                        related_name='players')
+    desbloqueada_em = models.DateTimeField(auto_now_add=True)
+    em_destaque     = models.BooleanField(default=True,
+                        help_text='Se True e dentro do limite, aplica o bônus')
+
+    class Meta:
+        unique_together = ('player', 'achievement')
+        verbose_name = 'Conquista do Player'
+        verbose_name_plural = 'Conquistas dos Players'
+        ordering = ['-desbloqueada_em']
+
+    def __str__(self):
+        return f'{self.player.username} → {self.achievement.nome}'

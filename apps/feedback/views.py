@@ -5,6 +5,8 @@ from django.http import JsonResponse
 import json
 from django.contrib import messages
 from .models import Feedback, Feedback, FeedbackCoinConfig
+from apps.profiles.services import verificar_conquistas
+
 
 
 @login_required
@@ -42,6 +44,9 @@ def index(request):
                 anexo     = anexo,
             )
             messages.success(request, 'Feedback enviado com sucesso!')
+            verificar_conquistas(request.user, 'feedback_count')
+            if tipo == 'vulnerabilidade':
+                verificar_conquistas(request.user, 'vulnerability')
             return redirect('feedback:index')
 
     # Histórico do próprio player

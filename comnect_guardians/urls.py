@@ -13,6 +13,7 @@ urlpatterns = [
     path('rankings/', include('apps.rankings.urls')),
     path('loja/',     include('apps.store.urls')),
     path('feedback/', include('apps.feedback.urls')),
+    path('missions/', include('apps.missions.urls')), #botão de resgate
 ]
 
 if settings.DEBUG:

@@ -15,7 +15,7 @@ from .password_rules import generate_rules_sequence, get_rules_details, validate
 
 ################
 ###VIEW QUIZ###
-################
+################ 
 @login_required
 def start_quiz(request, quiz_id):
     """Cria a tentativa e redireciona para o quiz."""
@@ -123,7 +123,13 @@ def submit_quiz(request, quiz_id):
 
     # Concede XP e coins ao player
     if not abandoned and not timer_expired and xp_earned > 0:
-        grant_xp(request.user, xp_earned, 'quiz', f'Quiz: {quiz.titulo}')
+        total_questions = quiz.questions.count()
+
+        grant_xp(request.user, xp_earned, 'quiz', f'Quiz: {quiz.titulo}', contexto={
+        'segundos_restantes': attempt.remaining_seconds(),
+        'tentativas': total_questions,
+        'won': total_questions > 0 and (total_correct / total_questions) >= 0.7,
+    } )
         grant_coins(request.user, quiz.coin_reward, 'quiz')
         registrar_desafio_diario(request.user)
 
@@ -245,27 +251,36 @@ def patrol_guess(request):
         xp    = max(10, int(PATROL_XP_BASE / attempt.attempts_count))
         coins = random.randint(PATROL_COIN_MIN, PATROL_COIN_MAX)
 
-        attempt.won         = True
-        attempt.completed   = True
-        attempt.xp_earned   = xp
+        attempt.won          = True
+        attempt.completed    = True
+        attempt.xp_earned    = xp
         attempt.coins_earned = coins
         attempt.completed_at = timezone.now()
+        attempt.guesses      = attempt.guesses
+        attempt.save()                                   
 
-        # Credita ao perfil do player
-        grant_xp(request.user, xp, 'password', f'Patrulha concluída em {attempt.attempts_count} tentativa(s)')
-        grant_coins(request.user, coins, 'password')
+        grant_xp(request.user, xp, 'patrol',              
+            f'Patrulha concluída em {attempt.attempts_count} tentativa(s)', 
+            contexto={
+                'segundos_restantes': attempt.remaining_seconds,
+                'tentativas': len(attempt.guesses),
+                'won': attempt.won,
+            })
+        grant_coins(request.user, coins, 'patrol')
         registrar_desafio_diario(request.user)
 
         response.update({
-            'status':      'win',
-            'xp_earned':   xp,
+            'status':       'win',
+            'xp_earned':    xp,
             'coins_earned': coins,
-            'message':     f'Código quebrado em {attempt.attempts_count} tentativa(s)! +{xp} XP, +{coins} Coins',
+            'message':      f'Código quebrado em {attempt.attempts_count} tentativa(s)! +{xp} XP, +{coins} Coins',
         })
 
     elif is_game_over:
         attempt.completed    = True
         attempt.completed_at = timezone.now()
+        attempt.guesses      = attempt.guesses
+        attempt.save()                                          # ← SALVA AQUI TAMBÉM
 
         response.update({
             'status':  'lose',
@@ -273,8 +288,10 @@ def patrol_guess(request):
             'message': 'Tentativas esgotadas. Tente novamente amanhã.',
         })
 
-    attempt.guesses = attempt.guesses 
-    attempt.save()
+    else:
+        attempt.guesses = attempt.guesses
+        attempt.save()                                          # ← SAVE DO PLAYING
+
     return JsonResponse(response)
 
 
@@ -354,8 +371,13 @@ def password_game_submit(request, attempt_id):
         attempt.xp_earned     = config.xp_reward
         attempt.coins_earned  = config.coin_reward
         attempt.save()
-
-        grant_xp(request.user, config.xp_reward, 'password', 'Cofre de Senhas concluído')
+        
+        grant_xp(request.user, config.xp_reward, 'password', 'Cofre de Senhas concluído', 
+                 contexto={
+                    'segundos_restantes': attempt.remaining_seconds,
+                    'tentativas': len(attempt.guesses),
+                    'won': attempt.won,
+                })
         grant_coins(request.user, config.coin_reward, 'password')
         registrar_desafio_diario(request.user)
 
@@ -545,7 +567,12 @@ def check_decriptar_word(request):
             attempt.coins_earned = attempt.config.coin_reward
             attempt.completed_at = timezone.now()
             attempt.save()
-            grant_xp(request.user, xp, 'decriptar', 'Decriptar concluído')
+            grant_xp(request.user, xp, 'decriptar', 'Decriptar concluído', 
+                     contexto={
+                        'segundos_restantes': attempt.remaining_seconds,
+                        'tentativas': len(attempt.guesses),
+                        'won': attempt.won,
+                    })
             grant_coins(request.user, attempt.config.coin_reward, 'decriptar')
             registrar_desafio_diario(request.user)
 
@@ -568,7 +595,12 @@ def check_decriptar_word(request):
             attempt.completed_at = timezone.now()
             attempt.save()
             if xp > 0:
-                grant_xp(request.user, xp, 'decriptar', 'Decriptar parcial')
+                grant_xp(request.user, xp, 'decriptar', 'Decriptar parcial', 
+                         contexto={
+                            'segundos_restantes': attempt.remaining_seconds,
+                            'tentativas': len(attempt.guesses),
+                            'won': attempt.won,
+                        })
             if attempt.coins_earned > 0:
                 grant_coins(request.user, attempt.coins_earned, 'decriptar')
             registrar_desafio_diario(request.user)
@@ -608,11 +640,15 @@ def finish_decriptar(request):
     attempt.completed_at  = timezone.now()
     attempt.save()
 
-    player = getattr(request.user, 'player', None)
-    if player and attempt.xp_earned > 0:
-        player.xp_total += attempt.xp_earned
-        player.coins    += attempt.coins_earned
-        player.save()
+    if attempt.xp_earned > 0:
+        grant_xp(request.user, attempt.xp_earned, 'decriptar', 'Decriptar parcial', 
+                 contexto={
+                    'segundos_restantes': attempt.remaining_seconds,
+                    'tentativas': len(attempt.guesses),
+                    'won': attempt.won,
+                })
+    if attempt.coins_earned > 0:
+        grant_coins(request.user, attempt.coins_earned, 'decriptar')
 
     return JsonResponse({'redirect': f'/minigames/decriptar/resultado/{attempt.id}/'})
 
@@ -792,7 +828,12 @@ def check_codigo_guess(request):
         attempt.save()
 
         if attempt.xp_earned > 0:
-            grant_xp(request.user, attempt.xp_earned, 'codigo', f'Código: {attempt.secret_word}')
+            grant_xp(request.user, attempt.xp_earned, 'codigo', f'Código: {attempt.secret_word}', 
+                     contexto={
+                        'segundos_restantes': attempt.remaining_seconds,
+                        'tentativas': len(attempt.guesses),
+                        'won': attempt.won,
+                    })
             if attempt.coins_earned > 0:
                 grant_coins(request.user, attempt.coins_earned, 'codigo')
             registrar_desafio_diario(request.user)    

@@ -43,7 +43,7 @@ WORDS = [
     ('BUFFER', 'Área temporária de armazenamento de dados em memória',    'ti',             'medio'),
     ('ACESSO', 'Permissão concedida para utilizar um recurso ou sistema', 'politicas',      'medio'),
     ('CIFRAR', 'Transformar dados em formato ilegível por criptografia',  'ciberseguranca', 'medio'),
-    ('VAZAMENTO','Exposição não autorizada de dados confidenciais',       'ciberseguranca', 'medio'),
+
 
     # ── MÉDIO — 7 letras ──────────────────────────────────
     ('MALWARE', 'Categoria de software malicioso projetado para causar dano', 'ciberseguranca', 'medio'),
@@ -53,7 +53,7 @@ WORDS = [
     ('PAYLOAD', 'Parte maliciosa e ativa executada por um malware',            'ciberseguranca', 'medio'),
     ('PRIVADO', 'Dado ou recurso restrito a pessoas autorizadas',              'politicas',      'medio'),
     ('CIFRADO', 'Dado que passou por algoritmo criptográfico',                 'ciberseguranca', 'medio'),
-    ('TUNELAMENTO','Encapsulamento de um protocolo dentro de outro',           'redes',          'medio'),
+
 
     # ── DIFÍCIL — 8+ letras ───────────────────────────────
     ('PHISHING',   'Ataque de engenharia social via e-mail falso',              'ciberseguranca', 'dificil'),
@@ -69,6 +69,8 @@ WORDS = [
     ('VULNERABILIDADE','Falha que pode ser explorada por um atacante',           'ciberseguranca', 'dificil'),
     ('MONITORAMENTO','Acompanhamento contínuo de sistemas e redes',              'ti',             'dificil'),
     ('CRIPTOGRAFAR','Transformar dados em formato seguro e ilegível',            'ciberseguranca', 'dificil'),
+    ('TUNELAMENTO','Encapsulamento de um protocolo dentro de outro',           'redes',          'dificil'),
+    ('VAZAMENTO','Exposição não autorizada de dados confidenciais',       'ciberseguranca', 'dificil'),
 ]
 
 

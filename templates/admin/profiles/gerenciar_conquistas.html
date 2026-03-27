@@ -1,0 +1,165 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+
+<h1>🏆 Conquistas — {{ player_obj.user.username }}</h1>
+<p style="color:#8b949e;">
+    Lv.{{ player_obj.level }} · {{ player_obj.xp_total }} XP ·
+    {{ player_achs.count }} conquista(s) desbloqueada(s) ·
+    Máx. destaques: {{ config.max_destaques }}
+</p>
+
+<!-- Ações rápidas -->
+<div style="margin-bottom:24px; display:flex; gap:12px; flex-wrap:wrap;">
+
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="trigger_all">
+        <button type="submit" style="padding:8px 16px; background:#0dcaf0; color:#000;
+                border:none; cursor:pointer; font-weight:bold;">
+            ⚡ Disparar todos os triggers
+        </button>
+    </form>
+
+    <form method="post" onsubmit="return confirm('Remover TODAS as conquistas deste player?')">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="revoke_all">
+        <button type="submit" style="padding:8px 16px; background:#ff2a6d; color:#fff;
+                border:none; cursor:pointer; font-weight:bold;">
+            🗑️ Remover todas
+        </button>
+    </form>
+
+    <a href="{% url 'admin:profiles_player_change' player_obj.pk %}"
+       style="padding:8px 16px; border:1px solid #444; color:#ccc; text-decoration:none;">
+        ← Voltar ao player
+    </a>
+</div>
+
+<!-- Conquistas do player -->
+{% if player_achs %}
+<h2 style="color:#fcee0a; margin-bottom:12px;">Conquistadas ({{ player_achs.count }})</h2>
+<table style="width:100%; border-collapse:collapse; margin-bottom:32px;">
+    <thead>
+        <tr style="background:#1f2833; color:#0dcaf0; font-size:0.85rem;">
+            <th style="padding:8px 12px; text-align:left;">Conquista</th>
+            <th style="padding:8px 12px;">Raridade</th>
+            <th style="padding:8px 12px;">Bônus</th>
+            <th style="padding:8px 12px;">Destaque</th>
+            <th style="padding:8px 12px;">Desbloqueada em</th>
+            <th style="padding:8px 12px;">Ação</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pa in player_achs %}
+        {% with a=pa.achievement %}
+        <tr style="border-bottom:1px solid #2d3748;">
+            <td style="padding:8px 12px; color:#fff;">{{ a.nome }}<br>
+                <small style="color:#666;">{{ a.code }}</small>
+            </td>
+            <td style="padding:8px 12px; text-align:center;">
+                {% if a.raridade == 'comum' %}<span style="color:#adb5bd;">⬤ Comum</span>
+                {% elif a.raridade == 'rara' %}<span style="color:#0dcaf0;">⬤ Rara</span>
+                {% elif a.raridade == 'epica' %}<span style="color:#d63384;">⬤ Épica</span>
+                {% else %}<span style="color:#ffc107;">⬤ Lendária</span>{% endif %}
+            </td>
+            <td style="padding:8px 12px; text-align:center; color:#0dcaf0;">
+                {% if a.bonus_type %}+{{ a.bonus_value }} {{ a.get_bonus_type_display }}
+                {% else %}<span style="color:#555;">Prestígio</span>{% endif %}
+            </td>
+            <td style="padding:8px 12px; text-align:center;">
+                {% if pa.em_destaque %}
+                    <span style="color:#05d9e8;">⭐ Sim</span>
+                {% else %}
+                    <span style="color:#555;">— Não</span>
+                {% endif %}
+            </td>
+            <td style="padding:8px 12px; color:#8b949e; font-size:0.85rem;">
+                {{ pa.desbloqueada_em|date:"d/m/Y H:i" }}
+            </td>
+            <td style="padding:8px 12px;">
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="revoke">
+                    <input type="hidden" name="achievement_id" value="{{ a.pk }}">
+                    <button type="submit" style="background:transparent; border:1px solid #ff2a6d;
+                            color:#ff2a6d; padding:3px 10px; cursor:pointer; font-size:0.8rem;">
+                        remover
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endwith %}
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<!-- Todas as conquistas disponíveis -->
+<h2 style="color:#0dcaf0; margin-bottom:12px;">Banco de Conquistas</h2>
+<table style="width:100%; border-collapse:collapse;">
+    <thead>
+        <tr style="background:#1f2833; color:#0dcaf0; font-size:0.85rem;">
+            <th style="padding:8px 12px; text-align:left;">Conquista</th>
+            <th style="padding:8px 12px;">Trigger</th>
+            <th style="padding:8px 12px;">Valor</th>
+            <th style="padding:8px 12px;">Raridade</th>
+            <th style="padding:8px 12px;">Bônus</th>
+            <th style="padding:8px 12px;">Status</th>
+            <th style="padding:8px 12px;">Ação</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ach in todas %}
+        <tr style="border-bottom:1px solid #1a1a2e;
+            {% if ach.id in player_ach_ids %}background:rgba(5,217,232,0.04);{% endif %}">
+            <td style="padding:8px 12px;">
+                <strong style="color:{% if ach.id in player_ach_ids %}#05d9e8{% else %}#e0e0e0{% endif %};">
+                    {{ ach.nome }}
+                </strong><br>
+                <small style="color:#555;">{{ ach.descricao|truncatechars:60 }}</small>
+            </td>
+            <td style="padding:8px 12px; color:#8b949e; font-size:0.8rem;">
+                {{ ach.get_trigger_type_display }}
+            </td>
+            <td style="padding:8px 12px; text-align:center; color:#fcee0a;">
+                {{ ach.trigger_value }}
+            </td>
+            <td style="padding:8px 12px; text-align:center;">
+                {% if ach.raridade == 'comum' %}<span style="color:#adb5bd;">Comum</span>
+                {% elif ach.raridade == 'rara' %}<span style="color:#0dcaf0;">Rara</span>
+                {% elif ach.raridade == 'epica' %}<span style="color:#d63384;">Épica</span>
+                {% else %}<span style="color:#ffc107;">⭐ Lendária</span>{% endif %}
+            </td>
+            <td style="padding:8px 12px; font-size:0.8rem; color:#0dcaf0;">
+                {% if ach.bonus_type %}+{{ ach.bonus_value }} {{ ach.get_bonus_type_display }}
+                {% else %}<span style="color:#555;">—</span>{% endif %}
+            </td>
+            <td style="padding:8px 12px; text-align:center;">
+                {% if ach.id in player_ach_ids %}
+                    <span style="color:#05d9e8; font-size:0.8rem;">✓ Possui</span>
+                {% else %}
+                    <span style="color:#555; font-size:0.8rem;">— Não possui</span>
+                {% endif %}
+            </td>
+            <td style="padding:8px 12px;">
+                {% if ach.id not in player_ach_ids %}
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="grant">
+                    <input type="hidden" name="achievement_id" value="{{ ach.pk }}">
+                    <button type="submit" style="background:transparent;
+                            border:1px solid #0dcaf0; color:#0dcaf0;
+                            padding:3px 10px; cursor:pointer; font-size:0.8rem;">
+                        conceder
+                    </button>
+                </form>
+                {% else %}
+                <span style="color:#333; font-size:0.8rem;">—</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
