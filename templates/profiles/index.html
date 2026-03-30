@@ -1,80 +1,300 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Meu Perfil — Comnect Guardians{% endblock %}
-
+{% block title %}Perfil // {{ player.display_name|default:request.user.username|upper }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+<link rel="stylesheet" href="{% static 'css/profiles.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="cyber-hud-wrapper">
-    <div class="hud-profile-section">
-        <div class="avatar-container">
-            {% if player.avatar %}
-                <img src="{{ player.avatar.url }}" alt="Avatar" class="cyber-avatar">
-            {% else %}
-                <img src="{% static 'img/default_avatar.png' %}" alt="Avatar Padrão" class="cyber-avatar">
-            {% endif %}
-            <div class="level-badge">LVL {{ player.level }}</div>
-        </div>
+{# Define a cor do tema baseada na classe do jogador #}
+<div class="profile-page-wrapper theme-{{ player.classe }}">
 
-        <div class="hud-info">
-            <h1 class="glitch-text" data-text="{{ player.display_name|default:player.user.username }}">
-                {{ player.display_name|default:player.user.username }}
-            </h1>
-            <h3 class="class-title text-{{ player.classe }}">
-                <i class="bi bi-shield-lock"></i> CLASS: {{ player.get_classe_display|upper }}
-            </h3>
-
-            <div class="xp-container">
-                <div class="xp-labels">
-                    <span>XP: {{ player.xp_no_nivel_atual }} / {{ player.xp_necessario_nivel_atual }}</span>
-                    <span>{{ xp_percentual }}%</span>
+    {# ── HERO SECTION ── #}
+    <section class="profile-hero text-center">
+        <div class="container position-relative">
+            
+            <div class="hero-actions">
+                <div class="team-badge font-tech small">
+                    <i class="bi bi-diagram-3-fill"></i> NÍVEL DE ACESSO: {{ player.level }}
                 </div>
-                <div class="xp-bar-bg">
-                    <div class="xp-bar-fill" style="width: {{ xp_percentual }}%;"></div>
+                <div> 
+                    <a href="{% url 'profiles:editar' %}" class="btn-perfil-acao font-tech">
+                        <i class="bi bi-pencil-square"></i> EDITAR
+                    </a>
+                    <button class="btn-perfil-acao font-tech ms-2" id="btn-trocar-classe">
+                        <i class="bi bi-arrow-repeat"></i> CLASSE
+                    </button>
                 </div>
-                <div class="xp-total">SYS.XP_TOTAL: {{ player.xp_total }}</div>
+            </div>
+
+            <div class="avatar-frame">
+                <div class="avatar-bg-layer" {% if bg_ativo %}style="background-image: url('{{ bg_ativo.item.imagem }}');"{% endif %}></div>
+                
+                {% if player.avatar %}
+                    <img src="{{ player.avatar.url }}" alt="Avatar" class="avatar-img">
+                {% else %}
+                    <div class="avatar-img d-flex align-items-center justify-content-center">
+                        <i class="bi bi-person-bounding-box text-muted" style="font-size: 3rem;"></i>
+                    </div>
+                {% endif %}
+                
+                {% if frame_ativo %}
+                    <img src="{{ frame_ativo.item.imagem }}" class="avatar-frame-overlay">
+                {% endif %}
+
+                <div class="level-badge font-tech">LVL.{{ player.level }}</div>
+            </div>
+
+            <h2 class="profile-name">
+                {{ player.display_name|default:request.user.username }}
+            </h2>
+            
+            <div class="profile-class-title font-tech">
+                // CLASSE: {{ player.get_classe_display|upper }} //
+                {% if titulo_ativo %} | {{ titulo_ativo.item.nome }}{% endif %}
+            </div>
+
+            <div class="xp-system">
+                <div class="tech-progress">
+                    <div class="tech-progress-bar" style="width: {{ xp_percentual|default:0 }}%;"></div>
+                </div>
+                <div class="xp-numbers font-tech">
+                    <span>XP ATUAL: {{ player.xp_no_nivel_atual }}</span>
+                    <span>PRÓX: {{ player.xp_necessario_nivel_atual }}</span>
+                </div>
+            </div>
+
+            <div class="week-tracker mt-3" title="Atividade Semanal">
+                {% for dia in atividade_semanal %}
+                    <div class="day-bit {% if dia.ativo %}active{% endif %} {% if dia.hoje %}hoje{% endif %}" title="{{ dia.dia_nome }}"></div>
+                {% endfor %}
+            </div>
+            
+        </div>
+    </section>
+
+    <div class="container mt-4 mb-5">
+        
+        {# ── QUICK STATS ── #}
+        <div class="cyber-card mb-4 stats-row">
+            <div class="stat-box">
+                <div class="stat-value">{{ stats.ranking_xp|default:"-" }}º</div>
+                <div class="stat-label font-tech">RANKING GLOBAL</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ conquistas_desbloqueadas|length }}</div>
+                <div class="stat-label font-tech">CONQUISTAS</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ stats.quiz_count }}</div>
+                <div class="stat-label font-tech">QUIZZES</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ stats.cod_count|add:stats.dcr_count }}</div>
+                <div class="stat-label font-tech">MINIGAMES</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ stats.patrol_count }}</div>
+                <div class="stat-label font-tech">PATRULHAS</div>
+            </div>
+        </div>
+        
+        {# ── GRID PRINCIPAL ── #}
+        <div class="row g-4">
+            
+            {# ── COLUNA ESQUERDA (Atividades) ── #}
+            <div class="col-lg-7">
+                
+                {# MISSÕES #}
+                <div class="cyber-card mb-4">
+                    <div class="cyber-header">
+                        <div class="cyber-title"><i class="bi bi-list-task"></i> MISSÕES ATIVAS</div>
+                    </div>
+                    <div class="p-3">
+                        {% for pm in missoes_ativas %}
+                        <div class="mission-item mb-3">
+                            <div class="d-flex justify-content-between font-tech small mb-1">
+                                <span>{{ pm.mission.nome }}</span>
+                                <span class="text-theme">{{ pm.progresso }}/{{ pm.mission.meta }}</span>
+                            </div>
+                            <div class="tech-progress" style="height: 6px;">
+                                <div class="tech-progress-bar" style="width: {% widthratio pm.progresso pm.mission.meta 100 %}%;"></div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-center font-tech py-3">NENHUMA MISSÃO ATIVA.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {# LOG DO SISTEMA #}
+                <div class="cyber-card mb-4">
+                    <div class="cyber-header">
+                        <div class="cyber-title"><i class="bi bi-terminal"></i> LOG DO SISTEMA</div>
+                    </div>
+                    <div class="terminal-container">
+                        <ul class="terminal-list">
+                            {% for log in xp_events %}
+                            <li class="terminal-item">
+                                <div>
+                                    <span class="term-date">[{{ log.criado_em|date:"d/m" }}]</span>
+                                    <span class="term-source">[{{ log.fonte|upper }}]</span>
+                                    {{ log.descricao }}
+                                </div>
+                                {% if log.xp_total != 0 %}
+                                <span class="term-val {% if log.xp_total > 0 %}text-neon-green{% else %}text-neon-red{% endif %}">
+                                    {% if log.xp_total > 0 %}+{% endif %}{{ log.xp_total }} XP
+                                </span>
+                                {% endif %}
+                            </li>
+                            {% empty %}
+                            <li class="terminal-item text-muted">Aguardando inputs do sistema...</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            {# ── COLUNA DIREITA (Inventário & Patrulha) ── #}
+            <div class="col-lg-5">
+                
+                {# INVENTÁRIO & CARTEIRA #}
+                <div class="cyber-card mb-4">
+                    <div class="cyber-header">
+                        <div class="cyber-title"><i class="bi bi-backpack2"></i> INVENTÁRIO & CARTEIRA</div>
+                    </div>
+                    <div class="p-3">
+                        
+                        <div class="wallet-display mb-3">
+                            <div class="wallet-info">
+                                <span class="wallet-label font-tech">SALDO ATUAL</span>
+                                <span class="wallet-value font-tech">{{ player.coins }} <small>⬡</small></span>
+                            </div>
+                            <i class="bi bi-wallet2 wallet-icon"></i>
+                        </div>
+
+                        <ul class="nav nav-tabs cyber-tabs font-tech mb-3" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-mods" type="button">UPGRADES</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-cons" type="button">CARGA</button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content">
+                            {# UPGRADES PASSIVOS #}
+                            <div class="tab-pane fade show active" id="tab-mods">
+                                <div class="inventory-scroll-grid">
+                                    {% for slot in slots_grade %}
+                                        <div class="hud-module-slot {% if slot.player_item %}occupied rarity-{{ slot.player_item.item.raridade|lower }}{% else %}empty{% endif %}">
+                                            {% if slot.player_item %}
+                                                <div class="card-inner">
+                                                    <div class="card-front">
+                                                        <span class="hud-slot-num font-tech">0{{ slot.numero }}</span>
+                                                        <i class="bi {{ slot.player_item.item.icon|default:'bi-cpu' }} hud-slot-icon"></i>
+                                                        <span class="hud-slot-name">{{ slot.player_item.item.name }}</span>
+                                                    </div>
+                                                    <div class="card-back">
+                                                        <p class="card-back-desc font-tech">{{ slot.player_item.item.description }}</p>
+                                                    </div>
+                                                </div>
+                                                <button class="btn-sell-hud font-tech btn-desocupar" data-pi-id="{{ slot.player_item.id }}">REMOVER</button>
+                                            {% else %}
+                                                <i class="bi bi-dash-square-dotted hud-slot-empty-icon"></i>
+                                                <span class="font-tech text-muted" style="font-size:0.5rem;">SLOT {{ slot.numero }}</span>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <div class="mt-3 font-tech small text-center">
+                                    <i class="bi bi-info-circle"></i> Acesse a loja para adquirir mais módulos.
+                                </div>
+                            </div>
+
+                            {# CONSUMÍVEIS #}
+                            <div class="tab-pane fade" id="tab-cons">
+                                <div class="inventory-scroll-grid">
+                                    {% for pi in inventario_consumiveis %}
+                                        <div class="hud-module-slot occupied rarity-common item-card--consumable">
+                                            <div class="card-inner">
+                                                <div class="card-front">
+                                                    <span class="hud-slot-num font-tech">x{{ pi.quantidade }}</span>
+                                                    <i class="bi {{ pi.item.icon|default:'bi-lightning-charge' }} hud-slot-icon card-art-icon--consumable"></i>
+                                                    <span class="hud-slot-name text-warning">{{ pi.item.name }}</span>
+                                                </div>
+                                                <div class="card-back">
+                                                    <p class="card-back-desc font-tech">{{ pi.item.description }}</p>
+                                                </div>
+                                            </div>
+                                            <button class="btn-sell-hud font-tech btn-usar-consumivel" data-pi-id="{{ pi.id }}">ATIVAR</button>
+                                        </div>
+                                    {% empty %}
+                                        <p class="text-muted font-tech w-100 text-center py-4">Sua mochila está vazia.</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                {# PAINEL DE BÔNUS (Status Screen) #}
+                <div class="cyber-card">
+                    <div class="cyber-header">
+                        <div class="cyber-title"><i class="bi bi-bar-chart-steps"></i> MODIFICADORES ATIVOS</div>
+                    </div>
+                    <div class="p-3">
+                        <div class="status-screen-bg p-3 font-tech small">
+                            <div class="d-flex justify-content-between text-theme mb-2 border-bottom border-secondary pb-1">
+                                <span>MULTIPLICADOR TOTAL:</span>
+                                <span>+{{ bonus.total_bonus_pct|floatformat:1 }}%</span>
+                            </div>
+                            <div class="text-neon-green">
+                                <div>OFENSIVA: +{{ bonus.bonus_ofensiva }}%</div>
+                                <div>CONQUISTAS: +{{ bonus.bonus_conquistas }}%</div>
+                                <div>MÓDULOS: +{{ bonus.bonus_itens }}%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        
+        {# ── CONQUISTAS FULL WIDTH ── #}
+        <div class="cyber-card mt-4">
+            <div class="cyber-header d-flex justify-content-between align-items-center">
+                <div class="cyber-title">
+                    <i class="bi bi-trophy-fill text-theme me-2"></i> GALERIA DE CONQUISTAS
+                </div>
+                <span class="badge bg-dark border border-secondary font-tech">
+                    {{ conquistas_desbloqueadas|length }} DESBLOQUEADAS
+                </span>
+            </div>
+            <div class="p-3">
+                <div class="achievements-gallery">
+                    {% for pa in conquistas_desbloqueadas %}
+                        <div class="achievement-item {% if pa.em_destaque %}em-destaque{% endif %} btn-destaque" 
+                             data-pa-id="{{ pa.id }}" data-ativo="{{ pa.em_destaque|lower }}"
+                             title="{{ pa.achievement.descricao }}">
+                            {% if pa.achievement.imagem %}
+                                <img src="{% static pa.achievement.imagem %}" class="ach-img">
+                            {% else %}
+                                <i class="bi bi-award-fill ach-icon rarity-{{ pa.achievement.raridade }}"></i>
+                            {% endif %}
+                            {% if pa.em_destaque %}<div class="ach-star"><i class="bi bi-star-fill text-warning"></i></div>{% endif %}
+                        </div>
+                    {% empty %}
+                        <p class="text-muted font-tech text-center w-100">Nenhuma conquista desbloqueada.</p>
+                    {% endfor %}
+                </div>
             </div>
         </div>
 
-        <div class="hud-stats">
-            <div class="stat-box">
-                <span class="stat-label">COINS</span>
-                <span class="stat-value text-neon-yellow">{{ player.coins }} <i class="bi bi-coin"></i></span>
-            </div>
-            <div class="stat-box">
-                <span class="stat-label">OFENSIVA</span>
-                <span class="stat-value text-neon-red">{{ player.ofensiva }} <i class="bi bi-fire"></i></span>
-            </div>
-            <div class="stat-box">
-                <span class="stat-label">STREAK</span>
-                <span class="stat-value text-neon-blue">{{ player.streak_days }}D <i class="bi bi-calendar-check"></i></span>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="terminal-log-container">
-    <div class="terminal-header">
-        <span class="terminal-title">root@comnect-guardians:~# tail -f /var/log/sys.log</span>
-        <span class="blink-cursor">_</span>
-    </div>
-    
-    <div class="terminal-body">
-        {% for log in historico_logs %}
-            <div class="log-entry">
-                <span class="log-source src-{{ log.fonte }}">[{{ log.fonte|upper }}]</span>
-                <span class="log-desc">{{ log.descricao }}</span>
-                <span class="log-xp text-neon-cyan">+{{ log.xp_total }} XP</span>
-            </div>
-        {% empty %}
-            <div class="log-entry">
-                <span class="log-desc text-muted">Nenhum registro de atividade encontrado no sistema...</span>
-            </div>
-        {% endfor %}
     </div>
 </div>
 {% endblock %}

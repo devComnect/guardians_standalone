@@ -1,0 +1,163 @@
+/* ═══════════════════════════════════════════════════════════════
+   PERFIL FLASK/DJANGO MERGE CSS
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    --neon-blue:    #0dcaf0;
+    --neon-green:   #05d9e8;
+    --neon-gold:    #fcee0a;
+    --neon-red:     #ff2a6d;
+    --neon-purple:  #bd00ff;
+    --neon-grey:    #adb5bd;
+    --bg-dark:      #070910;
+    --bg-card:      rgba(14, 17, 24, 0.85);
+}
+
+.font-tech { font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; }
+
+/* Themes Baseados na Classe */
+.theme-guardian { --theme-color: var(--neon-blue); }
+.theme-sentinel { --theme-color: var(--neon-green); }
+.theme-hacker   { --theme-color: var(--neon-purple); }
+.theme-analyst  { --theme-color: var(--neon-gold); }
+/* Fallback */
+.profile-page-wrapper { --theme-color: var(--neon-blue); }
+
+.text-theme { color: var(--theme-color) !important; }
+
+/* ── HERO SECTION ── */
+.profile-hero {
+    position: relative;
+    border-bottom: 2px solid var(--theme-color);
+    padding: 40px 0;
+    background: radial-gradient(ellipse at bottom, rgba(255,255,255,0.05) 0%, transparent 60%);
+}
+
+.hero-actions {
+    position: absolute; top: 0; left: 0; width: 100%;
+    display: flex; justify-content: space-between; align-items: start;
+    padding: 15px; z-index: 10;
+}
+
+.team-badge {
+    background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+    padding: 5px 10px; color: var(--text-muted);
+}
+
+.avatar-frame {
+    position: relative; width: 140px; height: 140px;
+    margin: 0 auto 20px; border: 3px solid var(--theme-color);
+    box-shadow: 0 0 20px var(--theme-color);
+    clip-path: polygon(15% 0, 100% 0, 100% 85%, 85% 100%, 0 100%, 0 15%);
+    background: #000;
+}
+
+.avatar-bg-layer { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.5; }
+.avatar-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; }
+.avatar-frame-overlay { position: absolute; inset: -10px; width: calc(100% + 20px); height: calc(100% + 20px); z-index: 3; pointer-events: none; }
+
+.level-badge {
+    position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%);
+    background: #000; color: var(--theme-color); border: 1px solid var(--theme-color);
+    padding: 2px 12px; font-weight: bold; font-size: 0.8rem; z-index: 5;
+}
+
+.profile-name { font-size: 2rem; color: #fff; text-shadow: 2px 2px 0 var(--theme-color); margin-bottom: 5px; font-weight: bold; }
+.profile-class-title { color: var(--theme-color); font-size: 0.9rem; margin-bottom: 20px; }
+
+/* ── PROGRESS BAR ── */
+.xp-system { max-width: 400px; margin: 0 auto; }
+.tech-progress { background: #1a1a24; border: 1px solid rgba(255,255,255,0.1); height: 12px; position: relative; }
+.tech-progress-bar { height: 100%; background: linear-gradient(90deg, transparent, var(--theme-color)); box-shadow: 0 0 10px var(--theme-color); transition: width 0.5s; }
+.xp-numbers { display: flex; justify-content: space-between; font-size: 0.7rem; color: #9ca3af; margin-top: 5px; }
+
+/* ── WEEK TRACKER ── */
+.week-tracker { display: flex; justify-content: center; gap: 8px; }
+.day-bit { width: 15px; height: 15px; background: rgba(255,255,255,0.1); clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+.day-bit.active { background: var(--theme-color); box-shadow: 0 0 8px var(--theme-color); }
+.day-bit.hoje { border-bottom: 2px solid #fff; }
+
+/* ── STATS ROW ── */
+.stats-row { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; padding: 20px; }
+.stat-box { text-align: center; flex: 1; min-width: 100px; }
+.stat-value { font-size: 1.8rem; color: var(--theme-color); font-weight: bold; }
+.stat-label { font-size: 0.7rem; color: #6b7280; letter-spacing: 1px; }
+
+/* ── CYBER CARDS ── */
+.cyber-card {
+    background: var(--bg-card); border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+}
+.cyber-header { border-bottom: 1px solid rgba(255,255,255,0.05); padding: 15px; }
+.cyber-title { color: var(--theme-color); font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; font-weight: bold; }
+
+/* ── TERMINAL LOG ── */
+.terminal-container { max-height: 280px; overflow-y: auto; background: #050505; padding: 15px; }
+.terminal-list { list-style: none; padding: 0; margin: 0; }
+.terminal-item {
+    display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #1a1a24;
+    font-family: 'Courier New', Courier, monospace; font-size: 0.8rem; color: #d1d5db;
+}
+.term-date { color: #6b7280; margin-right: 10px; }
+.term-source { color: var(--theme-color); margin-right: 10px; }
+.term-val { font-weight: bold; }
+
+/* ── CARTEIRA & INVENTÁRIO ── */
+.wallet-display {
+    background: rgba(252,238,10,0.05); border: 1px solid rgba(252,238,10,0.3);
+    padding: 15px; display: flex; justify-content: space-between; align-items: center;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+.wallet-label { display: block; font-size: 0.7rem; color: rgba(252,238,10,0.7); }
+.wallet-value { font-size: 1.5rem; color: var(--neon-gold); text-shadow: 0 0 10px rgba(252,238,10,0.5); }
+.wallet-icon { font-size: 2rem; color: var(--neon-gold); }
+
+.cyber-tabs { border-bottom: 1px solid rgba(255,255,255,0.1); }
+.cyber-tabs .nav-link { color: #6b7280; background: transparent; border: none; font-size: 0.8rem; }
+.cyber-tabs .nav-link.active { color: var(--theme-color); border-bottom: 2px solid var(--theme-color); }
+
+/* Grid de Slots estilo Loja */
+.inventory-scroll-grid { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 15px; }
+
+/* Import do Flip Card da Loja */
+.hud-module-slot {
+    width: 110px; height: 145px; border-radius: 4px; position: relative; flex-shrink: 0;
+    perspective: 600px; display: block; cursor: pointer;
+}
+.hud-module-slot.empty { border: 1px dashed rgba(255,255,255,0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.5s; }
+.hud-module-slot.occupied:hover .card-inner { transform: rotateY(180deg); z-index: 50; }
+.card-front, .card-back {
+    position: absolute; inset: 0; backface-visibility: hidden; border-radius: 4px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px;
+    background: linear-gradient(160deg, #12141c 0%, #080a10 100%); border: 1px solid rgba(255,255,255,0.1);
+}
+.card-back { transform: rotateY(180deg); }
+.hud-slot-icon { font-size: 2rem; margin-bottom: 5px; }
+.hud-slot-name { font-size: 0.5rem; text-align: center; }
+.card-back-desc { font-size: 0.55rem; text-align: center; color: #9ca3af; }
+
+/* Botões do Inventário */
+.btn-sell-hud {
+    position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,42,109,0.15); border: 1px solid var(--neon-red); color: var(--neon-red);
+    font-size: 0.5rem; padding: 3px 8px; opacity: 0; transition: opacity 0.2s; z-index: 51;
+}
+.hud-module-slot.occupied:hover .btn-sell-hud { opacity: 1; }
+.btn-sell-hud.btn-usar-consumivel { border-color: var(--neon-gold); color: var(--neon-gold); background: rgba(252,238,10,0.15); }
+
+/* ── STATUS BÔNUS ── */
+.status-screen-bg { background: #000; border: 1px solid #1a1a24; font-family: monospace; }
+
+/* ── CONQUISTAS ── */
+.achievements-gallery { display: flex; flex-wrap: wrap; gap: 15px; }
+.achievement-item {
+    width: 60px; height: 60px; background: #111; border: 1px solid #333; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.achievement-item:hover { transform: scale(1.1); box-shadow: 0 0 15px var(--theme-color); }
+.achievement-item.em-destaque { border-color: var(--neon-gold); box-shadow: inset 0 0 10px rgba(252,238,10,0.5); }
+.ach-img { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; }
+.ach-icon { font-size: 1.5rem; color: #fff; }
+.ach-star { position: absolute; bottom: -5px; right: -5px; font-size: 0.8rem; text-shadow: 0 0 5px #000; }

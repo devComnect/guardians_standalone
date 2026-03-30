@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Editar Perfil — Comnect Guardians{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:600px;">
+    <h1 class="font-tech mb-4" style="color:var(--neon-blue); letter-spacing:4px;">
+        // EDITAR PERFIL
+    </h1>
+
+    <form method="POST" enctype="multipart/form-data" autocomplete="off">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="font-tech" style="font-size:.65rem; letter-spacing:3px; color:var(--text-muted);">
+                // NOME DE EXIBIÇÃO
+            </label>
+            <input type="text" name="display_name" class="form-control bg-dark text-light border-secondary"
+                   value="{{ player.display_name }}" maxlength="60" placeholder="{{ request.user.username }}">
+        </div>
+
+        <div class="mb-3">
+            <label class="font-tech" style="font-size:.65rem; letter-spacing:3px; color:var(--text-muted);">
+                // BIO
+            </label>
+            <textarea name="bio" class="form-control bg-dark text-light border-secondary"
+                      rows="3" maxlength="300" placeholder="Sua bio...">{{ player.bio }}</textarea>
+        </div>
+
+        <div class="mb-4">
+            <label class="font-tech" style="font-size:.65rem; letter-spacing:3px; color:var(--text-muted);">
+                // AVATAR (PNG, JPG, WEBP — máx. 2MB)
+            </label>
+            {% if player.avatar %}
+            <div class="mb-2">
+                <img src="{{ player.avatar.url }}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;">
+            </div>
+            {% endif %}
+            <input type="file" name="avatar" class="form-control bg-dark text-light border-secondary"
+                   accept="image/png,image/jpeg,image/webp">
+        </div>
+
+        <button type="submit" class="btn font-tech"
+                style="border:1px solid var(--neon-blue);color:var(--neon-blue);letter-spacing:3px;">
+            SALVAR ALTERAÇÕES
+        </button>
+        <a href="{% url 'profiles:index' %}" class="btn font-tech ms-2"
+           style="border:1px solid #444;color:var(--text-dim);letter-spacing:2px;">
+            CANCELAR
+        </a>
+    </form>
+</div>
+{% endblock %}
