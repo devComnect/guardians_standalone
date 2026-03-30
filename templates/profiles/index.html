@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Meu Perfil — Comnect Guardians{% endblock %}
+
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="cyber-hud-wrapper">
+    <div class="hud-profile-section">
+        <div class="avatar-container">
+            {% if player.avatar %}
+                <img src="{{ player.avatar.url }}" alt="Avatar" class="cyber-avatar">
+            {% else %}
+                <img src="{% static 'img/default_avatar.png' %}" alt="Avatar Padrão" class="cyber-avatar">
+            {% endif %}
+            <div class="level-badge">LVL {{ player.level }}</div>
+        </div>
+
+        <div class="hud-info">
+            <h1 class="glitch-text" data-text="{{ player.display_name|default:player.user.username }}">
+                {{ player.display_name|default:player.user.username }}
+            </h1>
+            <h3 class="class-title text-{{ player.classe }}">
+                <i class="bi bi-shield-lock"></i> CLASS: {{ player.get_classe_display|upper }}
+            </h3>
+
+            <div class="xp-container">
+                <div class="xp-labels">
+                    <span>XP: {{ player.xp_no_nivel_atual }} / {{ player.xp_necessario_nivel_atual }}</span>
+                    <span>{{ xp_percentual }}%</span>
+                </div>
+                <div class="xp-bar-bg">
+                    <div class="xp-bar-fill" style="width: {{ xp_percentual }}%;"></div>
+                </div>
+                <div class="xp-total">SYS.XP_TOTAL: {{ player.xp_total }}</div>
+            </div>
+        </div>
+
+        <div class="hud-stats">
+            <div class="stat-box">
+                <span class="stat-label">COINS</span>
+                <span class="stat-value text-neon-yellow">{{ player.coins }} <i class="bi bi-coin"></i></span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">OFENSIVA</span>
+                <span class="stat-value text-neon-red">{{ player.ofensiva }} <i class="bi bi-fire"></i></span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">STREAK</span>
+                <span class="stat-value text-neon-blue">{{ player.streak_days }}D <i class="bi bi-calendar-check"></i></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="terminal-log-container">
+    <div class="terminal-header">
+        <span class="terminal-title">root@comnect-guardians:~# tail -f /var/log/sys.log</span>
+        <span class="blink-cursor">_</span>
+    </div>
+    
+    <div class="terminal-body">
+        {% for log in historico_logs %}
+            <div class="log-entry">
+                <span class="log-source src-{{ log.fonte }}">[{{ log.fonte|upper }}]</span>
+                <span class="log-desc">{{ log.descricao }}</span>
+                <span class="log-xp text-neon-cyan">+{{ log.xp_total }} XP</span>
+            </div>
+        {% empty %}
+            <div class="log-entry">
+                <span class="log-desc text-muted">Nenhum registro de atividade encontrado no sistema...</span>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

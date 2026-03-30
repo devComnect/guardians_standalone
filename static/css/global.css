@@ -374,3 +374,54 @@ body {
     color: var(--text-dim);
     background: #0f1117;
 }
+
+
+.cg-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espaço entre o escudo e o texto */
+    text-decoration: none;
+}
+
+.navbar-icon-shield {
+    height: 28px; /* Ajuste conforme a altura da sua navbar */
+    width: auto;
+    /* Efeito de brilho neon combinando com a paleta original */
+    filter: drop-shadow(0 0 5px rgba(0, 255, 255, 0.5)); 
+    transition: transform 0.3s ease;
+}
+
+.cg-logo:hover .navbar-icon-shield {
+    transform: scale(1.1) rotate(-5deg);
+    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8));
+}
+
+/* Estilo global para o símbolo de moeda */
+.coin-icon {
+    color: #FFD700; /* Amarelo Ouro/Gold */
+    font-weight: bold;
+    margin-right: 4px;
+    display: inline-block;
+    /* Brilho neon para combinar com a navbar */
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+    user-select: none;
+}
+
+/* Ajuste específico para o HUD para manter o alinhamento */
+.hud-stat {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-color, #fff);
+    font-family: 'Share Tech Mono', monospace;
+}
+
+/* Se quiser que o hexágono pulse levemente quando o valor mudar (opcional) */
+.coin-icon {
+    transition: transform 0.2s ease;
+}
+
+.hud-stat:hover .coin-icon {
+    transform: scale(1.2);
+}
+

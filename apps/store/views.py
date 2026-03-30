@@ -64,7 +64,7 @@ def index(request):
     return render(request, 'store/index.html', context)
 
 
-# ─────────────────────────────────────────────
+# ───────────────────────────────────────────── 
 # INVENTÁRIO
 # ─────────────────────────────────────────────
 
@@ -108,6 +108,7 @@ def ajax_reroll(request):
             'tipo':        item.tipo,
             'raridade':    item.raridade,
             'build':       item.build,
+            'icon':        item.icon,
             'cost':        item.cost,
             'preco_final': preco_final,
             'tem_desconto': tem_desconto,

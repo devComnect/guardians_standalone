@@ -11,7 +11,7 @@ Regras de ouro:
 
 import random
 from datetime import timedelta
-
+from django.db.models import Q, Sum
 from django.db import transaction
 from django.utils import timezone
 
@@ -109,10 +109,10 @@ def _popular_slots(daily_store, config, user):
     season_ativa = Season.objects.filter(ativa=True).first()
 
     # Pool base: itens disponíveis da season ativa + itens eternos
-    pool_qs = Item.objects.filter(disponivel=True).filter(
-        models.Q(season__isnull=True) |
-        models.Q(season=season_ativa)
-    ) if season_ativa else Item.objects.filter(disponivel=True, season__isnull=True)
+    pool_qs = Item.objects.filter(disponivel=True).exclude(tipo='cosmetic').filter(
+        Q(season__isnull=True) |
+        Q(season=season_ativa)
+    ) if season_ativa else Item.objects.filter(disponivel=True, season__isnull=True).exclude(tipo='cosmetic')
 
     selecionados = []
     tentativas   = 0
@@ -306,7 +306,7 @@ def _comprar_consumivel(user, player, item, preco_final, desconto):
     # Conta total de consumíveis no inventário
     total_consumiveis = PlayerItem.objects.filter(
         player=user, item__tipo='consumable'
-    ).aggregate(total=models.Sum('quantidade'))['total'] or 0
+    ).aggregate(total=Sum('quantidade'))['total'] or 0
 
     if total_consumiveis >= config.max_consumiveis:
         return False, f'Inventário de consumíveis cheio (máx. {config.max_consumiveis}).', {}
@@ -323,6 +323,11 @@ def _comprar_consumivel(user, player, item, preco_final, desconto):
     if not criado:
         pi.quantidade += 1
         pi.save()
+
+    today = timezone.localdate()
+    daily = DailyStore.objects.filter(player=user, date=today).first()
+    if daily:
+        daily.items.remove(item)
 
     StoreTransaction.objects.create(
         player            = user,
@@ -572,7 +577,7 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None):
 
     print(f"[PASSIVO DEBUG] Passivos equipados ({passivos.count()}):")
     for pi in passivos:
-        print(f"  • Slot {pi.slot_index}: [{pi.item.raridade}] {pi.item.nome} — effect: {pi.item.effect}")
+        print(f"  • Slot {pi.slot_index}: [{pi.item.raridade}] {pi.item.name} — effect: {pi.item.effect}")
 
     player = getattr(user, 'player', None)
     if not player:
@@ -654,7 +659,7 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None):
         # ── Buff ─────────────────────────────────────────────
         elif effect == 'XP_STACK_MULTIPLIER':
             valores_bonus.append(('multiplier', item.value))
-            print(f"  [{effect}] {item.nome} → guardado para aplicar no final (×{item.value}%)")
+            print(f"  [{effect}] {item.name} → guardado para aplicar no final (×{item.value}%)")
             continue
 
         # ── Social ───────────────────────────────────────────
@@ -724,7 +729,7 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None):
             motivo = f"effect '{effect}' não reconhecido"
 
         status = f"+{b}%" if b > 0 else "0% (inativo)"
-        print(f"  [{effect}] {item.nome} → {status}")
+        print(f"  [{effect}] {item.name} → {status}")
         if motivo:
             print(f"    └─ {motivo}")
 

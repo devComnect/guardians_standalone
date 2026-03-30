@@ -1,0 +1,96 @@
+{# templates/store/_card.html — Item card partial #}
+{# Vars: slot (dict com item, preco_final, tem_desconto) #}
+
+{% if slot.item.tipo == 'consumable' %}
+
+<div class="item-card item-card--consumable rarity-{{ slot.item.raridade|lower }}"
+     data-item-id="{{ slot.item.item_id }}"
+     data-price="{{ slot.preco_final }}">
+
+    <div class="card-consumable-stripe"></div>
+
+    <div class="card-body">
+        <div class="card-scanlines"></div>
+
+        <div class="card-top">
+            <span class="card-tipo-badge card-tipo-badge--consumable font-tech">
+                <i class="bi bi-lightning-charge-fill"></i> CONSUMÍVEL
+            </span>
+            <span class="card-rarity-badge font-tech badge-{{ slot.item.raridade|lower }}">
+                {{ slot.item.raridade }}
+            </span>
+        </div>
+
+        <div class="card-art card-art--consumable">
+            <div class="card-art-icon-glow consumable-glow"></div>
+            <i class="bi {{ slot.item.icon }} card-art-icon card-art-icon--consumable"></i>
+            <span class="card-uses-badge font-tech">1× USO</span>
+        </div>
+
+        <div class="card-content">
+            <h4 class="card-name">{{ slot.item.name }}</h4>
+            <p class="card-desc">{{ slot.item.description }}</p>
+        </div>
+
+        <div class="card-footer card-footer--consumable">
+            <span class="card-price font-tech {% if slot.tem_desconto %}has-discount{% endif %}">
+                {% if slot.tem_desconto %}
+                    <span style="font-size:0.5rem;letter-spacing:2px;opacity:0.7;vertical-align:middle">SALE </span>
+                {% endif %}
+                {{ slot.preco_final }} ⬡
+            </span>
+            <button class="btn-buy btn-buy--consumable font-tech" data-id="{{ slot.item.item_id }}">
+                <i class="bi bi-bag-plus"></i><span>CARREGAR</span>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+{% else %}
+
+<div class="item-card rarity-{{ slot.item.raridade|lower }}"
+     data-item-id="{{ slot.item.item_id }}"
+     data-price="{{ slot.preco_final }}">
+
+    <div class="card-glow"></div>
+
+    <div class="card-body">
+        <div class="card-scanlines"></div>
+        <div class="card-shimmer"></div>
+
+        <div class="card-top">
+            <span class="card-tipo-badge font-tech">
+                <i class="bi {{ slot.item.icon }}"></i> {{ slot.item.get_tipo_display|upper }}
+            </span>
+            <span class="card-rarity-badge font-tech badge-{{ slot.item.raridade|lower }}">
+                {{ slot.item.raridade }}
+            </span>
+        </div>
+
+        <div class="card-art">
+            <div class="card-art-icon-glow"></div>
+            <i class="bi {{ slot.item.icon }} card-art-icon"></i>
+        </div>
+
+        <div class="card-content">
+            <h4 class="card-name">{{ slot.item.name }}</h4>
+            <p class="card-desc">{{ slot.item.description }}</p>
+        </div>
+
+        <div class="card-footer">
+            <span class="card-price font-tech {% if slot.tem_desconto %}has-discount{% endif %}">
+                {% if slot.tem_desconto %}
+                    <span style="font-size:0.5rem;letter-spacing:2px;opacity:0.7;vertical-align:middle">SALE </span>
+                {% endif %}
+                {{ slot.preco_final }} ⬡
+            </span>
+            <button class="btn-buy font-tech" data-id="{{ slot.item.item_id }}">
+                <span>COMPRAR</span>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+{% endif %}

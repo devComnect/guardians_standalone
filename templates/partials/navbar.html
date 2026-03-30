@@ -4,6 +4,7 @@
 
         <!-- Logo -->
         <a href="{% url 'core:home' %}" class="cg-logo">
+            <img src="{% static '/img/favicon.png' %}" alt="Logo" class="navbar-icon-shield">
             <span class="logo-bracket">[</span>
             <span class="logo-text">COMNECT</span>
             <span class="logo-accent">GUARDIANS</span>
@@ -36,10 +37,7 @@
                 <i class="bi bi-star-fill text-warning"></i>
                 Lv.{{ user.player.level }}
             </span>
-            <span class="hud-stat">
-                <i class="bi bi-coin" style="color: var(--neon-gold)"></i>
-                {{ user.player.coins }}
-            </span>
+
             {% endif %}
             <!-- Notificações -->
             <div class="notif-wrapper" id="notif-wrapper">

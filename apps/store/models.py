@@ -166,6 +166,14 @@ class Item(models.Model):
     build       = models.CharField(max_length=10, choices=BUILD_CHOICES, default='NONE')
     effect      = models.CharField(max_length=40, choices=EFFECT_CHOICES)
 
+    # Ícone do item — Bootstrap Icons class
+    icon        = models.CharField(
+        max_length=60,
+        default='bi-box',
+        verbose_name='Ícone Bootstrap Icons',
+        help_text='Classe do Bootstrap Icons (ex: bi-cpu-fill). Editável via admin.'
+    )
+
     # Valores do efeito (flexível para diferentes tipos)
     value           = models.FloatField(default=0, help_text='Valor principal do efeito')
     value_secondary = models.FloatField(default=0, help_text='Valor secundário (ex: xp_cost, time_mod)')

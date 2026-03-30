@@ -200,6 +200,7 @@ class PatrolAttempt(models.Model):
     coins_earned    = models.PositiveSmallIntegerField(default=0)
     started_at      = models.DateTimeField(auto_now_add=True)
     completed_at    = models.DateTimeField(null=True, blank=True)
+    remaining_seconds   = models.PositiveIntegerField(default=0)
 
     class Meta:
         verbose_name = 'Tentativa de Patrulha'
