@@ -24,4 +24,6 @@ urlpatterns = [
     # AJAX — Passivos e Consumíveis
     path('passivo/equipar/',     views.equipar_passivo_view, name='equipar_passivo'),
     path('consumivel/usar/',     views.usar_consumivel_view, name='usar_consumivel'),
+
+    path('battlepass/coletar/', views.coletar_tier_bp, name='bp_coletar'),
 ]

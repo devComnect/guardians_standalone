@@ -266,7 +266,7 @@ def patrol_guess(request):
         grant_xp(request.user, xp, 'patrol',              
             f'Patrulha concluída em {attempt.attempts_count} tentativa(s)', 
             contexto={
-                'segundos_restantes': attempt.remaining_seconds(),
+                'segundos_restantes': tempo_restante,
                 'tentativas': len(attempt.guesses),
                 'won': attempt.won,
             })

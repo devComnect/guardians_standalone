@@ -107,25 +107,53 @@
             {# ── COLUNA ESQUERDA (Atividades) ── #}
             <div class="col-lg-7">
                 
-                {# MISSÕES #}
+                {# ── MISSÕES ATIVAS (DIRETRIZES) ── #}
                 <div class="cyber-card mb-4">
-                    <div class="cyber-header">
-                        <div class="cyber-title"><i class="bi bi-list-task"></i> MISSÕES ATIVAS</div>
+                    <div class="cyber-header d-flex justify-content-between align-items-center">
+                        <div class="cyber-title">
+                            <i class="bi bi-journal-code text-theme me-2"></i> MISSÕES
+                        </div>
+                        <span class="badge font-tech" style="background: rgba(13,202,240,0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); letter-spacing: 1px;">
+                            SET ATUAL
+                        </span>
                     </div>
                     <div class="p-3">
-                        {% for pm in missoes_ativas %}
-                        <div class="mission-item mb-3">
-                            <div class="d-flex justify-content-between font-tech small mb-1">
-                                <span>{{ pm.mission.nome }}</span>
-                                <span class="text-theme">{{ pm.progresso }}/{{ pm.mission.meta }}</span>
+                        {% for mission in active_missions %}
+                            <div class="mission-item mb-3">
+                                <div class="d-flex justify-content-between font-tech small mb-1" style="letter-spacing: 0.5px;">
+                                    <span class="text-white">{{ mission.title_generated }}</span>
+                                    <span class="{% if mission.is_completed %}text-neon-green{% else %}text-theme{% endif %}">
+                                        {{ mission.current_progress }} / {{ mission.target_value }}
+                                    </span>
+                                </div>
+                                <div class="tech-progress" style="height: 6px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 2px;">
+                                    <div class="tech-progress-bar" 
+                                        style="width: {% widthratio mission.current_progress mission.target_value 100 %}%; 
+                                                background: {% if mission.is_completed %}var(--neon-green){% else %}var(--neon-blue){% endif %};
+                                                box-shadow: 0 0 10px {% if mission.is_completed %}rgba(5,217,232,0.6){% else %}rgba(13,202,240,0.6){% endif %};
+                                                transition: width 0.5s ease-in-out;">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="tech-progress" style="height: 6px;">
-                                <div class="tech-progress-bar" style="width: {% widthratio pm.progresso pm.mission.meta 100 %}%;"></div>
-                            </div>
-                        </div>
                         {% empty %}
-                        <p class="text-center font-tech py-3">NENHUMA MISSÃO ATIVA.</p>
+                            <div class="text-center p-3 border border-secondary mb-3" style="border-style: dashed !important; opacity: 0.5;">
+                                <span class="font-tech text-muted small" style="letter-spacing: 2px;">NENHUMA DIRETRIZ ENCONTRADA</span>
+                            </div>
                         {% endfor %}
+
+                        <hr class="border-secondary my-3" style="opacity: 0.3;">
+
+                        {% if mission_set.is_completed %}
+                            <a href="{% url 'mission_claim' %}" class="btn btn-cyber-gold w-100 font-tech py-2 d-flex justify-content-center align-items-center" style="animation: neon-pulse 2s infinite;">
+                                <span style="position: relative; z-index: 1; font-weight: bold;">
+                                    <i class="bi bi-gift-fill me-2"></i> RESGATAR RECOMPENSAS
+                                </span>
+                            </a>
+                        {% else %}
+                            <button class="btn btn-outline-secondary w-100 font-tech py-2" disabled style="opacity: 0.5; letter-spacing: 2px; cursor: not-allowed;">
+                                <i class="bi bi-lock-fill me-2"></i> COMPLETE AS 3 MISSÕES
+                            </button>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -157,144 +185,193 @@
                 </div>
             </div>
 
-            {# ── COLUNA DIREITA (Inventário & Patrulha) ── #}
+            {# ── COLUNA DIREITA ── #}
             <div class="col-lg-5">
-                
-                {# INVENTÁRIO & CARTEIRA #}
-                <div class="cyber-card mb-4">
-                    <div class="cyber-header">
-                        <div class="cyber-title"><i class="bi bi-backpack2"></i> INVENTÁRIO & CARTEIRA</div>
-                    </div>
-                    <div class="p-3">
-                        
-                        <div class="wallet-display mb-3">
-                            <div class="wallet-info">
-                                <span class="wallet-label font-tech">SALDO ATUAL</span>
-                                <span class="wallet-value font-tech">{{ player.coins }} <small>⬡</small></span>
-                            </div>
-                            <i class="bi bi-wallet2 wallet-icon"></i>
+                    
+                    {# ── MATRIZ DE SISTEMA & BUFFS ── #}
+                    <div class="cyber-card mb-4">
+                        <div class="cyber-header">
+                            <div class="cyber-title"><i class="bi bi-radar"></i> MATRIZ DE SISTEMA</div>
                         </div>
-
-                        <ul class="nav nav-tabs cyber-tabs font-tech mb-3" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-mods" type="button">UPGRADES</button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-cons" type="button">CARGA</button>
-                            </li>
-                        </ul>
-
-                        <div class="tab-content">
-                            {# UPGRADES PASSIVOS #}
-                            <div class="tab-pane fade show active" id="tab-mods">
-                                <div class="inventory-scroll-grid">
-                                    {% for slot in slots_grade %}
-                                        <div class="hud-module-slot {% if slot.player_item %}occupied rarity-{{ slot.player_item.item.raridade|lower }}{% else %}empty{% endif %}">
-                                            {% if slot.player_item %}
-                                                <div class="card-inner">
-                                                    <div class="card-front">
-                                                        <span class="hud-slot-num font-tech">0{{ slot.numero }}</span>
-                                                        <i class="bi {{ slot.player_item.item.icon|default:'bi-cpu' }} hud-slot-icon"></i>
-                                                        <span class="hud-slot-name">{{ slot.player_item.item.name }}</span>
-                                                    </div>
-                                                    <div class="card-back">
-                                                        <p class="card-back-desc font-tech">{{ slot.player_item.item.description }}</p>
-                                                    </div>
-                                                </div>
-                                                <button class="btn-sell-hud font-tech btn-desocupar" data-pi-id="{{ slot.player_item.id }}">REMOVER</button>
-                                            {% else %}
-                                                <i class="bi bi-dash-square-dotted hud-slot-empty-icon"></i>
-                                                <span class="font-tech text-muted" style="font-size:0.5rem;">SLOT {{ slot.numero }}</span>
-                                            {% endif %}
+                        <div class="p-3">
+                            
+                            {% if bonus.buffs_temporarios %}
+                                <div class="active-buffs-container mb-4">
+                                    <div class="d-flex justify-content-between align-items-end mb-2">
+                                        <span class="font-tech text-theme" style="font-size: 0.65rem; letter-spacing: 2px;">CARGAS TÁTICAS ATIVAS</span>
+                                    </div>
+                                    
+                                    {% for buff in bonus.buffs_temporarios %}
+                                        <div class="d-flex justify-content-between align-items-center p-2 mb-2" 
+                                            style="background: rgba(5, 217, 232, 0.08); border-left: 2px solid var(--neon-green); cursor: help;"
+                                            title="{{ buff.descricao }}">
+                                            <span class="font-tech text-white" style="font-size: 0.75rem;">
+                                                <i class="bi bi-lightning-charge-fill text-neon-green me-2"></i>{{ buff.nome }}
+                                            </span>
+                                            <span class="font-tech text-neon-green" style="font-size: 0.7rem; letter-spacing: 1px;">
+                                                {{ buff.tempo_str }}
+                                            </span>
                                         </div>
                                     {% endfor %}
                                 </div>
-                                
-                                <div class="mt-3 font-tech small text-center">
-                                    <i class="bi bi-info-circle"></i> Acesse a loja para adquirir mais módulos.
-                                </div>
-                            </div>
-
-                            {# CONSUMÍVEIS #}
-                            <div class="tab-pane fade" id="tab-cons">
-                                <div class="inventory-scroll-grid">
-                                    {% for pi in inventario_consumiveis %}
-                                        <div class="hud-module-slot occupied rarity-common item-card--consumable">
-                                            <div class="card-inner">
-                                                <div class="card-front">
-                                                    <span class="hud-slot-num font-tech">x{{ pi.quantidade }}</span>
-                                                    <i class="bi {{ pi.item.icon|default:'bi-lightning-charge' }} hud-slot-icon card-art-icon--consumable"></i>
-                                                    <span class="hud-slot-name text-warning">{{ pi.item.name }}</span>
-                                                </div>
-                                                <div class="card-back">
-                                                    <p class="card-back-desc font-tech">{{ pi.item.description }}</p>
-                                                </div>
-                                            </div>
-                                            <button class="btn-sell-hud font-tech btn-usar-consumivel" data-pi-id="{{ pi.id }}">ATIVAR</button>
-                                        </div>
-                                    {% empty %}
-                                        <p class="text-muted font-tech w-100 text-center py-4">Sua mochila está vazia.</p>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-                {# PAINEL DE BÔNUS (Status Screen) #}
-                <div class="cyber-card">
-                    <div class="cyber-header">
-                        <div class="cyber-title"><i class="bi bi-bar-chart-steps"></i> MODIFICADORES ATIVOS</div>
-                    </div>
-                    <div class="p-3">
-                        <div class="status-screen-bg p-3 font-tech small">
-                            <div class="d-flex justify-content-between text-theme mb-2 border-bottom border-secondary pb-1">
-                                <span>MULTIPLICADOR TOTAL:</span>
-                                <span>+{{ bonus.total_bonus_pct|floatformat:1 }}%</span>
-                            </div>
-                            <div class="text-neon-green">
-                                <div>OFENSIVA: +{{ bonus.bonus_ofensiva }}%</div>
-                                <div>CONQUISTAS: +{{ bonus.bonus_conquistas }}%</div>
-                                <div>MÓDULOS: +{{ bonus.bonus_itens }}%</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-        
-        {# ── CONQUISTAS FULL WIDTH ── #}
-        <div class="cyber-card mt-4">
-            <div class="cyber-header d-flex justify-content-between align-items-center">
-                <div class="cyber-title">
-                    <i class="bi bi-trophy-fill text-theme me-2"></i> GALERIA DE CONQUISTAS
-                </div>
-                <span class="badge bg-dark border border-secondary font-tech">
-                    {{ conquistas_desbloqueadas|length }} DESBLOQUEADAS
-                </span>
-            </div>
-            <div class="p-3">
-                <div class="achievements-gallery">
-                    {% for pa in conquistas_desbloqueadas %}
-                        <div class="achievement-item {% if pa.em_destaque %}em-destaque{% endif %} btn-destaque" 
-                             data-pa-id="{{ pa.id }}" data-ativo="{{ pa.em_destaque|lower }}"
-                             title="{{ pa.achievement.descricao }}">
-                            {% if pa.achievement.imagem %}
-                                <img src="{% static pa.achievement.imagem %}" class="ach-img">
                             {% else %}
-                                <i class="bi bi-award-fill ach-icon rarity-{{ pa.achievement.raridade }}"></i>
+                                <div class="active-buffs-container mb-4 text-center border border-secondary p-2" style="border-style: dashed !important; opacity: 0.5;">
+                                    <span class="font-tech text-muted" style="font-size: 0.65rem; letter-spacing: 2px;">NENHUMA CARGA TÁTICA ATIVA</span>
+                                </div>
                             {% endif %}
-                            {% if pa.em_destaque %}<div class="ach-star"><i class="bi bi-star-fill text-warning"></i></div>{% endif %}
-                        </div>
-                    {% empty %}
-                        <p class="text-muted font-tech text-center w-100">Nenhuma conquista desbloqueada.</p>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
 
-    </div>
-</div>
+                            <div class="text-center mb-2">
+                                <span class="font-tech text-theme" style="font-size: 0.65rem; letter-spacing: 2px;">SINERGIA DA BUILD ATUAL</span>
+                            </div>
+                            <div class="radar-chart-wrapper" style="position: relative; height: 260px; width: 100%; display: flex; justify-content: center;">
+                                <canvas id="skillsRadarChart"></canvas>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {# ── BUILD ATUAL (CONQUISTAS EQUIPADAS) ── #}
+                    <div class="cyber-card">
+                        <div class="cyber-header d-flex justify-content-between align-items-center">
+                            <div class="cyber-title">
+                                <i class="bi bi-cpu text-theme me-2"></i> CONQUISTAS EM DESTAQUE
+                            </div>
+                            <button class="btn btn-outline-info font-tech btn-sm border-theme" data-bs-toggle="modal" data-bs-target="#modalConquistas">
+                                <i class="bi bi-sliders"></i> GALERIA
+                            </button>
+                        </div>
+                        <div class="p-3">
+                            <div class="destaque-slots d-flex gap-3" id="preview-build-atual" data-max="{{ max_destaques }}">
+                                {% for pa in conquistas_em_destaque %}
+                                    <div class="achievement-item em-destaque rarity-{{ pa.achievement.raridade }}" 
+                                        title="{{ pa.achievement.nome }} | {{ pa.achievement.get_bonus_type_display }}: +{{ pa.achievement.bonus_value }}">
+                                        {% if pa.achievement.imagem %}
+                                            <img src="{% static pa.achievement.imagem %}" class="ach-img">
+                                        {% else %}
+                                            <i class="bi bi-award-fill ach-icon"></i>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+ 
+                {# ── INVENTÁRIO & CARTEIRA ── #}
+                <div class="cyber-card mb-4">
+                    <div class="cyber-header d-flex justify-content-between align-items-center">
+                        <div class="cyber-title"><i class="bi bi-wallet2 text-theme me-2"></i> CARTEIRA & MOCHILA</div>
+                        <button class="btn btn-outline-info font-tech btn-sm border-theme text-theme" data-bs-toggle="modal" data-bs-target="#modalInventario">
+                            <i class="bi bi-backpack2"></i> ABRIR MOCHILA
+                        </button>
+                    </div>
+                    <div class="p-3">
+                        <div class="wallet-display mb-0" style="clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);">
+                            <div class="wallet-info">
+                                <span class="wallet-label font-tech text-uppercase" style="color: rgba(252,238,10,0.6); letter-spacing: 2px;">SALDO ATUAL</span>
+                                <span class="wallet-value font-tech" style="font-size: 1.5rem; color: var(--neon-gold); text-shadow: 0 0 12px rgba(252,238,10,0.6);">{{ player.coins }} <small>⬡</small></span>
+                            </div>
+                            <i class="bi bi-safe wallet-icon"></i>
+                        </div>
+                    </div>
+                </div>
+
+                
+            </div> {# Fecha col-lg-5 #}
+        </div> {# Fecha row g-4 #}
+
+        {# INCLUI O MODAL LIMPO #}
+        {% include 'profiles/_modal_conquistas.html' %}
+        {% include 'profiles/_modal_inventario.html' %}
+        
+    </div> {# Fecha Container #}
+</div> {# Fecha wrapper #}
+
+<script>
+    window.PROFILE_URLS = {
+        equiparCosmetico: "{% url 'profiles:equipar_cosmetico' %}",
+        equiparPassivo: "{% url 'profiles:equipar_passivo' %}",
+        toggleConquista: "{% url 'profiles:conquista_destaque' %}",
+        usarConsumivel: "{% url 'profiles:usar_consumivel' %}"
+    };
+</script>
+<script src="{% static 'js/profiles.js' %}"></script>
+<script>
+    window.RADAR_DATA = {
+        global: Number("{{ bonus.matriz_radar.global_xp }}".replace(',', '.')) || 0,
+        quiz: Number("{{ bonus.matriz_radar.quiz_xp }}".replace(',', '.')) || 0,
+        codigo: Number("{{ bonus.matriz_radar.codigo_xp }}".replace(',', '.')) || 0,
+        decriptar: Number("{{ bonus.matriz_radar.decriptar_xp }}".replace(',', '.')) || 0,
+        patrulha: Number("{{ bonus.matriz_radar.patrulha_xp }}".replace(',', '.')) || 0,
+        moedas: Number("{{ bonus.matriz_radar.moedas }}".replace(',', '.')) || 0
+    };
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const ctxRadar = document.getElementById('skillsRadarChart');
+    if (ctxRadar) {
+        // Pega os dados injetados pelo Django de forma segura usando stringformat
+        const dataGlobal    = parseFloat("{{ bonus.matriz_radar.global_xp|stringformat:'f' }}") || 0;
+        const dataQuiz      = parseFloat("{{ bonus.matriz_radar.quiz_xp|stringformat:'f' }}") || 0;
+        const dataCodigo    = parseFloat("{{ bonus.matriz_radar.codigo_xp|stringformat:'f' }}") || 0;
+        const dataDecriptar = parseFloat("{{ bonus.matriz_radar.decriptar_xp|stringformat:'f' }}") || 0;
+        const dataPatrulha  = parseFloat("{{ bonus.matriz_radar.patrulha_xp|stringformat:'f' }}") || 0;
+        const dataMoedas    = parseFloat("{{ bonus.matriz_radar.moedas|stringformat:'f' }}") || 0;
+
+        new Chart(ctxRadar, {
+            type: 'radar',
+            data: {
+                labels: ['GLOBAL', 'CÓDIGO', 'DECRIPTAR', 'PATRULHA', 'MOEDAS', 'QUIZ'],
+                datasets: [{
+                    label: 'Bônus Atual (%)',
+                    data: [dataGlobal, dataCodigo, dataDecriptar, dataPatrulha, dataMoedas, dataQuiz],
+                    backgroundColor: 'rgba(13, 202, 240, 0.25)', // Preenchimento azul neon
+                    borderColor: 'rgba(13, 202, 240, 0.9)',      // Borda azul neon
+                    pointBackgroundColor: 'rgba(252, 238, 10, 1)', // Pontos em ouro (Neon Gold)
+                    pointBorderColor: '#000',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(252, 238, 10, 1)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }, // Esconde a legenda para ficar clean
+                    tooltip: {
+                        backgroundColor: 'rgba(10, 12, 20, 0.9)',
+                        titleFont: { family: "'Share Tech Mono', monospace", size: 12 },
+                        bodyFont: { family: "'Share Tech Mono', monospace", size: 14 },
+                        bodyColor: '#0dcaf0',
+                        borderColor: 'rgba(13, 202, 240, 0.4)',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                return ` +${context.raw}% de Bônus`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                        grid: { color: 'rgba(13, 202, 240, 0.15)', circular: false },
+                        pointLabels: {
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            font: { family: "'Share Tech Mono', monospace", size: 10, letterSpacing: '1px' }
+                        },
+                        min: -5, 
+                        suggestedMax: 30,
+                        ticks: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
 {% endblock %}

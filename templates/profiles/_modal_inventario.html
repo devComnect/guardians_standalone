@@ -1,0 +1,123 @@
+{% load static %}
+<div class="modal fade cyber-modal" id="modalInventario" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-theme" style="box-shadow: 0 0 40px rgba(0,0,0,0.9);">
+            
+            <div class="modal-header cyber-header border-bottom border-secondary">
+                <h5 class="cyber-title" style="letter-spacing: 4px; text-shadow: 0 0 15px rgba(13,202,240,0.4);">
+                    <i class="bi bi-backpack2-fill"></i> INVENTÁRIO DE SISTEMA
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            
+            <div class="modal-body p-4">
+                <ul class="nav nav-tabs cyber-tabs font-tech mb-4 justify-content-center" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active px-4" data-bs-toggle="tab" data-bs-target="#tab-modal-mods" type="button">UPGRADES PASSIVOS</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link px-4" data-bs-toggle="tab" data-bs-target="#tab-modal-cons" type="button">CARGA TÁTICA</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link px-4" data-bs-toggle="tab" data-bs-target="#tab-modal-cosm" type="button">COSMÉTICOS</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" style="min-height: 350px;">
+                    
+                    {# ── ABA 1: UPGRADES PASSIVOS ── #}
+                    <div class="tab-pane fade show active" id="tab-modal-mods">
+                        <div class="d-flex flex-wrap justify-content-center gap-4 pb-4 mt-4">
+                            {% for slot in slots_grade %}
+                                <div class="hud-module-slot {% if slot.player_item %}occupied rarity-{{ slot.player_item.item.raridade|lower }}{% else %}empty{% endif %}">
+                                    {% if slot.player_item %}
+                                        <div class="card-inner">
+                                            <div class="card-front">
+                                                <span class="hud-slot-num font-tech">0{{ slot.numero }}</span>
+                                                <i class="bi {{ slot.player_item.item.icon|default:'bi-cpu' }} hud-slot-icon"></i>
+                                                <span class="hud-slot-name">{{ slot.player_item.item.name }}</span>
+                                            </div>
+                                            <div class="card-back">
+                                                <p class="card-back-desc font-tech">{{ slot.player_item.item.description }}</p>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <i class="bi bi-dash-square-dotted hud-slot-empty-icon" style="font-size: 2rem;"></i>
+                                        <span class="font-tech text-theme mt-2">SLOT {{ slot.numero }} VAZIO</span>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="text-center text-theme font-tech small mt-4">
+                            <i class="bi bi-info-circle"></i> Módulos passivos são aplicados automaticamente. Para removê-los ou vendê-los, acesse o terminal da loja.
+                        </div>
+                    </div>
+
+                    {# ── ABA 2: CONSUMÍVEIS ── #}
+                    <div class="tab-pane fade" id="tab-modal-cons">
+                        <div class="d-flex flex-wrap justify-content-center gap-4 mt-4" style="min-height: 230px;">
+                            {% for pi in inventario_consumiveis %}
+                                <div class="hud-module-slot occupied rarity-common item-card--consumable" data-pi-id="{{ pi.id }}">
+                                    <div class="card-inner">
+                                        <div class="card-front">
+                                            <span class="hud-slot-num font-tech">x{{ pi.quantidade }}</span>
+                                            <i class="bi {{ pi.item.icon|default:'bi-lightning-charge' }} hud-slot-icon card-art-icon--consumable"></i>
+                                            <span class="hud-slot-name text-warning">{{ pi.item.name }}</span>
+                                        </div>
+                                        <div class="card-back">
+                                            <p class="card-back-desc font-tech">{{ pi.item.description }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% empty %}
+                                <p class="text-muted font-tech w-100 text-center py-5 mt-4">Nenhuma carga tática disponível.</p>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mt-4 pt-4 border-top border-secondary d-flex justify-content-center align-items-center flex-column">
+                            <div id="injector-container" class="injector-locked">
+                                <div class="injector-track"></div>
+                                <div class="injector-fill"></div>
+                                <div class="injector-text font-tech text-theme" id="injector-text">
+                                    <i class="bi bi-lock-fill me-2"></i> SELECIONE UMA CARGA
+                                </div>
+                                <div class="injector-thumb" id="injector-thumb">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ── ABA 3: COSMÉTICOS ── #}
+                    <div class="tab-pane fade" id="tab-modal-cosm">
+                        <div class="d-flex flex-wrap justify-content-center gap-4 mt-4 pb-4">
+                            {% for pi in inventario_cosmeticos %}
+                                <div class="hud-module-slot occupied rarity-{{ pi.item.raridade|lower }}">
+                                    <div class="card-inner">
+                                        <div class="card-front">
+                                            <span class="hud-slot-num font-tech">
+                                                {% if pi.equipado %}<span class="text-success">ATIVO</span>{% else %}INATIVO{% endif %}
+                                            </span>
+                                            <i class="bi {{ pi.item.icon|default:'bi-palette' }} hud-slot-icon"></i>
+                                            <span class="hud-slot-name">{{ pi.item.name }}</span>
+                                        </div>
+                                        <div class="card-back">
+                                            <p class="card-back-desc font-tech">{{ pi.item.description }}</p>
+                                        </div>
+                                    </div>
+                                    <button class="btn-sell-hud font-tech btn-cosmetico" data-pi-id="{{ pi.id }}" 
+                                            style="bottom: -30px; font-size: 0.65rem; padding: 4px 12px; {% if pi.equipado %}border-color: var(--neon-red); color: var(--neon-red);{% else %}border-color: var(--neon-green); color: var(--neon-green);{% endif %}">
+                                        {% if pi.equipado %}DESEQUIPAR{% else %}EQUIPAR{% endif %}
+                                    </button>
+                                </div>
+                            {% empty %}
+                                <p class="text-theme font-tech w-100 text-center py-5">Você não possui cosméticos.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

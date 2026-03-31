@@ -158,54 +158,142 @@ def _ctx_stats(user, player):
 
 
 def _ctx_bonus(user, player):
-    """Painel de bônus — breakdown completo de onde vem cada bônus."""
-    from apps.profiles.services import (
-        get_perk_valor, get_ofensiva_bonus_pct, get_achievement_bonus,
-    )
-    # IMPORTAÇÃO CORRIGIDA AQUI
-    from apps.store.services import get_passive_bonus_xp_pct
-    from apps.store.models import PlayerItem
+    """Painel de bônus — Breakdown completo para a Matriz de Skills e UI."""
+    from apps.store.models import PlayerItem, ActiveEffect
+    from apps.profiles.models import Perk, PlayerAchievement, OfensivaConfig
+    from django.utils import timezone
 
-    # Perks ativos
+    print("\n" + "═"*50)
+    print(f"🕵️ INICIANDO DEBUG DE BÔNUS: {player.display_name.upper()}")
+    print("═"*50)
+
+    # 1. O Dicionário Mestre da Matriz (Radar Chart)
+    radar_stats = {
+        'global_xp': 0.0,
+        'quiz_xp': 0.0,
+        'codigo_xp': 0.0,
+        'decriptar_xp': 0.0,
+        'patrulha_xp': 0.0,
+        'moedas': 0.0,
+    }
+
+    buffs_temporarios = []
+
+    # ─── 1. CONQUISTAS EM DESTAQUE ───
+    print("\n🏆 CONQUISTAS EM DESTAQUE:")
+    conquistas_ativas = PlayerAchievement.objects.filter(
+        player=user, em_destaque=True,
+        achievement__bonus_type__isnull=False,
+        achievement__bonus_value__gt=0
+    ).select_related('achievement')
+
+    for pa in conquistas_ativas:
+        tipo = pa.achievement.bonus_type
+        valor = pa.achievement.bonus_value
+        print(f" -> {pa.achievement.nome}: +{valor}% em [{tipo}]")
+        
+        if tipo == 'global_xp_pct': radar_stats['global_xp'] += valor
+        elif tipo == 'quiz_xp_pct': radar_stats['quiz_xp'] += valor
+        elif tipo == 'termo_xp_pct': radar_stats['codigo_xp'] += valor
+        elif tipo == 'anagram_xp_pct': radar_stats['decriptar_xp'] += valor
+        elif tipo == 'patrol_xp_pct': radar_stats['patrulha_xp'] += valor
+        elif tipo == 'coin_pct': radar_stats['moedas'] += valor
+        elif tipo == 'minigame_xp_pct': 
+            radar_stats['codigo_xp'] += valor
+            radar_stats['decriptar_xp'] += valor
+
+    # ─── 2. PERKS DA CLASSE ───
+    print("\n🧬 PERKS DA CLASSE:")
     perks_ativos = Perk.objects.filter(
         classe=player.classe,
         level_required__lte=player.level,
         ativo=True
     ).order_by('level_required')
 
-    # Conquistas em destaque com bônus
-    conquistas_com_bonus = PlayerAchievement.objects.filter(
-        player=user, em_destaque=True,
-        achievement__bonus_type__isnull=False,
-        achievement__bonus_value__gt=0,
-    ).select_related('achievement')
+    for perk in perks_ativos:
+        print(f" -> Lvl {perk.level_required} - {perk.nome}: +{perk.valor}% em [{perk.tipo}]")
+        
+        if perk.tipo == 'xp_global': radar_stats['global_xp'] += perk.valor
+        elif perk.tipo == 'xp_quiz': radar_stats['quiz_xp'] += perk.valor
+        elif perk.tipo == 'xp_codigo': radar_stats['codigo_xp'] += perk.valor
+        elif perk.tipo == 'xp_decriptar': radar_stats['decriptar_xp'] += perk.valor
+        elif perk.tipo == 'coin_bonus': radar_stats['moedas'] += perk.valor
 
-    # Itens nos slots
-    itens_slot = PlayerItem.objects.filter(
-        player=user, slot_index__isnull=False
-    ).select_related('item').order_by('slot_index')
+    # ─── 3. MÓDULOS PASSIVOS (SLOTS) ───
+    print("\n💾 MÓDULOS PASSIVOS EQUIPADOS:")
+    passivos_equipados = PlayerItem.objects.filter(
+        player=user, slot_index__isnull=False, item__tipo='passive'
+    ).select_related('item')
 
-    # Totais calculados
-    bonus_xp_global   = get_perk_valor(user, 'xp_global')
-    bonus_ofensiva    = get_ofensiva_bonus_pct(user)
-    bonus_conquistas  = get_achievement_bonus(user, 'global_xp_pct')
-    
-    # CHAMADA DA FUNÇÃO CORRIGIDA AQUI
-    bonus_itens = get_passive_bonus_xp_pct(user, fonte='quiz')
+    for pi in passivos_equipados:
+        efeito = pi.item.effect
+        valor = pi.item.value
+        print(f" -> Slot {pi.slot_index} - {pi.item.name}: +{valor} [{efeito}]")
+        
+        if efeito == 'XP_CODE_CHALLENGE': radar_stats['codigo_xp'] += valor
+        elif efeito == 'XP_DECRYPT_CHALLENGE': radar_stats['decriptar_xp'] += valor
+        elif efeito == 'XP_PATROL_CHALLENGE': radar_stats['patrulha_xp'] += valor
+        elif 'XP' in efeito: # Agrupa todos os outros passivos de XP na barra global
+            # Nota: Passivos condicionais (como XP_PER_LEVEL) estão somando o valor base no Radar apenas para demonstração de "Potencial de Build"
+            radar_stats['global_xp'] += valor
 
+    # ─── 4. CARGAS TÁTICAS ATIVAS (CONSUMÍVEIS) ───
+    print("\n⚡ CARGAS TÁTICAS ATIVAS:")
+    agora = timezone.now()
+    efeitos_ativos = ActiveEffect.objects.filter(
+        player=user, expires_at__gt=agora
+    ).select_related('item')
+
+    if not efeitos_ativos.exists():
+        print(" -> Nenhum efeito temporário ativo.")
+
+    for efeito in efeitos_ativos:
+        tempo_restante = efeito.expires_at - agora
+        horas, resto = divmod(tempo_restante.seconds, 3600)
+        dias = tempo_restante.days
+        
+        tempo_str = f"{dias}d {horas}h" if dias > 0 else f"{horas}h {resto // 60}m"
+        print(f" -> {efeito.item.name if efeito.item else efeito.effect}: Expira em {tempo_str}")
+        
+        # Se o consumível der XP Global (ex: XP_BOOST_DAYS), soma no radar
+        if 'XP_BOOST' in efeito.effect:
+            radar_stats['global_xp'] += efeito.value
+
+        buffs_temporarios.append({
+            'nome': efeito.item.name if efeito.item else efeito.effect,
+            'descricao': efeito.item.description if efeito.item else 'Efeito do sistema.',
+            'expira_em': efeito.expires_at,
+            'tempo_str': tempo_str,
+            'valor': efeito.value
+        })
+
+    print("\n📊 RESUMO DO RADAR CHART:")
+    for key, val in radar_stats.items():
+        print(f" - {key.upper()}: {val}%")
+    print("═"*50 + "\n")
+
+    # ─── 5. FECHAMENTO ───
     ofensiva_config = OfensivaConfig.get()
     teto_ofensiva   = ofensiva_config.teto_bonus_ofensiva
+    
+    # Mantendo compatibilidade com as variáveis antigas para não quebrar a tela atual
+    bonus_xp_global = radar_stats['global_xp']
+    bonus_ofensiva = min(player.ofensiva, teto_ofensiva) # Se quiser somar ofensiva no gráfico depois, podemos!
 
     return {
         'bonus': {
             'perks_ativos':       perks_ativos,
-            'conquistas_bonus':   conquistas_com_bonus,
-            'itens_slot':         itens_slot,
+            'conquistas_bonus':   conquistas_ativas,
+            'itens_slot':         passivos_equipados,
+            'buffs_temporarios':  buffs_temporarios,
+            'matriz_radar':       radar_stats, 
+
+            # Legado
             'bonus_xp_global':    bonus_xp_global,
             'bonus_ofensiva':     bonus_ofensiva,
-            'bonus_conquistas':   bonus_conquistas,
-            'bonus_itens':        bonus_itens,
-            'total_bonus_pct':    bonus_xp_global + bonus_ofensiva + bonus_conquistas + bonus_itens,
+            'bonus_conquistas':   sum(pa.achievement.bonus_value for pa in conquistas_ativas if 'xp' in str(pa.achievement.bonus_type)),
+            'bonus_itens':        sum(pi.item.value for pi in passivos_equipados if 'XP' in pi.item.effect),
+            'total_bonus_pct':    bonus_xp_global + bonus_ofensiva,
             'ofensiva_atual':     player.ofensiva,
             'ofensiva_teto':      teto_ofensiva,
         }
@@ -409,28 +497,79 @@ def _ctx_conquistas(user):
         'em_destaque_count':        em_destaque_count,
     }
 
+def _ctx_battle_pass(user):
+    from .models import BattlePassConfig, PlayerBattlePass
 
-def _ctx_missoes(user):
-    """Missões ativas do player."""
-    try:
-        from apps.challenges.models import PlayerMission
-        missoes_ativas = PlayerMission.objects.filter(
-            player=user, concluida=False
-        ).select_related('mission').order_by('mission__tipo', 'mission__ordem')
+    bp_config = BattlePassConfig.get_ativo()
+    if not bp_config:
+        return {'battle_pass': None, 'player_bp': None, 'bp_tiers': []}
 
-        missoes_concluidas_hoje = PlayerMission.objects.filter(
-            player=user, concluida=True,
-            concluida_em__date=timezone.localdate()
-        ).count()
-    except Exception:
-        missoes_ativas = []
-        missoes_concluidas_hoje = 0
+    pbp = PlayerBattlePass.objects.filter(
+        player=user, battle_pass=bp_config
+    ).first()
+
+    tiers = bp_config.tiers.select_related('recompensa_item').all()
+
+    tiers_info = []
+    coletados  = set(pbp.tiers_coletados if pbp else [])
+    xp_atual   = pbp.xp_bp if pbp else 0
+
+    for tier in tiers:
+        desbloqueado = xp_atual >= tier.xp_necessario
+        tiers_info.append({
+            'tier':          tier,
+            'desbloqueado':  desbloqueado,
+            'coletado':      tier.tier in coletados,
+            'disponivel':    desbloqueado and tier.tier not in coletados,
+        })
+
+    proximo = next((t for t in tiers_info if not t['desbloqueado']), None)
+    xp_para_proximo = (proximo['tier'].xp_necessario - xp_atual) if proximo else 0
+    pct_proximo = 0
+    if proximo:
+        tier_anterior_xp = tiers_info[tiers_info.index(proximo) - 1]['tier'].xp_necessario if tiers_info.index(proximo) > 0 else 0
+        faixa = proximo['tier'].xp_necessario - tier_anterior_xp
+        ganho = xp_atual - tier_anterior_xp
+        pct_proximo = min(100, int(ganho / faixa * 100)) if faixa > 0 else 100
 
     return {
-        'missoes_ativas':          missoes_ativas,
-        'missoes_concluidas_hoje': missoes_concluidas_hoje,
+        'battle_pass':      bp_config,
+        'player_bp':        pbp,
+        'bp_tiers':         tiers_info,
+        'bp_xp_atual':      xp_atual,
+        'bp_xp_para_proximo': xp_para_proximo,
+        'bp_pct_proximo':   pct_proximo,
+        'bp_disponíveis':   sum(1 for t in tiers_info if t['disponivel']),
     }
 
+def _ctx_missoes(user):
+    """Missões ativas do player (Sincronizado com a Home)."""
+    try:
+        from apps.missions.models import UserMissionSet
+        mission_set = UserMissionSet.objects.filter(
+            user=user, is_claimed=False
+        ).order_by('-created_at').first()
+
+        if mission_set:
+            active_missions = mission_set.missions.all().order_by('id')
+        else:
+            active_missions = []
+
+    except ImportError:
+        print("⚠️ Model UserMissionSet não encontrado. Verifique o caminho da importação.")
+        mission_set = None
+        active_missions = []
+        
+    except Exception as e:
+        print(f"⚠️ Erro ao carregar missões no perfil: {e}")
+        mission_set = None
+        active_missions = []
+
+    return {
+        'mission_set': mission_set,
+        'active_missions': active_missions,
+        **_ctx_battle_pass(user),
+    }
 
 def _ctx_log(user):
     from apps.store.models import StoreTransaction, ActiveEffect
@@ -686,3 +825,17 @@ def usar_consumivel_view(request):
 
     sucesso, mensagem, _ = ativar_consumivel(request.user, pi.item.item_id)
     return JsonResponse({'ok': sucesso, 'mensagem': mensagem})
+
+
+@login_required
+@require_POST
+def coletar_tier_bp(request):
+    try:
+        body   = json.loads(request.body)
+        tier_n = int(body.get('tier'))
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Dados inválidos.'}, status=400)
+
+    from .services import coletar_recompensa_bp
+    sucesso, mensagem, descricao = coletar_recompensa_bp(request.user, tier_n)
+    return JsonResponse({'ok': sucesso, 'mensagem': mensagem, 'recompensa': descricao})

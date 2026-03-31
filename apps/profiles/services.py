@@ -151,6 +151,11 @@ def grant_xp(user, xp_base, fonte, descricao='', contexto=None):
         # Verifica perks desbloqueados nesse nível
         _notificar_perks_desbloqueados(user, player.classe, nivel)
 
+    try:
+        atualizar_battle_pass(user, xp_final)
+    except Exception:
+        pass  
+
     return {
         'xp_base':      xp_base,
         'xp_bonus':     xp_bonus,
@@ -587,3 +592,110 @@ def _verificar_ranking(user, top_n):
     if snap and snap.posicao <= top_n:
         return 1
     return 0
+
+
+# ─────────────────────────────────────────────
+# BATTLE PASS
+# ─────────────────────────────────────────────
+
+@transaction.atomic
+def atualizar_battle_pass(user, xp_ganho):
+    """
+    Chamado automaticamente após grant_xp.
+    Atualiza o XP do BP e verifica novos tiers desbloqueados.
+    """
+    from .models import BattlePassConfig, PlayerBattlePass, PlayerNotification
+
+    bp_config = BattlePassConfig.get_ativo()
+    if not bp_config:
+        return
+
+    pbp, _ = PlayerBattlePass.objects.get_or_create(
+        player=user,
+        battle_pass=bp_config,
+    )
+
+    pbp.xp_bp += xp_ganho
+
+    # Verifica tiers novos desbloqueados
+    tiers_novos = bp_config.tiers.filter(
+        xp_necessario__lte=pbp.xp_bp,
+        tier__gt=pbp.tier_atual,
+    ).order_by('tier')
+
+    if tiers_novos.exists():
+        pbp.tier_atual = tiers_novos.last().tier
+
+        # Notifica sobre tiers disponíveis para coleta
+        PlayerNotification.objects.create(
+            player   = user,
+            tipo     = 'sistema',
+            titulo   = f'Battle Pass — Tier {pbp.tier_atual} desbloqueado!',
+            mensagem = 'Acesse seu perfil para coletar as recompensas.',
+            icone    = 'bi-stars',
+        )
+
+    pbp.save()
+
+
+@transaction.atomic
+def coletar_recompensa_bp(user, tier_number):
+    """
+    Player coleta a recompensa de um tier.
+    Retorna (sucesso, mensagem, recompensa_descricao).
+    """
+    from .models import BattlePassConfig, PlayerBattlePass, PlayerNotification
+    from apps.store.models import PlayerItem, CoinTransaction
+
+    bp_config = BattlePassConfig.get_ativo()
+    if not bp_config:
+        return False, 'Nenhum Battle Pass ativo.', None
+
+    try:
+        pbp = PlayerBattlePass.objects.get(player=user, battle_pass=bp_config)
+    except PlayerBattlePass.DoesNotExist:
+        return False, 'Você não iniciou este Battle Pass.', None
+
+    try:
+        tier = bp_config.tiers.get(tier=tier_number)
+    except BattlePassTier.DoesNotExist:
+        return False, 'Tier não encontrado.', None
+
+    if tier.xp_necessario > pbp.xp_bp:
+        return False, 'Tier ainda não desbloqueado.', None
+
+    if tier_number in pbp.tiers_coletados:
+        return False, 'Recompensa já coletada.', None
+
+    player = getattr(user, 'player', None)
+
+    # ── Entrega a recompensa ──────────────────────
+    if tier.recompensa_tipo == 'coins' and player:
+        player.coins += tier.recompensa_coins
+        player.save()
+        CoinTransaction.objects.create(
+            player    = user,
+            tipo      = 'recompensa',
+            valor     = tier.recompensa_coins,
+            descricao = f'Battle Pass Tier {tier_number}',
+        )
+
+    elif tier.recompensa_tipo in ('item', 'cosmetico') and tier.recompensa_item:
+        item = tier.recompensa_item
+        pi, created = PlayerItem.objects.get_or_create(
+            player=user, item=item,
+            defaults={'usos_restantes': item.usos_max or 1}
+        )
+        if not created:
+            pi.quantidade     += 1
+            pi.usos_restantes += item.usos_max or 1
+            pi.save()
+
+    # ── Registra coleta ───────────────────────────
+    coletados = pbp.tiers_coletados
+    coletados.append(tier_number)
+    pbp.tiers_coletados = coletados
+    pbp.save()
+
+    descricao = tier.recompensa_descricao or f'Tier {tier_number}'
+    return True, f'Recompensa coletada: {descricao}!', descricao

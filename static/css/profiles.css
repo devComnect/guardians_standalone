@@ -150,14 +150,434 @@
 .status-screen-bg { background: #000; border: 1px solid #1a1a24; font-family: monospace; }
 
 /* ── CONQUISTAS ── */
-.achievements-gallery { display: flex; flex-wrap: wrap; gap: 15px; }
-.achievement-item {
-    width: 60px; height: 60px; background: #111; border: 1px solid #333; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+@keyframes floatBadge {
+    0%   { transform: translateY(0px); }
+    50%  { transform: translateY(-4px); }
+    100% { transform: translateY(0px); }
 }
-.achievement-item:hover { transform: scale(1.1); box-shadow: 0 0 15px var(--theme-color); }
-.achievement-item.em-destaque { border-color: var(--neon-gold); box-shadow: inset 0 0 10px rgba(252,238,10,0.5); }
-.ach-img { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; }
-.ach-icon { font-size: 1.5rem; color: #fff; }
-.ach-star { position: absolute; bottom: -5px; right: -5px; font-size: 0.8rem; text-shadow: 0 0 5px #000; }
+
+.achievement-item {
+    width: 60px; height: 60px; 
+    background: #111; border: 2px solid #333; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; 
+    position: relative; cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: hidden;
+}
+
+.achievement-item.unlocked {
+    animation: floatBadge 3s ease-in-out infinite;
+}
+
+.achievement-item.unlocked:hover {
+    transform: scale(1.15) translateY(-5px);
+    z-index: 10;
+}
+
+.achievement-item.locked {
+    background: #0a0a0a;
+    border-color: #1a1a24;
+    filter: grayscale(100%) opacity(0.5);
+    cursor: not-allowed;
+    animation: none;
+}
+
+.rarity-comum { border-color: var(--neon-grey); box-shadow: 0 0 5px rgba(173,181,189,0.2); }
+.rarity-rara { border-color: var(--neon-blue); box-shadow: 0 0 8px rgba(13,202,240,0.3); }
+.rarity-epica { border-color: var(--neon-purple); box-shadow: 0 0 12px rgba(189,0,255,0.4); }
+.rarity-lendaria { border-color: var(--neon-gold); box-shadow: 0 0 15px rgba(252,238,10,0.5); }
+
+.em-destaque {
+    border-width: 3px;
+    box-shadow: inset 0 0 15px rgba(255,255,255,0.2), 0 0 15px var(--theme-color);
+}
+
+.destaque-slots {
+    min-height: 70px;
+    padding: 10px;
+    background: rgba(0,0,0,0.3);
+    border: 1px dashed rgba(255,255,255,0.1);
+    border-radius: 8px;
+}
+
+.ach-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; 
+}
+
+#area-inventario.achievements-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-content: flex-start;
+}
+
+.achievement-item.dragging {
+    opacity: 0.4;
+    transform: scale(0.9);
+    box-shadow: 0 0 20px var(--theme-color);
+}
+
+.destaque-slots.drag-over {
+    background: rgba(13, 202, 240, 0.1);
+    border-color: var(--neon-blue);
+}
+
+.achievement-item.is-equipped {
+    opacity: 0.5;
+    filter: grayscale(100%) brightness(0.6);
+    box-shadow: none !important;
+    border-color: #333 !important;
+    cursor: not-allowed;
+    animation: none !important;
+    transform: none !important;
+}
+
+.locked-extra {
+    display: none !important;
+}
+
+/* ════════════════════════════════════════════════════════
+   MODAL DE CONQUISTAS (ESTÉTICA MERCADO NEGRO)
+   ════════════════════════════════════════════════════════ */
+
+/* Background e Grid Cyberpunk */
+.cyber-modal .modal-content {
+    background: radial-gradient(ellipse 70% 45% at 15% 85%, rgba(13,202,240,0.07) 0%, transparent 55%),
+                radial-gradient(ellipse 50% 35% at 85% 15%, rgba(189,0,255,0.05) 0%, transparent 55%),
+                #080b12;
+    position: relative;
+    border: 1px solid rgba(13, 202, 240, 0.3);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(13, 202, 240, 0.1);
+    overflow: hidden;
+}
+
+.cyber-modal .modal-content::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(13,202,240,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(13,202,240,0.05) 1px, transparent 1px);
+    background-size: 48px 48px;
+    animation: grid-drift 20s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.cyber-modal .modal-body, .cyber-modal .modal-header {
+    position: relative;
+    z-index: 1;
+}
+
+/* ── SOCKETS EM DESTAQUE ── */
+#area-destaque, #preview-build-atual {
+    justify-content: center;
+    background: rgba(10, 12, 20, 0.98);
+    border: 1px solid rgba(13,202,240,0.3);
+    border-radius: 4px;
+    padding: 24px;
+    box-shadow: inset 0 5px 20px rgba(0,0,0,0.8);
+}
+
+.ach-socket {
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #0a0e17 0%, #020305 100%);
+    border: 2px dashed rgba(13, 202, 240, 0.2);
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.ach-socket .achievement-item {
+    position: relative;
+    margin: 0;
+    animation: hover-float 3.5s ease-in-out infinite;
+    z-index: 10;
+}
+
+/* Delay para não flutuarem iguais */
+.ach-socket:nth-child(1) .achievement-item { animation-delay: 0s; }
+.ach-socket:nth-child(2) .achievement-item { animation-delay: 0.6s; }
+.ach-socket:nth-child(3) .achievement-item { animation-delay: 1.2s; }
+.ach-socket:nth-child(4) .achievement-item { animation-delay: 1.8s; }
+
+/* ── BOTÃO ESTILO LOJA ── */
+.btn-cyber-store {
+    background: rgba(13,202,240,0.05);
+    border: 1px solid rgba(13,202,240,0.55);
+    color: var(--neon-blue);
+    font-family: var(--tech-font);
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    padding: 10px 22px;
+    cursor: pointer;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    transition: all 0.25s;
+    overflow: hidden;
+    position: relative;
+}
+
+.btn-cyber-store::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--neon-blue);
+    opacity: 0;
+    transition: opacity 0.25s;
+}
+
+.btn-cyber-store:hover {
+    color: #000;
+    box-shadow: 0 0 24px rgba(13,202,240,0.5);
+}
+
+.btn-cyber-store:hover::before { opacity: 1; }
+.btn-cyber-store > * { position: relative; z-index: 1; }
+
+/* ── DETALHES ── */
+#ach-preview-desc {
+    color: var(--text-bright);
+    font-family: var(--tech-font);
+    letter-spacing: 0.5px;
+    line-height: 1.6;
+    font-size: 0.8rem;
+    text-shadow: 0 0 10px rgba(255,255,255,0.1);
+}
+
+#ach-preview-nome {
+    text-shadow: 0 0 15px rgba(13,202,240,0.4);
+    letter-spacing: 2px;
+}
+
+/* ── TRAVA DE TAMANHO DO PAINEL DE DETALHES ── */
+#ach-preview-nome {
+    height: 48px; /* Espaço exato travado para até 2 linhas */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+
+#ach-preview-desc {
+    height: 90px; /* Altura 100% estática para a descrição */
+    overflow-y: auto; /* Impede o modal de esticar, rolando apenas o texto */
+    padding-right: 5px;
+}
+
+/* Micro-scroll cyberpunk para a descrição */
+#ach-preview-desc::-webkit-scrollbar {
+    width: 3px;
+}
+#ach-preview-desc::-webkit-scrollbar-thumb {
+    background: rgba(13, 202, 240, 0.4);
+    border-radius: 3px;
+}
+
+
+/* ════════════════════════════════════════════════════════
+   MODAL DE INVENTÁRIO (ESTÉTICA MERCADO NEGRO)
+   ════════════════════════════════════════════════════════ */
+
+/* ── ABAS DA MOCHILA MAIORES E LEGÍVEIS ── */
+#modalInventario .cyber-tabs .nav-link {
+    font-size: 1rem;
+    letter-spacing: 2px;
+    padding: 12px 24px;
+    color: rgba(255,255,255,0.5);
+}
+#modalInventario .cyber-tabs .nav-link.active {
+    color: var(--theme-color);
+}
+
+/* ── CARTAS DA MOCHILA (MAIORES E FLUTUANTES) ── */
+#modalInventario .hud-module-slot {
+    width: 150px;
+    height: 200px;
+    animation: module-float 3.5s ease-in-out infinite;
+}
+
+/* Quebra o padrão da flutuação para não parecer robótico */
+#modalInventario .hud-module-slot:nth-child(even) { animation-delay: 0.8s; }
+#modalInventario .hud-module-slot:nth-child(3n) { animation-delay: 1.5s; }
+
+/* Ajuste de fontes proporcionais ao novo tamanho */
+#modalInventario .hud-slot-icon { font-size: 3rem; margin-bottom: 8px; }
+#modalInventario .hud-slot-name { font-size: 0.7rem; padding: 0 5px; }
+#modalInventario .card-back-desc { font-size: 0.7rem; line-height: 1.5; -webkit-line-clamp: 7; }
+#modalInventario .hud-slot-num { font-size: 0.7rem; }
+
+/* ── GLOW NEON POR RARIDADE (IDLE) ── */
+#modalInventario .rarity-common { box-shadow: 0 0 15px rgba(173,181,189,0.15); }
+#modalInventario .rarity-rare { box-shadow: 0 0 20px rgba(13,202,240,0.25); }
+#modalInventario .rarity-epic { box-shadow: 0 0 25px rgba(252,238,10,0.3); }
+#modalInventario .rarity-legendary { box-shadow: 0 0 30px rgba(189,0,255,0.3); }
+
+/* ── SELEÇÃO DE CONSUMÍVEL ── */
+#modalInventario .item-card--consumable { 
+    cursor: pointer; 
+    border: 2px solid transparent; 
+}
+#modalInventario .item-card--consumable.selected-card {
+    border-color: var(--neon-gold);
+    box-shadow: 0 0 30px rgba(252,238,10,0.6) !important;
+    transform: scale(1.08) !important;
+    animation-play-state: paused;
+    z-index: 50;
+}
+
+/* ── FUNDO SÓLIDO PARA O MODAL DE INVENTÁRIO ── */
+#modalInventario .modal-content {
+    background: #060911 !important; /* Fundo 100% escuro para não vazar a tela de trás */
+}
+
+/* ── BOTÃO DE AÇÃO DOURADO (INJETAR CARGA) ── */
+.btn-cyber-gold {
+    background: rgba(252, 238, 10, 0.05);
+    border: 1px solid var(--neon-gold) !important;
+    color: var(--neon-gold) !important;
+    font-family: var(--tech-font);
+    letter-spacing: 3px;
+    cursor: pointer;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    transition: all 0.25s;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 0 15px rgba(252, 238, 10, 0.2);
+}
+
+.btn-cyber-gold::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--neon-gold);
+    opacity: 0;
+    transition: opacity 0.25s;
+    z-index: 0;
+}
+
+.btn-cyber-gold:hover, 
+.btn-cyber-gold:hover * {
+    color: #000 !important;
+    box-shadow: 0 0 24px rgba(252, 238, 10, 0.6);
+}
+
+.btn-cyber-gold:hover::before {
+    opacity: 1; 
+}
+
+.btn-cyber-gold > * {
+    position: relative;
+    z-index: 1; 
+}
+
+/* ── SLIDER TÁTICO DE INJEÇÃO ── */
+#injector-container {
+    width: 100%;
+    max-width: 400px;
+    height: 56px;
+    background: rgba(10, 12, 20, 0.9);
+    border: 1px solid rgba(13,202,240,0.2);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.injector-track {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(255,255,255,0.02) 10px, rgba(255,255,255,0.02) 20px);
+}
+
+.injector-fill {
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    width: 0; /* Começa zerado */
+    background: linear-gradient(90deg, rgba(252,238,10,0.1), rgba(252,238,10,0.4));
+    border-right: 2px solid var(--neon-gold);
+    box-shadow: 0 0 20px rgba(252,238,10,0.4);
+    z-index: 1;
+}
+
+.injector-text {
+    position: absolute; inset: 0;
+    display: flex; justify-content: center; align-items: center;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 3px;
+    font-size: 0.9rem;
+    z-index: 2;
+    pointer-events: none; /* Para não bugar o mouse */
+    transition: color 0.3s;
+    text-shadow: 0 0 5px rgba(0,0,0,0.8);
+}
+
+.injector-thumb {
+    position: absolute;
+    top: 4px; bottom: 4px; left: 4px;
+    width: 60px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 2px;
+    display: flex; justify-content: center; align-items: center;
+    color: rgba(255,255,255,0.4);
+    font-size: 1.2rem;
+    z-index: 3;
+    cursor: grab;
+    transition: background 0.3s, color 0.3s, border-color 0.3s;
+}
+
+/* ── ESTADOS DO SLIDER ── */
+#injector-container.injector-locked {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+#injector-container.injector-ready {
+    border-color: rgba(252,238,10,0.5);
+    box-shadow: 0 0 15px rgba(252,238,10,0.1);
+}
+#injector-container.injector-ready .injector-thumb {
+    background: rgba(252,238,10,0.1);
+    border-color: var(--neon-gold);
+    color: var(--neon-gold);
+    box-shadow: 0 0 10px rgba(252,238,10,0.3);
+}
+#injector-container.injector-ready .injector-thumb:active {
+    cursor: grabbing;
+    background: var(--neon-gold);
+    color: #000;
+}
+#injector-container.injector-ready .injector-text {
+    color: var(--neon-gold);
+    text-shadow: 0 0 10px rgba(252,238,10,0.3);
+}
+
+/* Estado de Sucesso/Injeção */
+#injector-container.injector-firing {
+    pointer-events: none;
+    border-color: var(--neon-green);
+    box-shadow: 0 0 20px rgba(5,217,232,0.4);
+}
+#injector-container.injector-firing .injector-fill {
+    background: rgba(5,217,232,0.4);
+    border-right-color: var(--neon-green);
+    width: 100% !important;
+    transition: width 0.2s, background 0.3s !important;
+}
+#injector-container.injector-firing .injector-text {
+    color: #fff;
+}
+
+/* botão resgate de missões */
+@keyframes neon-pulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(252, 238, 10, 0.4); transform: scale(1); }
+    50% { box-shadow: 0 0 25px rgba(252, 238, 10, 0.8); transform: scale(1.02); }
+}

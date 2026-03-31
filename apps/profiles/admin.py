@@ -1,6 +1,7 @@
 from django.contrib import admin, messages
 from django.utils.html import format_html
-from .models import Player, Perk, XPEvent, PlayerNotification, ClasseConfig, OfensivaConfig, Achievement, PlayerAchievement, AchievementConfig
+from .models import (Player, Perk, XPEvent, PlayerNotification, ClasseConfig, OfensivaConfig, Achievement, PlayerAchievement, AchievementConfig, 
+BattlePassConfig, BattlePassTier, PlayerBattlePass)
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse
 from django.utils.safestring import mark_safe
@@ -442,3 +443,78 @@ class PlayerAchievementAdmin(admin.ModelAdmin):
     @admin.action(description='✖ Remover destaque')
     def remover_destaque(self, request, queryset):
         queryset.update(em_destaque=False)
+
+
+class BattlePassTierInline(admin.TabularInline):
+    model   = BattlePassTier
+    extra   = 0
+    fields  = ('tier', 'xp_necessario', 'recompensa_tipo',
+                'recompensa_coins', 'recompensa_item', 'recompensa_descricao')
+    ordering = ('tier',)
+
+
+@admin.register(BattlePassConfig)
+class BattlePassConfigAdmin(admin.ModelAdmin):
+    list_display = ('season', 'ativo', 'total_tiers', 'criado_em')
+    inlines      = [BattlePassTierInline]
+    actions      = ['duplicar_para_proxima_season']
+
+    def total_tiers(self, obj):
+        return obj.tiers.count()
+    total_tiers.short_description = 'Tiers'
+
+    @admin.action(description='📋 Duplicar estrutura para a Season ativa')
+    def duplicar_para_proxima_season(self, request, queryset):
+        from apps.rankings.models import Season
+        season_ativa = Season.objects.filter(ativa=True).first()
+        if not season_ativa:
+            self.message_user(request, 'Nenhuma Season ativa.', django_messages.WARNING)
+            return
+
+        for bp in queryset:
+            novo_bp, created = BattlePassConfig.objects.get_or_create(
+                season=season_ativa,
+                defaults={'ativo': True}
+            )
+            if created:
+                for tier in bp.tiers.all():
+                    BattlePassTier.objects.get_or_create(
+                        battle_pass=novo_bp,
+                        tier=tier.tier,
+                        defaults={
+                            'xp_necessario':      tier.xp_necessario,
+                            'recompensa_tipo':    tier.recompensa_tipo,
+                            'recompensa_coins':   tier.recompensa_coins,
+                            'recompensa_item':    tier.recompensa_item,
+                            'recompensa_descricao': tier.recompensa_descricao,
+                        }
+                    )
+                self.message_user(request, f'Duplicado para Season {season_ativa.numero}.')
+            else:
+                self.message_user(request, 'Já existe um BP para essa Season.',
+                                  django_messages.WARNING)
+
+
+@admin.register(PlayerBattlePass)
+class PlayerBattlePassAdmin(admin.ModelAdmin):
+    list_display  = ('player', 'battle_pass', 'tier_atual', 'xp_bp',
+                     'tiers_coletados_count', 'atualizado_em')
+    list_filter   = ('battle_pass',)
+    search_fields = ('player__username',)
+    readonly_fields = ('player', 'battle_pass', 'xp_bp', 'tier_atual',
+                       'tiers_coletados', 'criado_em', 'atualizado_em')
+    actions = ['resetar_bp']
+
+    def tiers_coletados_count(self, obj):
+        return len(obj.tiers_coletados)
+    tiers_coletados_count.short_description = 'Coletados'
+
+    @admin.action(description='🗑️ Resetar Battle Pass do player')
+    def resetar_bp(self, request, queryset):
+        for pbp in queryset:
+            pbp.xp_bp           = 0
+            pbp.tier_atual      = 0
+            pbp.tiers_coletados = []
+            pbp.save()
+        self.message_user(request, f'{queryset.count()} BP(s) resetado(s).',
+                          django_messages.WARNING)

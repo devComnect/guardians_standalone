@@ -9,7 +9,9 @@ def claim_mission_reward(request):
         messages.success(request, message)
     else:
         messages.error(request, message)
-    return redirect('core:home') # Nome da sua rota da home
+    
+    url_anterior = request.META.get('HTTP_REFERER', 'core:home')
+    return redirect(url_anterior)
 
 urlpatterns = [
     path('claim/', claim_mission_reward, name='mission_claim'), 

@@ -349,3 +349,115 @@ class PlayerAchievement(models.Model):
 
     def __str__(self):
         return f'{self.player.username} → {self.achievement.nome}'
+    
+
+# ─────────────────────────────────────────────
+# BATTLE PASS
+# ─────────────────────────────────────────────
+
+class BattlePassConfig(models.Model):
+    """Config por temporada — um registro por Season."""
+    season      = models.OneToOneField(
+        'rankings.Season', on_delete=models.CASCADE,
+        related_name='battle_pass'
+    )
+    ativo       = models.BooleanField(default=True)
+    descricao   = models.TextField(blank=True)
+    criado_em   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Battle Pass — Config'
+        verbose_name_plural = 'Battle Pass — Configs'
+
+    def __str__(self):
+        return f'Battle Pass — Season {self.season.numero}'
+
+    @classmethod
+    def get_ativo(cls):
+        from apps.rankings.models import Season
+        season = Season.objects.filter(ativa=True).first()
+        if not season:
+            return None
+        return cls.objects.filter(season=season, ativo=True).first()
+
+
+class BattlePassTier(models.Model):
+    """Cada nível do Battle Pass com sua recompensa."""
+
+    RECOMPENSA_TIPO_CHOICES = [
+        ('coins',      'Guardian Coins'),
+        ('item',       'Item (Consumível/Passivo)'),
+        ('cosmetico',  'Cosmético'),
+        ('xp_bonus',   'Bônus de XP temporário'),
+    ]
+
+    battle_pass  = models.ForeignKey(
+        BattlePassConfig, on_delete=models.CASCADE, related_name='tiers'
+    )
+    tier         = models.PositiveSmallIntegerField(
+        help_text='Número do nível (1 a 50)'
+    )
+    xp_necessario = models.PositiveIntegerField(
+        help_text='XP acumulado necessário para atingir este tier'
+    )
+
+    # Recompensa
+    recompensa_tipo   = models.CharField(max_length=15, choices=RECOMPENSA_TIPO_CHOICES)
+    recompensa_coins  = models.PositiveSmallIntegerField(default=0,
+        help_text='Coins concedidos (se tipo = coins)')
+    recompensa_item   = models.ForeignKey(
+        'store.Item', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='battle_pass_tiers',
+        help_text='Item concedido (se tipo = item ou cosmetico)'
+    )
+    recompensa_descricao = models.CharField(max_length=200, blank=True,
+        help_text='Descrição legível da recompensa para o front')
+
+    class Meta:
+        verbose_name = 'Battle Pass — Tier'
+        verbose_name_plural = 'Battle Pass — Tiers'
+        unique_together = ('battle_pass', 'tier')
+        ordering = ['tier']
+
+    def __str__(self):
+        return f'BP Tier {self.tier} — {self.recompensa_descricao or self.recompensa_tipo}'
+
+
+class PlayerBattlePass(models.Model):
+    """Progresso do player no Battle Pass da temporada."""
+    player      = models.ForeignKey(User, on_delete=models.CASCADE,
+                    related_name='battle_passes')
+    battle_pass = models.ForeignKey(BattlePassConfig, on_delete=models.CASCADE,
+                    related_name='players')
+    xp_bp       = models.PositiveIntegerField(default=0,
+                    help_text='XP acumulado especificamente no Battle Pass')
+    tier_atual  = models.PositiveSmallIntegerField(default=0,
+                    help_text='Último tier desbloqueado')
+    tiers_coletados = models.JSONField(default=list,
+                    help_text='Lista de tiers já coletados pelo player')
+    criado_em   = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('player', 'battle_pass')
+        verbose_name = 'Battle Pass do Player'
+        verbose_name_plural = 'Battle Pass dos Players'
+
+    def __str__(self):
+        return f'{self.player.username} — BP Tier {self.tier_atual}'
+
+    def tiers_disponiveis(self):
+        """Retorna tiers desbloqueados mas ainda não coletados."""
+        tiers_ganhos = set(
+            self.battle_pass.tiers
+            .filter(xp_necessario__lte=self.xp_bp)
+            .values_list('tier', flat=True)
+        )
+        coletados = set(self.tiers_coletados)
+        return tiers_ganhos - coletados
+
+    def proximo_tier(self):
+        """Retorna o próximo tier ainda não desbloqueado."""
+        return self.battle_pass.tiers.filter(
+            xp_necessario__gt=self.xp_bp
+        ).first()
