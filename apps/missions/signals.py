@@ -14,7 +14,6 @@ def track_feedback_missions(sender, instance, created, **kwargs):
     user = instance.player 
     
     if user:
-        print(f"[MISSÕES] 🎯 Feedback detectado para {user.username}. Atualizando FEEDBACK_COUNT.")
         MissionService.update_progress(user, 'FEEDBACK_COUNT')
 
 @receiver(post_save, sender='profiles.XPEvent')

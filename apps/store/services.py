@@ -287,7 +287,7 @@ def _comprar_passivo(user, player, item, preco_final, desconto, slot_substituir)
         coins_delta        = -preco_final,
         desconto_aplicado  = desconto,
         descricao          = (
-            f'Compra passivo "{item.name}" → slot {slot_alvo}'
+            f'Compra passivo "{item.name}"'
             + (f' (substituiu slot {slot_alvo})' if substituido else '')
         ),
     )
@@ -555,14 +555,9 @@ def _aplicar_efeito_consumivel(user, player, item):
 # BÔNUS DE PASSIVOS (integração com grant_xp)
 # ─────────────────────────────────────────────
 
-def get_passive_bonus_xp_pct(user, fonte=None, contexto=None):
+def get_passive_bonus_xp_pct(user, fonte=None, contexto=None, retornar_breakdown=False):
     if contexto is None:
         contexto = {}
-
-    print(f"\n{'─'*60}")
-    print(f"[PASSIVO DEBUG] Calculando passivos para: {user.username}")
-    print(f"[PASSIVO DEBUG] Fonte: {fonte} | Contexto: {contexto}")
-    print(f"{'─'*60}")
 
     passivos = PlayerItem.objects.filter(
         player=user,
@@ -571,25 +566,15 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None):
     ).select_related('item')
 
     if not passivos.exists():
-        print(f"[PASSIVO DEBUG] Nenhum passivo equipado — bônus = 0%")
-        print(f"{'─'*60}")
-        return 0
-
-    print(f"[PASSIVO DEBUG] Passivos equipados ({passivos.count()}):")
-    for pi in passivos:
-        print(f"  • Slot {pi.slot_index}: [{pi.item.raridade}] {pi.item.name} — effect: {pi.item.effect}")
+        return (0, []) if retornar_breakdown else 0
 
     player = getattr(user, 'player', None)
     if not player:
-        print(f"[PASSIVO DEBUG] Player não encontrado — bônus = 0%")
-        print(f"{'─'*60}")
-        return 0
+        return (0, []) if retornar_breakdown else 0
 
-    print(f"[PASSIVO DEBUG] Player coins: {player.coins} | Level: {player.level}")
-    print(f"{'─'*60}")
-
-    bonus_total = 0.0
-    valores_bonus = []
+    bonus_total  = 0.0
+    breakdown    = []
+    multiplicadores = []
 
     for pi in passivos:
         item   = pi.item
@@ -597,166 +582,168 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None):
         b      = 0.0
         motivo = ''
 
-        # ── Economy ──────────────────────────────────────────
         if effect == 'XP_PER_COIN':
-            b = min((player.coins // 10) * item.value, item.max_bonus)
-            motivo = f"{player.coins} coins → {player.coins // 10} grupos de 10 × {item.value}% (max {item.max_bonus}%)"
+            b      = min((player.coins // 10) * item.value, item.max_bonus)
+            motivo = f"{player.coins} coins → {player.coins // 10} grupos × {item.value}% (max {item.max_bonus}%)"
 
         elif effect == 'XP_LOW_CASH':
             if player.coins < 10:
-                b = item.value
+                b      = item.value
                 motivo = f"coins ({player.coins}) < 10 ✅"
             else:
-                motivo = f"coins ({player.coins}) >= 10 ❌ não ativou"
+                motivo = f"coins ({player.coins}) >= 10 ❌"
 
         elif effect == 'XP_ODD_CASH':
             if player.coins % 2 != 0:
-                b = item.value
+                b      = item.value
                 motivo = f"coins ({player.coins}) é ímpar ✅"
             else:
-                motivo = f"coins ({player.coins}) é par ❌ não ativou"
+                motivo = f"coins ({player.coins}) é par ❌"
 
-        # ── Speedrun ─────────────────────────────────────────
         elif effect == 'TIME_REDUCTION_XP_BOOST':
-            b = item.value_secondary if item.value_secondary else item.value
-            motivo = f"sempre ativo → value_secondary={item.value_secondary} / value={item.value}"
+            b      = item.value_secondary if item.value_secondary else item.value
+            motivo = f"sempre ativo"
 
         elif effect == 'XP_PER_SECOND':
-            seg = contexto.get('segundos_restantes', 0)
-            b   = min(seg * item.value, item.max_bonus)
-            motivo = f"{seg}s restantes × {item.value}% = {seg * item.value}% (max {item.max_bonus}%)"
+            seg    = contexto.get('segundos_restantes', 0)
+            b      = min(seg * item.value, item.max_bonus)
+            motivo = f"{seg}s restantes × {item.value}% (max {item.max_bonus}%)"
 
-        # ── Skill ─────────────────────────────────────────────
         elif effect == 'XP_QUICK_WIN':
             tentativas = contexto.get('tentativas', 99)
             won        = contexto.get('won', False)
             if tentativas < 3 and won:
-                b = item.value
-                motivo = f"tentativas={tentativas} < 3 e won={won} ✅"
+                b      = item.value
+                motivo = f"vitória em {tentativas} tentativas ✅"
             else:
-                motivo = f"tentativas={tentativas}, won={won} ❌ não ativou (precisa: tentativas<3 e won=True)"
+                motivo = f"tentativas={tentativas}, won={won} ❌"
 
-        # ── Synergy ──────────────────────────────────────────
         elif effect == 'XP_SAME_RARITY':
             raridades = [p.item.raridade for p in passivos]
             if len(set(raridades)) == 1 and len(raridades) == 4:
-                b = item.value
-                motivo = f"4 passivos da mesma raridade ({raridades[0]}) ✅"
+                b      = item.value
+                motivo = f"4 passivos {raridades[0]} ✅"
             else:
-                motivo = f"raridades={raridades} ❌ não ativou (precisa 4 iguais)"
+                motivo = f"raridades mistas ❌"
 
         elif effect == 'XP_PER_COMMON':
             commons = sum(1 for p in passivos if p.item.raridade == 'COMMON')
             b       = min(commons * item.value, item.max_bonus)
-            motivo  = f"{commons} comuns × {item.value}% = {commons * item.value}% (max {item.max_bonus}%)"
+            motivo  = f"{commons} comuns × {item.value}% (max {item.max_bonus}%)"
 
         elif effect == 'XP_PER_EMPTY_SLOT':
             config = StoreConfig.get()
             vazios = config.max_passivos_slots - passivos.count()
             b      = min(vazios * item.value, item.max_bonus)
-            motivo = f"{vazios} slots vazios × {item.value}% = {vazios * item.value}% (max {item.max_bonus}%)"
+            motivo = f"{vazios} slots vazios × {item.value}%"
 
-        # ── Buff ─────────────────────────────────────────────
         elif effect == 'XP_STACK_MULTIPLIER':
-            valores_bonus.append(('multiplier', item.value))
-            print(f"  [{effect}] {item.name} → guardado para aplicar no final (×{item.value}%)")
+            multiplicadores.append(item)
             continue
 
-        # ── Social ───────────────────────────────────────────
         elif effect == 'XP_PER_COSMETIC':
             cosmeticos = PlayerItem.objects.filter(
                 player=user, item__tipo='cosmetic', equipado=True
             ).count()
             b      = min(cosmeticos * item.value, item.max_bonus)
-            motivo = f"{cosmeticos} cosméticos equipados × {item.value}% (max {item.max_bonus}%)"
+            motivo = f"{cosmeticos} cosméticos × {item.value}%"
 
         elif effect == 'XP_PER_FEATURED_ACHIEVEMENT':
             from apps.profiles.models import PlayerAchievement
             destaques = PlayerAchievement.objects.filter(player=user, em_destaque=True).count()
             b         = min(destaques * item.value, item.max_bonus)
-            motivo    = f"{destaques} conquistas em destaque × {item.value}% (max {item.max_bonus}%)"
+            motivo    = f"{destaques} conquistas em destaque × {item.value}%"
 
-        # ── Ranking ──────────────────────────────────────────
         elif effect == 'XP_TOP_3':
             from apps.profiles.services import _verificar_ranking
             if _verificar_ranking(user, 3):
-                b = item.value
-                motivo = f"player está no top 3 ✅"
+                b      = item.value
+                motivo = "top 3 ✅"
             else:
-                motivo = f"player fora do top 3 ❌ não ativou"
+                motivo = "fora do top 3 ❌"
 
         elif effect == 'XP_OUTSIDE_TOP_10':
             from apps.profiles.services import _verificar_ranking
             if not _verificar_ranking(user, 10):
-                b = item.value
-                motivo = f"player fora do top 10 ✅"
+                b      = item.value
+                motivo = "fora do top 10 ✅"
             else:
-                motivo = f"player está no top 10 ❌ não ativou"
+                motivo = "dentro do top 10 ❌"
 
-        # ── Scaling ──────────────────────────────────────────
         elif effect == 'XP_PER_LEVEL':
             b      = min(player.level * item.value, item.max_bonus)
-            motivo = f"level {player.level} × {item.value}% = {player.level * item.value}% (max {item.max_bonus}%)"
+            motivo = f"level {player.level} × {item.value}% (max {item.max_bonus}%)"
 
-        # ── Specific ─────────────────────────────────────────
         elif effect == 'XP_CODE_CHALLENGE' and fonte == 'codigo':
             b      = item.value
-            motivo = f"fonte=codigo ✅"
+            motivo = "fonte=codigo ✅"
         elif effect == 'XP_PATROL_CHALLENGE' and fonte == 'patrol':
             b      = item.value
-            motivo = f"fonte=patrol ✅"
+            motivo = "fonte=patrol ✅"
         elif effect == 'XP_DECRYPT_CHALLENGE' and fonte == 'decriptar':
             b      = item.value
-            motivo = f"fonte=decriptar ✅"
+            motivo = "fonte=decriptar ✅"
         elif effect in ('XP_CODE_CHALLENGE', 'XP_PATROL_CHALLENGE', 'XP_DECRYPT_CHALLENGE'):
-            motivo = f"fonte='{fonte}' ❌ não é a fonte correta para esse item"
+            motivo = f"fonte='{fonte}' ❌"
 
-        # ── Luck ─────────────────────────────────────────────
         elif effect == 'XP_RANDOM':
             import random
             b      = random.uniform(item.value, item.max_bonus)
-            motivo = f"sorteio entre {item.value}% e {item.max_bonus}% → {b:.2f}%"
+            motivo = f"sorteio {item.value}%–{item.max_bonus}% → {b:.2f}%"
 
-        # ── Time ─────────────────────────────────────────────
         elif effect == 'DOUBLE_XP_WEEK_FIRST':
             if _e_primeiro_desafio_da_semana(user):
-                b = item.value
-                motivo = f"primeiro desafio da semana ✅"
+                b      = item.value
+                motivo = "primeiro desafio da semana ✅"
             else:
-                motivo = f"não é o primeiro desafio da semana ❌ não ativou"
+                motivo = "não é o primeiro desafio da semana ❌"
 
         else:
             motivo = f"effect '{effect}' não reconhecido"
 
-        status = f"+{b}%" if b > 0 else "0% (inativo)"
-        print(f"  [{effect}] {item.name} → {status}")
-        if motivo:
-            print(f"    └─ {motivo}")
-
         bonus_total += b
+        breakdown.append({
+            "fonte":      item.name,
+            "categoria":  "Módulo Passivo",
+            "tipo":       effect,
+            "pct":        round(b, 2),
+            "motivo":     motivo,
+            "ativo":      b > 0,
+        })
 
-    # ── XP_STACK_MULTIPLIER ───────────────────────────────────
-    if valores_bonus:
-        bonus_antes = bonus_total
-        for tipo, val in valores_bonus:
-            if tipo == 'multiplier':
-                acrescimo = bonus_total * (val / 100)
-                bonus_total += acrescimo
-                print(f"  [XP_STACK_MULTIPLIER] ×{val}% sobre {bonus_antes}% → +{acrescimo:.2f}% (total agora: {bonus_total:.2f}%)")
+    # ── XP_STACK_MULTIPLIER — aplicado sobre o total acumulado ──
+    for item in multiplicadores:
+        acrescimo   = bonus_total * (item.value / 100)
+        bonus_total += acrescimo
+        breakdown.append({
+            "fonte":     item.name,
+            "categoria": "Módulo Passivo",
+            "tipo":      "XP_STACK_MULTIPLIER",
+            "pct":       round(acrescimo, 2),
+            "motivo":    f"×{item.value}% sobre bônus acumulado → +{acrescimo:.2f}%",
+            "ativo":     acrescimo > 0,
+        })
 
-    # ── Consumíveis ───────────────────────────────────────────
-    bonus_consumivel = _get_consumivel_xp_bonus(user)
-    if bonus_consumivel > 0:
-        print(f"  [CONSUMIVEL] XP_BOOST_DAYS ativo → +{bonus_consumivel}%")
-    else:
-        print(f"  [CONSUMIVEL] Nenhum consumível de XP ativo")
-    bonus_total += bonus_consumivel
+    # ── Consumíveis ativos ───────────────────────────────────────
+    agora    = timezone.now()
+    efeitos  = ActiveEffect.objects.filter(
+        player=user, effect='XP_BOOST_DAYS', expires_at__gt=agora
+    ).select_related('item')
 
-    print(f"{'─'*60}")
-    print(f"[PASSIVO DEBUG] Bônus total de passivos+consumíveis: +{round(bonus_total, 2)}%")
-    print(f"{'─'*60}\n")
+    for efeito in efeitos:
+        bonus_total += efeito.value
+        breakdown.append({
+            "fonte":     efeito.item.name if efeito.item else "XP Boost",
+            "categoria": "Consumível Ativo",
+            "tipo":      "XP_BOOST_DAYS",
+            "pct":       efeito.value,
+            "motivo":    f"ativo até {efeito.expires_at.strftime('%d/%m %H:%M')}",
+            "ativo":     True,
+        })
 
-    return round(bonus_total, 2)
+    total = round(bonus_total, 2)
+
+    return (total, breakdown) if retornar_breakdown else total
 
 
 def _get_consumivel_xp_bonus(user):

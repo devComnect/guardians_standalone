@@ -26,4 +26,5 @@ urlpatterns = [
     path('consumivel/usar/',     views.usar_consumivel_view, name='usar_consumivel'),
 
     path('battlepass/coletar/', views.coletar_tier_bp, name='bp_coletar'),
+    path('selecionar-classe/', views.selecao_classe_view, name='selecao_classe'),
 ]

@@ -1,0 +1,158 @@
+{% comment %}
+Include reutilizável de breakdown de XP.
+Requer: xp_result (dict retornado por grant_xp) no contexto.
+Uso: {% include 'minigames/_xp_breakdown.html' %}
+{% endcomment %}
+
+{% if xp_result and xp_result.xp_final %}
+<div class="xp-breakdown-panel">
+    <div class="xp-bd-header font-tech">
+        <i class="bi bi-cpu-fill me-2"></i>RELATÓRIO DE XP
+    </div>
+
+    <div class="xp-bd-row xp-bd-base">
+        <span class="xp-bd-label">
+            <i class="bi bi-star-fill me-2" style="color:rgba(255,255,255,.4);font-size:.8rem;"></i>XP Base
+        </span>
+        <span class="xp-val-base">+{{ xp_result.xp_base }} XP</span>
+    </div>
+
+    {% if xp_result.bonus_breakdown %}
+        <div class="xp-bd-divider font-tech">MODIFICADORES</div>
+
+        {% for b in xp_result.bonus_breakdown %}
+        <div class="xp-bd-row xp-bd-mod"
+             style="--mod-color:
+                {% if b.categoria == 'Perk Global' %}#0dcaf0
+                {% elif b.categoria == 'Perk Específico' %}#05d9e8
+                {% elif b.categoria == 'Ofensiva' %}#bd00ff
+                {% elif b.categoria == 'Conquista' %}#ffd700
+                {% elif b.categoria == 'Módulo Passivo' %}#ff2a6d
+                {% elif b.categoria == 'Consumível Ativo' %}#00ff9f
+                {% else %}#aaaaaa{% endif %};">
+
+            <div class="xp-bd-mod-info">
+                <span class="xp-bd-cat font-tech">
+                    <i class="bi
+                        {% if b.categoria == 'Perk Global' %}bi-lightning-charge-fill
+                        {% elif b.categoria == 'Perk Específico' %}bi-lightning-fill
+                        {% elif b.categoria == 'Ofensiva' %}bi-fire
+                        {% elif b.categoria == 'Conquista' %}bi-trophy-fill
+                        {% elif b.categoria == 'Módulo Passivo' %}bi-cpu-fill
+                        {% elif b.categoria == 'Consumível Ativo' %}bi-capsule-pill
+                        {% else %}bi-plus-circle-fill{% endif %}"
+                       style="color:var(--mod-color);font-size:.75rem;">
+                    </i>
+                    {{ b.categoria|default:b.tipo }}
+                </span>
+                <span class="xp-bd-name">{{ b.fonte }}</span>
+                {% if b.motivo %}<span class="xp-bd-motivo">{{ b.motivo }}</span>{% endif %}
+            </div>
+
+            <div class="xp-bd-mod-val">
+                {% if b.ativo == False %}
+                    {# Item explicitamente inativo (condição não atendida) #}
+                    <span class="xp-val-inactive">inativo</span>
+                {% elif b.xp_adicionado == 0 %}
+                    {# Ativo mas zerado — ex: ofensiva 0 pts #}
+                    <span class="xp-val-zero">+0 XP</span>
+                    <span class="xp-val-pct">(+{{ b.pct }}%)</span>
+                {% else %}
+                    <span class="xp-val-bonus">+{{ b.xp_adicionado }} XP</span>
+                    <span class="xp-val-pct">(+{{ b.pct }}%)</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="xp-bd-row xp-bd-subtotal">
+            <span class="xp-bd-label">
+                <i class="bi bi-plus-slash-minus me-2" style="color:rgba(13,202,240,.4);font-size:.8rem;"></i>Subtotal Bônus
+            </span>
+            <span class="xp-val-info">+{{ xp_result.xp_bonus }} XP</span>
+        </div>
+    {% endif %}
+
+    <div class="xp-bd-row xp-bd-total">
+        <span class="font-tech xp-bd-label">
+            <i class="bi bi-check2-circle me-2" style="color:#00ff9f;font-size:.9rem;"></i>XP TOTAL OBTIDO
+        </span>
+        <span class="xp-val-total font-tech">+{{ xp_result.xp_final }} XP</span>
+    </div>
+</div>
+
+<style>
+.xp-breakdown-panel {
+    margin: 1.5rem 0;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(13,202,240,0.2);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.xp-bd-header {
+    background: rgba(13,202,240,0.08);
+    border-bottom: 1px solid rgba(13,202,240,0.2);
+    padding: .5rem 1rem;
+    font-size: .7rem;
+    letter-spacing: 2px;
+    color: var(--neon-blue, #0dcaf0);
+}
+.xp-bd-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: .5rem 1rem;
+    font-size: .82rem;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.xp-bd-row:last-child { border-bottom: none; }
+.xp-bd-label { display: flex; align-items: center; }
+
+.xp-bd-base  { color: rgba(255,255,255,.8); }
+.xp-val-base { color: #00ff9f; font-weight: bold; white-space: nowrap; }
+
+.xp-bd-divider {
+    padding: .3rem 1rem;
+    font-size: .65rem;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,.3);
+    background: rgba(255,255,255,.02);
+    border-bottom: 1px solid rgba(255,255,255,.04);
+}
+
+.xp-bd-mod {
+    border-left: 2px solid var(--mod-color, #aaaaaa);
+    padding-left: calc(1rem - 2px);
+    align-items: flex-start;
+    gap: .5rem;
+}
+.xp-bd-mod-info  { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.xp-bd-cat       { font-size: .65rem; letter-spacing: 1px; color: var(--mod-color, #aaa); display: flex; align-items: center; gap: 5px; }
+.xp-bd-name      { font-size: .82rem; color: rgba(255,255,255,.9); }
+.xp-bd-motivo    { font-size: .65rem; color: rgba(255,255,255,.4); margin-top: 1px; }
+
+.xp-bd-mod-val   { text-align: right; white-space: nowrap; margin-left: .75rem; padding-top: 1px; }
+.xp-val-bonus    { font-size: .8rem; color: #00ff9f; font-weight: bold; }
+.xp-val-zero     { color: rgba(255,255,255,.55); }
+.xp-val-pct      { font-size: .7rem; color: rgba(255,255,255,.35); margin-left: 3px; }
+.xp-val-inactive { font-size: .75rem; color: rgba(255,255,255,.25); font-style: italic; }
+
+.xp-bd-subtotal { color: rgba(255,255,255,.55); font-size: .78rem; }
+.xp-val-info    { color: #0dcaf0; white-space: nowrap; }
+
+.xp-bd-total {
+    background: rgba(0,255,159,.05);
+    border-top: 1px solid rgba(0,255,159,.2) !important;
+    padding: .7rem 1rem;
+    font-size: .9rem;
+    color: rgba(255,255,255,.9);
+}
+.xp-val-total {
+    color: #00ff9f;
+    font-size: 1rem;
+    font-weight: bold;
+    text-shadow: 0 0 14px rgba(0,255,159,.5);
+    white-space: nowrap;
+}
+</style>
+{% endif %}

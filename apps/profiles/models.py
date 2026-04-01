@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 
 class Player(models.Model):
     CLASSE_CHOICES = [
+        ('none',      'Sem Classe'),
         ('guardian',  'Guardian'),
         ('analyst',   'Analyst'),
         ('sentinel',  'Sentinel'),
@@ -150,6 +151,8 @@ class XPEvent(models.Model):
     xp_total    = models.IntegerField(default=0)
     descricao   = models.CharField(max_length=200)
     criado_em   = models.DateTimeField(auto_now_add=True)
+    breakdown = models.JSONField(default=list, blank=True,
+    help_text='Lista detalhada de bônus aplicados no cálculo')
 
     class Meta:
         verbose_name = 'Evento de XP'
@@ -195,9 +198,13 @@ class PlayerNotification(models.Model):
 # ─────────────────────────────────────────────
 
 class ClasseConfig(models.Model):
+    custo_primeira_classe = models.PositiveIntegerField(
+        default=0, # Deixe 0 se quiser que a primeira vez seja de graça, ou coloque um valor
+        help_text='Custo em coins para o player escolher a classe pela primeira vez'
+    )
     custo_troca_coins = models.PositiveIntegerField(
         default=500,
-        help_text='Custo em coins para trocar de classe'
+        help_text='Custo em coins para trocar de classe posteriormente'
     )
 
     class Meta:
@@ -205,8 +212,8 @@ class ClasseConfig(models.Model):
         verbose_name_plural = 'Config — Troca de Classe'
 
     def __str__(self):
-        return f'Troca de classe: {self.custo_troca_coins} coins'
-
+        return f'1ª Escolha: {self.custo_primeira_classe} | Troca: {self.custo_troca_coins}'
+    
     @classmethod
     def get(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
@@ -461,3 +468,41 @@ class PlayerBattlePass(models.Model):
         return self.battle_pass.tiers.filter(
             xp_necessario__gt=self.xp_bp
         ).first()
+    
+
+
+class SystemLog(models.Model):
+    TIPO_CHOICES = [
+        ('xp_gain',       'Ganho de XP'),
+        ('xp_loss',       'Perda de XP'),
+        ('level_up',      'Level Up'),
+        ('coin_gain',     'Ganho de Moedas'),
+        ('coin_loss',     'Perda de Moedas'),
+        ('item_purchase', 'Compra de Item'),
+        ('item_sell',     'Venda de Item'),
+        ('item_activate', 'Ativação de Consumível'),
+        ('store_reroll',  'Reroll da Loja'),
+        ('achievement',   'Conquista Desbloqueada'),
+        ('mission_claim', 'Missão Resgatada'),
+        ('battle_pass',   'Recompensa Battle Pass'),
+        ('classe_change', 'Troca de Classe'),
+        ('system',        'Sistema'),
+    ]
+
+    player     = models.ForeignKey(User, on_delete=models.CASCADE, related_name='system_logs')
+    tipo       = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    titulo     = models.CharField(max_length=200)
+    descricao  = models.CharField(max_length=300, blank=True)
+    xp_delta   = models.IntegerField(default=0)
+    coin_delta = models.IntegerField(default=0)
+    breakdown  = models.JSONField(default=dict, blank=True)
+    criado_em  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name        = 'Log do Sistema'
+        verbose_name_plural = 'Logs do Sistema'
+        ordering            = ['-criado_em']
+        indexes             = [models.Index(fields=['player', '-criado_em'])]
+
+    def __str__(self):
+        return f'{self.player.username} [{self.tipo}] {self.titulo}'

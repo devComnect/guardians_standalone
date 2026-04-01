@@ -31,6 +31,8 @@
 
     {% include 'partials/messages.html' %}
 
+    <body class="theme-{{ request.user.player.classe|default:'none'|lower }}">
+
     <main>
         {% block content %}{% endblock %}
     </main>

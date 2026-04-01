@@ -34,18 +34,27 @@ def get_perk_valor(user, tipo):
 def calcular_xp_com_bonus(user, xp_base, fonte, contexto=None):
     """
     Aplica perks + bônus de ofensiva ao valor base.
-    Retorna (xp_final, xp_bonus).
+    Retorna (xp_final, xp_bonus, bonus_breakdown).
     """
-    print(f"\n{'='*60}")
-    print(f"[XP DEBUG] Usuário: {user.username} | Fonte: {fonte}")
-    print(f"[XP DEBUG] XP Base: {xp_base}")
-    print(f"[XP DEBUG] Contexto: {contexto}")
-    print(f"{'='*60}")
+    from apps.store.services import get_passive_bonus_xp_pct
 
-    bonus_pct = get_perk_valor(user, 'xp_global')
-    print(f"[XP DEBUG] Perk global 'xp_global':        +{bonus_pct}%")
+    player = getattr(user, 'player', None)
+    bonus_pct   = 0
+    breakdown   = []
 
-    # Bônus específico por fonte
+    # ── Perks globais ────────────────────────────
+    perks_global = get_perks_ativos(user).filter(tipo='xp_global')
+    for perk in perks_global:
+        bonus_pct += perk.valor
+        breakdown.append({
+            "fonte":        perk.nome,
+            "categoria":    "Perk Global",
+            "tipo":         "xp_global",
+            "pct":          perk.valor,
+            "xp_adicionado": int(xp_base * perk.valor / 100),
+        })
+
+    # ── Perks específicos por fonte ──────────────
     mapa_fonte = {
         'quiz':      'xp_quiz',
         'decriptar': 'xp_decriptar',
@@ -54,69 +63,107 @@ def calcular_xp_com_bonus(user, xp_base, fonte, contexto=None):
     }
     tipo_especifico = mapa_fonte.get(fonte)
     if tipo_especifico:
-        bonus_fonte = get_perk_valor(user, tipo_especifico)
-        print(f"[XP DEBUG] Perk específico '{tipo_especifico}':  +{bonus_fonte}%")
-        bonus_pct += bonus_fonte
-    else:
-        print(f"[XP DEBUG] Nenhum perk específico para fonte '{fonte}'")
+        perks_fonte = get_perks_ativos(user).filter(tipo=tipo_especifico)
+        for perk in perks_fonte:
+            bonus_pct += perk.valor
+            breakdown.append({
+                "fonte":         perk.nome,
+                "categoria":     "Perk Específico",
+                "tipo":          tipo_especifico,
+                "pct":           perk.valor,
+                "xp_adicionado": int(xp_base * perk.valor / 100),
+            })
 
-    # ── Bônus de ofensiva ────────────────────────────────────
+    # ── Ofensiva ─────────────────────────────────
     bonus_ofensiva = get_ofensiva_bonus_pct(user)
-    print(f"[XP DEBUG] Bônus ofensiva:                 +{bonus_ofensiva}%")
-    bonus_pct += bonus_ofensiva
+    if bonus_ofensiva:
+        bonus_pct += bonus_ofensiva
+        breakdown.append({
+            "fonte":         f"Ofensiva ({player.ofensiva} pts)",
+            "categoria":     "Ofensiva",
+            "tipo":          "ofensiva",
+            "pct":           bonus_ofensiva,
+            "xp_adicionado": int(xp_base * bonus_ofensiva / 100),
+        })
 
-    # ── Bônus de conquistas em destaque ──────────────────
-    bonus_ach_global = get_achievement_bonus(user, 'global_xp_pct')
-    print(f"[XP DEBUG] Achievement global_xp_pct:      +{bonus_ach_global}%")
-    bonus_pct += bonus_ach_global
+    # ── Conquistas — global ───────────────────────
+    from .models import PlayerAchievement, AchievementConfig
+    config = AchievementConfig.get()
+    ach_global = (
+        PlayerAchievement.objects
+        .filter(player=user, em_destaque=True,
+                achievement__bonus_type='global_xp_pct',
+                achievement__ativo=True)
+        .select_related('achievement')[:config.max_destaques]
+    )
+    for pa in ach_global:
+        v = pa.achievement.bonus_value
+        bonus_pct += v
+        breakdown.append({
+            "fonte":         pa.achievement.nome,
+            "categoria":     "Conquista",
+            "tipo":          "global_xp_pct",
+            "pct":           v,
+            "xp_adicionado": int(xp_base * v / 100),
+        })
 
-    # ── Bônus de passivos da loja ────────────────────────────
-    from apps.store.services import get_passive_bonus_xp_pct
-    bonus_passivos = get_passive_bonus_xp_pct(user, fonte=fonte, contexto=contexto or {})
-    print(f"[XP DEBUG] Passivos da loja:                +{bonus_passivos}%")
-    bonus_pct += bonus_passivos
-
-    mapa_fonte_achievement = {
+    # ── Conquistas — específicas por fonte ────────
+    mapa_fonte_ach = {
         'quiz':      'quiz_xp_pct',
         'decriptar': 'anagram_xp_pct',
         'codigo':    'termo_xp_pct',
         'password':  'pw_xp_pct',
         'patrol':    'patrol_xp_pct',
     }
-    tipo_ach = mapa_fonte_achievement.get(fonte)
+    tipo_ach = mapa_fonte_ach.get(fonte)
     if tipo_ach:
-        bonus_ach_fonte = get_achievement_bonus(user, tipo_ach)
-        print(f"[XP DEBUG] Achievement '{tipo_ach}':   +{bonus_ach_fonte}%")
-        bonus_pct += bonus_ach_fonte
-    else:
-        print(f"[XP DEBUG] Nenhum achievement específico para fonte '{fonte}'")
+        ach_fonte = (
+            PlayerAchievement.objects
+            .filter(player=user, em_destaque=True,
+                    achievement__bonus_type=tipo_ach,
+                    achievement__ativo=True)
+            .select_related('achievement')[:config.max_destaques]
+        )
+        for pa in ach_fonte:
+            v = pa.achievement.bonus_value
+            bonus_pct += v
+            breakdown.append({
+                "fonte":         pa.achievement.nome,
+                "categoria":     "Conquista",
+                "tipo":          tipo_ach,
+                "pct":           v,
+                "xp_adicionado": int(xp_base * v / 100),
+            })
+
+    # ── Passivos da loja ──────────────────────────
+    bonus_passivos, passivos_breakdown = get_passive_bonus_xp_pct(
+        user, fonte=fonte, contexto=contexto or {}, retornar_breakdown=True
+    )
+    bonus_pct += bonus_passivos
+    
+    for item in passivos_breakdown:
+        item['xp_adicionado'] = int(xp_base * item['pct'] / 100)
+
+    breakdown.extend(passivos_breakdown)
 
     xp_bonus = int(xp_base * bonus_pct / 100)
+    xp_final = xp_base + xp_bonus
 
-    print(f"{'='*60}")
-    print(f"[XP DEBUG] Bônus total:    {bonus_pct}%")
-    print(f"[XP DEBUG] XP Bônus:      +{xp_bonus}")
-    print(f"[XP DEBUG] XP Final:       {xp_base + xp_bonus}")
-    print(f"{'='*60}\n")
-
-    return xp_base + xp_bonus, xp_bonus
+    return xp_final, xp_bonus, breakdown
 
 
 @transaction.atomic
 def grant_xp(user, xp_base, fonte, descricao='', contexto=None):
-    """
-    Concede XP ao player, aplica perks, verifica level up e cria notificações.
-    Retorna dict com resultado.
-    """
     from .models import XPEvent, PlayerNotification
 
     player = getattr(user, 'player', None)
     if not player or xp_base <= 0:
         return {'xp_total': 0, 'level_up': False, 'novo_level': None}
 
-    xp_final, xp_bonus = calcular_xp_com_bonus(user, xp_base, fonte, contexto=contexto)
+    xp_final, xp_bonus, bonus_breakdown = calcular_xp_com_bonus(
+        user, xp_base, fonte, contexto=contexto
+    )
 
-    # Registra evento
     XPEvent.objects.create(
         player    = user,
         fonte     = fonte,
@@ -124,13 +171,12 @@ def grant_xp(user, xp_base, fonte, descricao='', contexto=None):
         xp_bonus  = xp_bonus,
         xp_total  = xp_final,
         descricao = descricao or f'+{xp_final} XP via {fonte}',
+        breakdown = bonus_breakdown,
     )
 
-    # Aplica XP
     player.xp_total += xp_final
     level_antes = player.level
 
-    # Verifica level ups (pode subir vários de uma vez)
     niveis_subidos = []
     while player.xp_total >= xp_para_nivel(player.level):
         player.level += 1
@@ -138,7 +184,6 @@ def grant_xp(user, xp_base, fonte, descricao='', contexto=None):
 
     player.save()
 
-    # Notificações de level up
     level_up = len(niveis_subidos) > 0
     for nivel in niveis_subidos:
         PlayerNotification.objects.create(
@@ -148,21 +193,21 @@ def grant_xp(user, xp_base, fonte, descricao='', contexto=None):
             mensagem = f'Parabéns! Você atingiu o nível {nivel}.',
             icone    = 'bi-arrow-up-circle-fill',
         )
-        # Verifica perks desbloqueados nesse nível
         _notificar_perks_desbloqueados(user, player.classe, nivel)
 
     try:
         atualizar_battle_pass(user, xp_final)
     except Exception:
-        pass  
+        pass
 
     return {
-        'xp_base':      xp_base,
-        'xp_bonus':     xp_bonus,
-        'xp_final':     xp_final,
-        'level_up':     level_up,
-        'level_antes':  level_antes,
-        'novo_level':   player.level if level_up else None,
+        'xp_base':        xp_base,
+        'xp_bonus':       xp_bonus,
+        'xp_final':       xp_final,
+        'bonus_breakdown': bonus_breakdown,
+        'level_up':       level_up,
+        'level_antes':    level_antes,
+        'novo_level':     player.level if level_up else None,
         'niveis_subidos': niveis_subidos,
     }
 
@@ -198,10 +243,12 @@ def _notificar_perks_desbloqueados(user, classe, nivel):
 @transaction.atomic
 def trocar_classe(user, nova_classe):
     """
-    Troca a classe do player deduzindo coins.
+    Troca a classe do player deduzindo coins baseando-se se é primeira escolha ou troca.
     Retorna (sucesso, mensagem).
     """
     from .models import ClasseConfig, PlayerNotification
+    from django.utils import timezone
+    
     player = getattr(user, 'player', None)
     if not player:
         return False, 'Perfil não encontrado.'
@@ -214,21 +261,34 @@ def trocar_classe(user, nova_classe):
         return False, 'Você já pertence a esta classe.'
 
     config = ClasseConfig.get()
-    if player.coins < config.custo_troca_coins:
-        return False, f'Coins insuficientes. Necessário: {config.custo_troca_coins} ⬡'
+    
+    # Valida se é a primeira escolha
+    is_primeira_vez = (player.classe == 'none')
+    custo = config.custo_primeira_classe if is_primeira_vez else config.custo_troca_coins
+
+    if player.coins < custo:
+        return False, f'Coins insuficientes. Necessário: {custo} ⬡'
 
     classe_antiga = player.get_classe_display()
-    player.coins           -= config.custo_troca_coins
-    player.classe           = nova_classe
-    player.classe_trocada_em = timezone.now()
+    
+    # Aplica as mudanças
+    player.coins             -= custo
+    player.classe             = nova_classe
+    player.classe_trocada_em  = timezone.now()
     player.save()
+
+    # Define a mensagem dependendo do contexto
+    if is_primeira_vez:
+        mensagem_log = f'Você definiu sua classe e se juntou aos {player.get_classe_display()}.'
+    else:
+        mensagem_log = f'Você deixou os {classe_antiga} e se juntou aos {player.get_classe_display()}.'
 
     PlayerNotification.objects.create(
         player   = user,
         tipo     = 'sistema',
-        titulo   = f'Classe alterada para {player.get_classe_display()}',
-        mensagem = f'Você deixou os {classe_antiga} e se juntou aos {player.get_classe_display()}.',
-        icone    = 'bi-person-badge-fill',
+        titulo   = f'Classe definida: {player.get_classe_display()}',
+        mensagem = mensagem_log,
+        icone    = 'bi-diagram-3-fill',
     )
 
     return True, f'Bem-vindo aos {player.get_classe_display()}!'

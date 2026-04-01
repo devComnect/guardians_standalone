@@ -5,13 +5,16 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.db.models import Sum, Count, Avg
-import json
+import json, os
 
 from .models import (
     Player, Perk, XPEvent, PlayerNotification,
     PlayerAchievement, Achievement, ClasseConfig, OfensivaConfig,
 )
 from .services import trocar_classe, verificar_conquistas
+import os
+from django.conf import settings
+from django.core.files import File
 
 
 # ─────────────────────────────────────────────
@@ -158,29 +161,21 @@ def _ctx_stats(user, player):
 
 
 def _ctx_bonus(user, player):
-    """Painel de bônus — Breakdown completo para a Matriz de Skills e UI."""
     from apps.store.models import PlayerItem, ActiveEffect
     from apps.profiles.models import Perk, PlayerAchievement, OfensivaConfig
     from django.utils import timezone
 
-    print("\n" + "═"*50)
-    print(f"🕵️ INICIANDO DEBUG DE BÔNUS: {player.display_name.upper()}")
-    print("═"*50)
-
-    # 1. O Dicionário Mestre da Matriz (Radar Chart)
     radar_stats = {
-        'global_xp': 0.0,
         'quiz_xp': 0.0,
         'codigo_xp': 0.0,
         'decriptar_xp': 0.0,
         'patrulha_xp': 0.0,
         'moedas': 0.0,
     }
-
+    
+    global_xp_acumulado = 0.0
     buffs_temporarios = []
 
-    # ─── 1. CONQUISTAS EM DESTAQUE ───
-    print("\n🏆 CONQUISTAS EM DESTAQUE:")
     conquistas_ativas = PlayerAchievement.objects.filter(
         player=user, em_destaque=True,
         achievement__bonus_type__isnull=False,
@@ -190,9 +185,8 @@ def _ctx_bonus(user, player):
     for pa in conquistas_ativas:
         tipo = pa.achievement.bonus_type
         valor = pa.achievement.bonus_value
-        print(f" -> {pa.achievement.nome}: +{valor}% em [{tipo}]")
         
-        if tipo == 'global_xp_pct': radar_stats['global_xp'] += valor
+        if tipo == 'global_xp_pct': global_xp_acumulado += valor
         elif tipo == 'quiz_xp_pct': radar_stats['quiz_xp'] += valor
         elif tipo == 'termo_xp_pct': radar_stats['codigo_xp'] += valor
         elif tipo == 'anagram_xp_pct': radar_stats['decriptar_xp'] += valor
@@ -202,25 +196,17 @@ def _ctx_bonus(user, player):
             radar_stats['codigo_xp'] += valor
             radar_stats['decriptar_xp'] += valor
 
-    # ─── 2. PERKS DA CLASSE ───
-    print("\n🧬 PERKS DA CLASSE:")
     perks_ativos = Perk.objects.filter(
-        classe=player.classe,
-        level_required__lte=player.level,
-        ativo=True
+        classe=player.classe, level_required__lte=player.level, ativo=True
     ).order_by('level_required')
 
     for perk in perks_ativos:
-        print(f" -> Lvl {perk.level_required} - {perk.nome}: +{perk.valor}% em [{perk.tipo}]")
-        
-        if perk.tipo == 'xp_global': radar_stats['global_xp'] += perk.valor
+        if perk.tipo == 'xp_global': global_xp_acumulado += perk.valor
         elif perk.tipo == 'xp_quiz': radar_stats['quiz_xp'] += perk.valor
         elif perk.tipo == 'xp_codigo': radar_stats['codigo_xp'] += perk.valor
         elif perk.tipo == 'xp_decriptar': radar_stats['decriptar_xp'] += perk.valor
         elif perk.tipo == 'coin_bonus': radar_stats['moedas'] += perk.valor
 
-    # ─── 3. MÓDULOS PASSIVOS (SLOTS) ───
-    print("\n💾 MÓDULOS PASSIVOS EQUIPADOS:")
     passivos_equipados = PlayerItem.objects.filter(
         player=user, slot_index__isnull=False, item__tipo='passive'
     ).select_related('item')
@@ -228,36 +214,41 @@ def _ctx_bonus(user, player):
     for pi in passivos_equipados:
         efeito = pi.item.effect
         valor = pi.item.value
-        print(f" -> Slot {pi.slot_index} - {pi.item.name}: +{valor} [{efeito}]")
-        
-        if efeito == 'XP_CODE_CHALLENGE': radar_stats['codigo_xp'] += valor
-        elif efeito == 'XP_DECRYPT_CHALLENGE': radar_stats['decriptar_xp'] += valor
-        elif efeito == 'XP_PATROL_CHALLENGE': radar_stats['patrulha_xp'] += valor
-        elif 'XP' in efeito: # Agrupa todos os outros passivos de XP na barra global
-            # Nota: Passivos condicionais (como XP_PER_LEVEL) estão somando o valor base no Radar apenas para demonstração de "Potencial de Build"
-            radar_stats['global_xp'] += valor
+        valor_sec = pi.item.value_secondary 
 
-    # ─── 4. CARGAS TÁTICAS ATIVAS (CONSUMÍVEIS) ───
-    print("\n⚡ CARGAS TÁTICAS ATIVAS:")
+        if efeito == 'XP_CODE_CHALLENGE': 
+            radar_stats['codigo_xp'] += valor
+        elif efeito == 'XP_DECRYPT_CHALLENGE': 
+            radar_stats['decriptar_xp'] += valor
+        elif efeito == 'XP_PATROL_CHALLENGE': 
+            radar_stats['patrulha_xp'] += valor
+
+        # Resolve o bug do item 13 usando a coluna secundária para o buff
+        elif efeito == 'TIME_REDUCTION_XP_BOOST':
+            global_xp_acumulado += valor_sec
+
+        # Cálculos dinâmicos baseados no status imediato do player
+        elif efeito == 'XP_PER_LEVEL':
+            global_xp_acumulado += (valor * player.level)
+        elif efeito == 'XP_PER_COIN':
+            bonus = (player.coins // 10) * valor
+            if pi.item.max_bonus > 0:
+                bonus = min(bonus, pi.item.max_bonus)
+            global_xp_acumulado += bonus
+
     agora = timezone.now()
     efeitos_ativos = ActiveEffect.objects.filter(
         player=user, expires_at__gt=agora
     ).select_related('item')
 
-    if not efeitos_ativos.exists():
-        print(" -> Nenhum efeito temporário ativo.")
-
     for efeito in efeitos_ativos:
         tempo_restante = efeito.expires_at - agora
         horas, resto = divmod(tempo_restante.seconds, 3600)
         dias = tempo_restante.days
-        
         tempo_str = f"{dias}d {horas}h" if dias > 0 else f"{horas}h {resto // 60}m"
-        print(f" -> {efeito.item.name if efeito.item else efeito.effect}: Expira em {tempo_str}")
         
-        # Se o consumível der XP Global (ex: XP_BOOST_DAYS), soma no radar
         if 'XP_BOOST' in efeito.effect:
-            radar_stats['global_xp'] += efeito.value
+            global_xp_acumulado += efeito.value
 
         buffs_temporarios.append({
             'nome': efeito.item.name if efeito.item else efeito.effect,
@@ -267,18 +258,14 @@ def _ctx_bonus(user, player):
             'valor': efeito.value
         })
 
-    print("\n📊 RESUMO DO RADAR CHART:")
-    for key, val in radar_stats.items():
-        print(f" - {key.upper()}: {val}%")
-    print("═"*50 + "\n")
+    if global_xp_acumulado > 0:
+        radar_stats['quiz_xp'] += global_xp_acumulado
+        radar_stats['codigo_xp'] += global_xp_acumulado
+        radar_stats['decriptar_xp'] += global_xp_acumulado
+        radar_stats['patrulha_xp'] += global_xp_acumulado
 
-    # ─── 5. FECHAMENTO ───
     ofensiva_config = OfensivaConfig.get()
-    teto_ofensiva   = ofensiva_config.teto_bonus_ofensiva
-    
-    # Mantendo compatibilidade com as variáveis antigas para não quebrar a tela atual
-    bonus_xp_global = radar_stats['global_xp']
-    bonus_ofensiva = min(player.ofensiva, teto_ofensiva) # Se quiser somar ofensiva no gráfico depois, podemos!
+    teto_ofensiva = ofensiva_config.teto_bonus_ofensiva
 
     return {
         'bonus': {
@@ -286,14 +273,8 @@ def _ctx_bonus(user, player):
             'conquistas_bonus':   conquistas_ativas,
             'itens_slot':         passivos_equipados,
             'buffs_temporarios':  buffs_temporarios,
-            'matriz_radar':       radar_stats, 
-
-            # Legado
-            'bonus_xp_global':    bonus_xp_global,
-            'bonus_ofensiva':     bonus_ofensiva,
-            'bonus_conquistas':   sum(pa.achievement.bonus_value for pa in conquistas_ativas if 'xp' in str(pa.achievement.bonus_type)),
-            'bonus_itens':        sum(pi.item.value for pi in passivos_equipados if 'XP' in pi.item.effect),
-            'total_bonus_pct':    bonus_xp_global + bonus_ofensiva,
+            'matriz_radar':       radar_stats,
+            'bonus_ofensiva':     min(player.ofensiva, teto_ofensiva),
             'ofensiva_atual':     player.ofensiva,
             'ofensiva_teto':      teto_ofensiva,
         }
@@ -391,44 +372,51 @@ def _ctx_skills(user, player):
 
 
 def _ctx_atividade_semanal(user):
-    """
-    Card de atividade semanal estilo Duolingo/GitHub.
-    Retorna os últimos 7 dias com flag de ativo/inativo.
-    """
     from apps.minigames.models import (
         QuizAttempt, DecriptarAttempt, CodigoAttempt,
-        PatrolAttempt, PasswordAttempt,
+        PatrolAttempt, PasswordAttempt
     )
-    from datetime import timedelta
+    from django.utils import timezone
+    from datetime import datetime, time, timedelta
 
-    hoje  = timezone.localdate()
-    dias  = []
+    hoje = timezone.localdate()
+    segunda = hoje - timedelta(days=hoje.weekday())
+    dias = []
+    nomes_dias = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM']
 
-    for i in range(6, -1, -1):   # últimos 7 dias, mais antigo primeiro
-        dia = hoje - timedelta(days=i)
+    for i in range(7):
+        dia = segunda + timedelta(days=i)
+        
+        inicio_dia = timezone.make_aware(datetime.combine(dia, time.min))
+        fim_dia = timezone.make_aware(datetime.combine(dia, time.max))
 
-        quiz_dia = QuizAttempt.objects.filter(
-            player=user, completed_at__date=dia, completed_at__isnull=False
-        ).count()
-        dcr_dia = DecriptarAttempt.objects.filter(
-            player=user, date=dia, completed_at__isnull=False
-        ).count()
-        cod_dia = CodigoAttempt.objects.filter(
-            player=user, date=dia, completed_at__isnull=False
-        ).count()
+        quiz_dia = QuizAttempt.objects.filter(player=user, completed_at__range=(inicio_dia, fim_dia)).count()
+        dcr_dia = DecriptarAttempt.objects.filter(player=user, date=dia, completed_at__isnull=False).count()
+        cod_dia = CodigoAttempt.objects.filter(player=user, date=dia, completed_at__isnull=False).count()
+        
+        try:
+            patrol_dia = PatrolAttempt.objects.filter(player=user, date=dia, completed=True).count()
+        except Exception:
+            patrol_dia = 0
 
-        total_dia = quiz_dia + dcr_dia + cod_dia
+        try:
+            pw_dia = PasswordAttempt.objects.filter(player=user, completed_at__range=(inicio_dia, fim_dia)).count()
+        except Exception:
+            pw_dia = 0
+
+        total_dia = quiz_dia + dcr_dia + cod_dia + patrol_dia + pw_dia
+        
         dias.append({
-            'data':     dia,
-            'dia_nome': dia.strftime('%a'),   # Seg, Ter, Qua...
-            'total':    total_dia,
-            'ativo':    total_dia > 0,
-            'hoje':     dia == hoje,
+            'data': dia,
+            'dia_nome': nomes_dias[i],
+            'total': total_dia,
+            'ativo': total_dia > 0,
+            'hoje': dia == hoje,
+            'futuro': dia > hoje,
         })
 
-    # Sequência atual de dias ativos
     streak_visual = 0
-    for d in reversed(dias):
+    for d in reversed([d for d in dias if d['data'] <= hoje]):
         if d['ativo']:
             streak_visual += 1
         else:
@@ -436,9 +424,8 @@ def _ctx_atividade_semanal(user):
 
     return {
         'atividade_semanal': dias,
-        'streak_visual':     streak_visual,
+        'streak_visual': streak_visual,
     }
-
 
 def _ctx_inventario(user):
     from apps.store.models import PlayerItem, StoreConfig
@@ -556,12 +543,10 @@ def _ctx_missoes(user):
             active_missions = []
 
     except ImportError:
-        print("⚠️ Model UserMissionSet não encontrado. Verifique o caminho da importação.")
         mission_set = None
         active_missions = []
         
     except Exception as e:
-        print(f"⚠️ Erro ao carregar missões no perfil: {e}")
         mission_set = None
         active_missions = []
 
@@ -572,13 +557,15 @@ def _ctx_missoes(user):
     }
 
 def _ctx_log(user):
-    from apps.store.models import StoreTransaction, ActiveEffect
-    from apps.profiles.models import XPEvent
+    import json
+    from apps.store.models import ActiveEffect
+    from apps.profiles.models import SystemLog
     from django.utils import timezone
 
-    xp_events = XPEvent.objects.filter(player=user).order_by('-criado_em')[:50]
-    coin_log  = StoreTransaction.objects.filter(player=user).order_by('-criado_em')[:30]
-    notifs    = user.notifications.order_by('-criado_em')[:30]
+    logs = list(SystemLog.objects.filter(player=user).order_by('-criado_em')[:80])
+
+    breakdowns = {str(log.pk): log.breakdown for log in logs}
+    breakdowns_json = json.dumps(breakdowns, ensure_ascii=False)
 
     agora = timezone.now()
     retake_count = ActiveEffect.objects.filter(
@@ -590,12 +577,10 @@ def _ctx_log(user):
     retake_token.usos_restantes = retake_count
 
     return {
-        'xp_events':    xp_events,
-        'coin_log':     coin_log,
-        'notif_log':    notifs,
-        'retake_token': retake_token if retake_count > 0 else None,
+        'system_logs':                  logs,
+        'system_logs_breakdowns_json':  breakdowns_json,
+        'retake_token':                 retake_token if retake_count > 0 else None,
     }
-
 
 # ─────────────────────────────────────────────
 # EDITAR PERFIL
@@ -608,23 +593,27 @@ def editar_perfil(request):
         return redirect('core:home')
 
     if request.method == 'POST':
-        display_name = request.POST.get('display_name', '').strip()
-        bio          = request.POST.get('bio', '').strip()
-        avatar       = request.FILES.get('avatar')
+        display_name  = request.POST.get('display_name', '').strip()
+        bio           = request.POST.get('bio', '').strip()
+        avatar_choice = request.POST.get('avatar_choice')
 
         if display_name:
             player.display_name = display_name[:60]
         if bio:
             player.bio = bio[:300]
-        if avatar:
-            TIPOS_PERMITIDOS = ['image/png', 'image/jpeg', 'image/webp']
-            if avatar.content_type not in TIPOS_PERMITIDOS:
-                messages.error(request, 'Formato inválido. Use PNG, JPG ou WEBP.')
-                return redirect('profiles:editar')
-            if avatar.size > 2 * 1024 * 1024:
-                messages.error(request, 'Imagem muito grande. Máx 2MB.')
-                return redirect('profiles:editar')
-            player.avatar = avatar
+            
+        if avatar_choice:
+            avatares_permitidos = [
+                'avatar echo.png', 'avatar node 7.png', 
+                'avatar setx.png', 'avatar steve.png', 'avatar troia.png'
+            ]
+            
+            if avatar_choice in avatares_permitidos:
+                caminho_imagem = os.path.join(settings.BASE_DIR, 'static', 'img', 'avatares', avatar_choice)
+                
+                if os.path.exists(caminho_imagem):
+                    with open(caminho_imagem, 'rb') as f:
+                        player.avatar.save(avatar_choice, File(f), save=False)
 
         player.save()
         messages.success(request, 'Perfil atualizado.')
@@ -774,6 +763,39 @@ def trocar_classe_view(request):
 
     sucesso, mensagem = trocar_classe(request.user, nova_classe)
     return JsonResponse({'ok': sucesso, 'mensagem': mensagem})
+
+@login_required
+def selecao_classe_view(request):
+    from apps.profiles.models import Perk, ClasseConfig
+    
+    player = getattr(request.user, 'player', None)
+    if not player:
+        return redirect('core:home')
+        
+    config = ClasseConfig.get()
+    is_primeira_vez = (player.classe == 'none')
+    custo_atual = config.custo_primeira_classe if is_primeira_vez else config.custo_troca_coins
+    
+    # Estrutura de base das classes e suas cores
+    classes_info = {
+        'guardian': {'nome': 'GUARDIAN', 'desc': 'Especialista em defesa e resiliência de sistemas.', 'cor': '#0dcaf0', 'icone': 'bi-shield-fill-check', 'perks': []},
+        'analyst':  {'nome': 'ANALYST',  'desc': 'Foco em extração de dados e inteligência tática.', 'cor': '#bd00ff', 'icone': 'bi-radar', 'perks': []},
+        'sentinel': {'nome': 'SENTINEL', 'desc': 'Vigilância contínua e administração de privilégios.', 'cor': '#fcee0a', 'icone': 'bi-eye-fill', 'perks': []},
+        'hacker':   {'nome': 'HACKER',   'desc': 'Especialista em ofensiva, scripts e invasão pura.', 'cor': '#ff2a6d', 'icone': 'bi-terminal-fill', 'perks': []},
+    }
+    
+    # Popula as classes com seus perks correspondentes organizados por level
+    todos_perks = Perk.objects.filter(ativo=True).order_by('level_required')
+    for p in todos_perks:
+        if p.classe in classes_info:
+            classes_info[p.classe]['perks'].append(p)
+            
+    return render(request, 'profiles/selecao_classe.html', {
+        'player': player,
+        'classes_info': classes_info,
+        'custo_atual': custo_atual,
+        'is_primeira_vez': is_primeira_vez
+    })
 
 
 # ─────────────────────────────────────────────

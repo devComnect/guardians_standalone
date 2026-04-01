@@ -11,7 +11,7 @@
             <div class="modal-body d-flex gap-3">
                 <div class="w-75">
                     <h6 class="font-tech mb-3" style="color: rgba(13,202,240,0.7); letter-spacing: 2px;">
-                        SLOTS EM DESTAQUE (<span id="count-destaque" class="text-theme">{{ em_destaque_count }}</span>/{{ max_destaques }})
+                        SLOTS EM DESTAQUE (<span id="count-destaque" class="text-info">{{ em_destaque_count }}</span>/{{ max_destaques }})
                     </h6>
                     <div class="destaque-slots d-flex gap-3 mb-4" id="area-destaque" data-max="{{ max_destaques }}">
                         {% for pa in conquistas_em_destaque %}
@@ -59,7 +59,7 @@
 
                     {% if conquistas_bloqueadas|length > 5 %}
                     <div class="text-center mt-5 mb-2">
-                        <button type="button" class="btn-cyber-store" id="btn-ver-mais-mods">
+                        <button type="button" class="btn-cyber-gold" id="btn-ver-mais-mods">
                             <span>VER TODAS AS BLOQUEADAS</span>
                         </button>
                     </div>
@@ -72,7 +72,7 @@
                             <i class="bi bi-cpu ach-icon"></i>
                         </div>
                     </div>
-                    <h5 id="ach-preview-nome" class="text-theme text-center font-tech text-uppercase">Selecione um Mod</h5>
+                    <h5 id="ach-preview-nome" class="text-white text-center font-tech text-uppercase">Selecione um Mod</h5>
                     <hr class="border-secondary my-3" style="opacity: 0.3;">
                     <p id="ach-preview-desc">Passe o mouse ou clique em uma conquista para ver seus atributos.</p>
                     

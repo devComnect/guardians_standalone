@@ -58,6 +58,9 @@
         <p class="result-msg font-tech">// Obtenha pontuação máxima com um Token de Retake.</p>
         {% endif %}
 
+        {# ── BREAKDOWN DE XP ── #}
+        {% include 'minigames/_xp_breakdown.html' %}
+
         <div class="result-actions">
             <a href="{% url 'challenges:index' %}" class="btn-result">
                 <i class="bi bi-arrow-left"></i> VOLTAR AOS DESAFIOS

@@ -43,7 +43,7 @@
             </div>
         </div>
 
-        <!-- Palavras reveladas -->
+        {# Palavras reveladas #}
         <div class="result-words-reveal">
             {% for w in attempt.words_sequence %}
             <div class="revealed-word {% if w.solved %}revealed-correct{% else %}revealed-miss{% endif %}">
@@ -61,6 +61,9 @@
         {% elif attempt.abandoned %}
         <p class="result-msg font-tech">// Protocolo encerrado antecipadamente.</p>
         {% endif %}
+
+        {# ── BREAKDOWN DE XP ── #}
+        {% include 'minigames/_xp_breakdown.html' %}
 
         <div class="result-actions">
             <a href="{% url 'challenges:index' %}" class="btn-result">

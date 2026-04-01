@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sistema de Classes — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<style>
+    .classes-wrapper {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 25px;
+        padding: 30px 0;
+    }
+    
+    .class-card {
+        background: rgba(10, 12, 20, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .class-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .class-header {
+        padding: 20px;
+        text-align: center;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+        position: relative;
+    }
+    
+    .class-header::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 4px;
+        background: var(--class-color);
+        box-shadow: 0 0 15px var(--class-color);
+    }
+    
+    .class-icon {
+        font-size: 2.5rem;
+        color: var(--class-color);
+        margin-bottom: 10px;
+        filter: drop-shadow(0 0 10px var(--class-color));
+    }
+    
+    .class-name {
+        font-family: var(--tech-font);
+        font-size: 1.5rem;
+        color: #fff;
+        letter-spacing: 4px;
+        margin: 0;
+    }
+    
+    .class-desc {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 10px;
+        line-height: 1.5;
+    }
+    
+    .perks-list {
+        padding: 20px;
+        flex-grow: 1;
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    
+    .perk-item {
+        background: rgba(0, 0, 0, 0.4);
+        border-left: 2px solid var(--class-color);
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 0 4px 4px 0;
+    }
+    
+    .perk-level {
+        font-size: 0.65rem;
+        color: var(--class-color);
+        letter-spacing: 2px;
+        margin-bottom: 3px;
+    }
+    
+    .perk-name {
+        font-size: 0.8rem;
+        color: #fff;
+        font-weight: bold;
+    }
+    
+    .perk-desc {
+        font-size: 0.7rem;
+        color: var(--text-base);
+        margin-top: 3px;
+        line-height: 1.4;
+    }
+    
+    .class-footer {
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.6);
+        text-align: center;
+    }
+    
+    .btn-choose-class {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--class-color);
+        color: var(--class-color);
+        padding: 12px;
+        font-family: var(--tech-font);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-choose-class:hover {
+        background: var(--class-color);
+        color: #000;
+        box-shadow: 0 0 20px var(--class-color);
+    }
+    
+    .btn-choose-class:disabled {
+        border-color: #555 !important;
+        color: #555 !important;
+        background: rgba(0,0,0,0.5) !important;
+        cursor: not-allowed;
+        box-shadow: none !important;
+    }
+    
+    /* Scrollbar minimalista para as perks */
+    .perks-list::-webkit-scrollbar { width: 4px; }
+    .perks-list::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    .perks-list::-webkit-scrollbar-thumb { background: var(--class-color); border-radius: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 1300px;">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
+        <div>
+            <h1 class="font-tech text-white mb-1" style="letter-spacing: 4px;">
+                // {% if is_primeira_vez %}ESCOLHA SUA CLASSE{% else %}MUDANÇA DE CLASSE{% endif %}
+            </h1>
+            <p class="font-tech text-warning mb-0" style="letter-spacing: 2px;">
+                CUSTO DA OPERAÇÃO: <span class="text-warning fw-bold">{{ custo_atual }} ⬡</span>
+            </p>
+        </div>
+        
+        <div class="hud-wallet font-tech d-flex align-items-center gap-2" style="background: rgba(252,238,10,0.1); border: 1px solid rgba(252,238,10,0.4); padding: 10px 20px; border-radius: 4px;">
+            <span style="color: rgba(252,238,10,0.7); font-size: 0.7rem; letter-spacing: 2px;">SALDO</span>
+            <span style="color: var(--neon-gold); font-size: 1.2rem; text-shadow: 0 0 10px rgba(252,238,10,0.5);">{{ player.coins }} ⬡</span>
+        </div>
+    </div>
+
+    <div class="classes-wrapper">
+        {% for key, info in classes_info.items %}
+            <div class="class-card font-tech" style="--class-color: {{ info.cor }};">
+                
+                <div class="class-header">
+                    <i class="bi {{ info.icone }} class-icon"></i>
+                    <h2 class="class-name">{{ info.nome }}</h2>
+                    <div class="class-desc">{{ info.desc }}</div>
+                </div>
+                
+                <div class="perks-list">
+                    {% for perk in info.perks %}
+                        <div class="perk-item">
+                            <div class="perk-level">REQ: LEVEL {{ perk.level_required }}</div>
+                            <div class="perk-name">{{ perk.nome }}</div>
+                            <div class="perk-desc">{{ perk.descricao }}</div>
+                        </div>
+                    {% empty %}
+                        <div class="text-center text-muted" style="font-size: 0.8rem; margin-top: 20px;">
+                            Árvore de habilidades não encontrada.
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="class-footer">
+                    {% if player.classe == key %}
+                        <button class="btn btn-choose-class" disabled>
+                            CLASSE ATUAL
+                        </button>
+                    {% elif player.coins < custo_atual %}
+                        <button class="btn btn-choose-class" disabled title="Moedas insuficientes">
+                            <i class="bi bi-lock-fill me-2"></i> SALDO INSUFICIENTE
+                        </button>
+                    {% else %}
+                        <button class="btn btn-choose-class btn-selecionar" data-classe="{{ key }}" data-nome="{{ info.nome }}">
+                            INJETAR PROTOCOLO
+                        </button>
+                    {% endif %}
+                </div>
+                
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.btn-selecionar').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const classeID = this.dataset.classe;
+        const classeNome = this.dataset.nome;
+        
+        if(!confirm(`Confirma a injeção do protocolo ${classeNome} por {{ custo_atual }} ⬡ ?`)) return;
+        
+        const oldText = this.innerHTML;
+        this.innerHTML = '<i class="bi bi-hourglass-split"></i> PROCESSANDO...';
+        this.disabled = true;
+        
+        try {
+            const csrfMatch = document.cookie.match(/csrftoken=([^;]+)/);
+            const res = await fetch("{% url 'profiles:trocar_classe' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfMatch ? csrfMatch[1] : ''
+                },
+                body: JSON.stringify({ classe: classeID })
+            });
+            
+            const data = await res.json();
+            
+            if (data.ok) {
+                // Se o seu site usa toasts/sweetalert, você pode disparar aqui. 
+                // Senão, redirecionamos de volta ao perfil:
+                window.location.href = "{% url 'profiles:index' %}";
+            } else {
+                alert('Erro: ' + (data.error || data.mensagem));
+                this.innerHTML = oldText;
+                this.disabled = false;
+            }
+        } catch (e) {
+            alert('Falha de conexão com o servidor matriz.');
+            this.innerHTML = oldText;
+            this.disabled = false;
+        }
+    });
+});
+</script>
+{% endblock %}

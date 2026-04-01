@@ -45,6 +45,14 @@ body {
         repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(69,162,158,0.02) 41px);
 }
 
+/* Temas no body (para escopo global) */
+body { --theme-color: #ffffff; }
+body.theme-guardian { --theme-color: #0dcaf0; }
+body.theme-analyst  { --theme-color: #bd00ff; }
+body.theme-sentinel { --theme-color: #fcee0a; }
+body.theme-hacker   { --theme-color: #ff2a6d; }
+body.theme-none     { --theme-color: #ffffff; }
+
 .font-tech { font-family: var(--tech-font) !important; }
 .font-ui   { font-family: var(--ui-font) !important; }
 
@@ -85,9 +93,9 @@ body {
     letter-spacing: 2px;
     flex-shrink: 0;
 }
-.logo-bracket { color: var(--border-tech); }
+.logo-bracket { color: var(--theme-color); }
 .logo-text    { color: #fff; margin: 0 2px; }
-.logo-accent  { color: var(--neon-blue); margin-left: 4px; }
+.logo-accent  { color: var(--theme-color); }
 
 /* Links */
 .cg-nav-links {
@@ -142,7 +150,7 @@ body {
 .hud-avatar {
     width: 34px; height: 34px;
     border-radius: 50%;
-    border: 1px solid var(--border-tech);
+    border: 1px solid var(--theme-color);
     background: var(--panel-bg);
     color: var(--neon-blue);
     display: flex; align-items: center; justify-content: center;
@@ -152,7 +160,10 @@ body {
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 .hud-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.hud-avatar:hover { border-color: var(--neon-blue); box-shadow: 0 0 10px rgba(13,202,240,0.3); }
+.hud-avatar:hover {
+    border-color: var(--theme-color);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--theme-color) 30%, transparent);
+}
 
 .hud-logout {
     color: var(--text-dim);
@@ -164,10 +175,7 @@ body {
 .hud-logout:hover { color: var(--neon-red); }
 
 .navbar-scanline {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
-    opacity: 0.4;
-    animation: scanline-move 4s linear infinite;
+    background: linear-gradient(90deg, transparent, var(--theme-color), transparent);
 }
 @keyframes scanline-move {
     0%   { background-position: -100% 0; }

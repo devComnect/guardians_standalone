@@ -88,10 +88,7 @@ class MissionService:
         )
 
         for mission in active_missions:
-            print(f"DEBUG PROGRESS: Missão ID {mission.id} | Código: {mission_code}")
-            print(f"DEBUG PROGRESS: Antes: {mission.current_progress} | Adicionando: {amount}")
             mission.update_progress(amount)
-            print(f"DEBUG PROGRESS: Depois: {mission.current_progress}")
 
         if is_perfect:
             perfect_code = f"{mission_code}_PERFECT"

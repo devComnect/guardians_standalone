@@ -125,11 +125,12 @@ def submit_quiz(request, quiz_id):
     if not abandoned and not timer_expired and xp_earned > 0:
         total_questions = quiz.questions.count()
 
-        grant_xp(request.user, xp_earned, 'quiz', f'Quiz: {quiz.titulo}', contexto={
+        xp_result = grant_xp(request.user, xp_earned, 'quiz', f'Quiz: {quiz.titulo}', contexto={
         'segundos_restantes': attempt.remaining_seconds(),
         'tentativas': total_questions,
         'won': total_questions > 0 and (total_correct / total_questions) >= 0.7,
     } )
+        request.session['last_xp_result'] = xp_result
         grant_coins(request.user, quiz.coin_reward, 'quiz')
         registrar_desafio_diario(request.user)
 
@@ -150,12 +151,14 @@ def quiz_result(request, quiz_id):
     max_xp           = quiz.total_xp_possivel()
     is_perfect       = attempt.xp_earned >= max_xp and max_xp > 0
 
+    xp_result = request.session.pop('last_xp_result', None)
     return render(request, 'minigames/quiz_result.html', {
         'quiz':            quiz,
         'attempt':         attempt,
         'total_questions': total_questions,
         'max_xp':          max_xp,
         'is_perfect':      is_perfect,
+        'xp_result': xp_result,
     })
 
 
@@ -164,8 +167,8 @@ def quiz_result(request, quiz_id):
 ################
 MAX_PATROL_ATTEMPTS = 10
 PATROL_XP_BASE      = 100
-PATROL_COIN_MIN     = 1
-PATROL_COIN_MAX     = 3
+PATROL_COIN_MIN     = 10
+PATROL_COIN_MAX     = 20
 
 
 def _calc_feedback(secret, guess):
@@ -263,13 +266,14 @@ def patrol_guess(request):
         attempt.guesses      = attempt.guesses
         attempt.save()                                   
 
-        grant_xp(request.user, xp, 'patrol',              
+        xp_result = grant_xp(request.user, xp, 'patrol',              
             f'Patrulha concluída em {attempt.attempts_count} tentativa(s)', 
             contexto={
                 'segundos_restantes': tempo_restante,
                 'tentativas': len(attempt.guesses),
                 'won': attempt.won,
             })
+        request.session['last_xp_result'] = xp_result
         grant_coins(request.user, coins, 'patrol')
         registrar_desafio_diario(request.user)
 
@@ -376,12 +380,13 @@ def password_game_submit(request, attempt_id):
         attempt.coins_earned  = config.coin_reward
         attempt.save()
         
-        grant_xp(request.user, config.xp_reward, 'password', 'Cofre de Senhas concluído', 
+        xp_result = grant_xp(request.user, config.xp_reward, 'password', 'Cofre de Senhas concluído', 
                  contexto={
                     'segundos_restantes': attempt.remaining_seconds(),
                     'tentativas': 1,
                     'won': attempt.is_won,
                 })
+        request.session['last_xp_result'] = xp_result
         grant_coins(request.user, config.coin_reward, 'password')
         registrar_desafio_diario(request.user)
 
@@ -408,10 +413,12 @@ def password_result(request, attempt_id):
     if attempt.completed_at and attempt.started_at:
         duration = round((attempt.completed_at - attempt.started_at).total_seconds())
 
+    xp_result = request.session.pop('last_xp_result', None)
     return render(request, 'minigames/password_result.html', {
         'attempt':  attempt,
         'duration': duration,
         'config':   PasswordGameConfig.get(),
+        'xp_result': xp_result,
     })
 
 # ─────────────────────────────────────────────
@@ -578,7 +585,8 @@ def check_decriptar_word(request):
                 'perfeito': attempt.lives_remaining == 3,
                 'won': True,
             }
-            grant_xp(request.user, xp, 'decriptar', 'Decriptar concluído', contexto=contexto)
+            xp_result = grant_xp(request.user, xp, 'decriptar', 'Decriptar concluído', contexto=contexto)
+            request.session['last_xp_result'] = xp_result
             grant_coins(request.user, attempt.config.coin_reward, 'decriptar')
             registrar_desafio_diario(request.user)
 
@@ -664,12 +672,14 @@ def decriptar_result(request, attempt_id):
     attempt      = get_object_or_404(DecriptarAttempt, pk=attempt_id, player=request.user)
     total_words  = len(attempt.words_sequence)
     is_perfect   = attempt.correct_count == total_words and total_words > 0
+    xp_result = request.session.pop('last_xp_result', None)
 
     return render(request, 'minigames/decriptar_result.html', {
         'attempt':     attempt,
         'total_words': total_words,
         'is_perfect':  is_perfect,
         'max_xp':      total_words * attempt.config.xp_per_word,
+        'xp_result': xp_result,
     })
 # ─────────────────────────────────────────────
 # CÓDIGO (Termo)
@@ -834,12 +844,13 @@ def check_codigo_guess(request):
         attempt.save()
 
         if attempt.xp_earned > 0:
-            grant_xp(request.user, attempt.xp_earned, 'codigo', f'Código: {attempt.secret_word}', 
-                     contexto={
-                        'segundos_restantes': attempt.remaining_seconds(),
-                        'tentativas': len(attempt.guesses),
-                        'won': attempt.won,
-                    })
+            xp_result = grant_xp(request.user, attempt.xp_earned, 'codigo', f'Código: {attempt.secret_word}', 
+                        contexto={
+                            'segundos_restantes': attempt.remaining_seconds(),
+                            'tentativas': len(attempt.guesses),
+                            'won': attempt.won,
+                        })
+            request.session['last_xp_result'] = xp_result
             if attempt.coins_earned > 0:
                 grant_coins(request.user, attempt.coins_earned, 'codigo')
             registrar_desafio_diario(request.user)    
@@ -861,10 +872,12 @@ def check_codigo_guess(request):
 def codigo_result(request, attempt_id):
     attempt    = get_object_or_404(CodigoAttempt, pk=attempt_id, player=request.user)
     is_perfect = attempt.won and len(attempt.guesses) <= attempt.config.max_attempts // 2
+    xp_result = request.session.pop('last_xp_result', None)
 
     return render(request, 'minigames/codigo_result.html', {
         'attempt':    attempt,
         'config':     attempt.config,
         'is_perfect': is_perfect,
         'max_xp':     attempt.config.xp_reward,
+        'xp_result': xp_result,
     })

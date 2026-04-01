@@ -9,23 +9,20 @@
 
 {% block content %}
 {# Define a cor do tema baseada na classe do jogador #}
-<div class="profile-page-wrapper theme-{{ player.classe }}">
+<div class="profile-page-wrapper theme-{{ player.classe|default:'none'|lower }}">
 
     {# ── HERO SECTION ── #}
     <section class="profile-hero text-center">
         <div class="container position-relative">
             
             <div class="hero-actions">
-                <div class="team-badge font-tech small">
-                    <i class="bi bi-diagram-3-fill"></i> NÍVEL DE ACESSO: {{ player.level }}
-                </div>
                 <div> 
-                    <a href="{% url 'profiles:editar' %}" class="btn-perfil-acao font-tech">
+                    <a href="{% url 'profiles:editar' %}" class="btn-cyber-store font-tech" style="font-size:0.8rem; padding: 12px 28px; text-decoration: none;">
                         <i class="bi bi-pencil-square"></i> EDITAR
                     </a>
-                    <button class="btn-perfil-acao font-tech ms-2" id="btn-trocar-classe">
-                        <i class="bi bi-arrow-repeat"></i> CLASSE
-                    </button>
+                    <a href="{% url 'profiles:selecao_classe' %}" class="btn-cyber-store font-tech ms-2 {% if not player.classe or player.classe == 'none' %}btn-pulse-anim{% endif %}" style="font-size:0.8rem; padding: 12px 28px; text-decoration: none;">
+                        <i class="bi bi-diagram-3-fill"></i> CLASSE
+                    </a>
                 </div>
             </div>
 
@@ -36,7 +33,7 @@
                     <img src="{{ player.avatar.url }}" alt="Avatar" class="avatar-img">
                 {% else %}
                     <div class="avatar-img d-flex align-items-center justify-content-center">
-                        <i class="bi bi-person-bounding-box text-muted" style="font-size: 3rem;"></i>
+                        <i class="bi bi-person-bounding-box text-theme" style="font-size: 3rem;"></i>
                     </div>
                 {% endif %}
                 
@@ -58,7 +55,7 @@
 
             <div class="xp-system">
                 <div class="tech-progress">
-                    <div class="tech-progress-bar" style="width: {{ xp_percentual|default:0 }}%;"></div>
+                    <div class="tech-progress-bar" style="width: {% widthratio player.xp_no_nivel_atual player.xp_necessario_nivel_atual 100 %}%;"></div>
                 </div>
                 <div class="xp-numbers font-tech">
                     <span>XP ATUAL: {{ player.xp_no_nivel_atual }}</span>
@@ -66,9 +63,11 @@
                 </div>
             </div>
 
-            <div class="week-tracker mt-3" title="Atividade Semanal">
+            <div class="week-tracker mt-3 d-flex justify-content-center gap-2" title="Atividade Semanal">
                 {% for dia in atividade_semanal %}
-                    <div class="day-bit {% if dia.ativo %}active{% endif %} {% if dia.hoje %}hoje{% endif %}" title="{{ dia.dia_nome }}"></div>
+                    <div class="day-slot font-tech {% if dia.ativo %}active{% elif not dia.futuro %}inactive{% endif %} {% if dia.hoje %}hoje{% endif %}" title="{{ dia.data|date:'d/m' }}">
+                        {{ dia.dia_nome }}
+                    </div>
                 {% endfor %}
             </div>
             
@@ -92,7 +91,7 @@
                 <div class="stat-label font-tech">QUIZZES</div>
             </div>
             <div class="stat-box">
-                <div class="stat-value">{{ stats.cod_count|add:stats.dcr_count }}</div>
+                <div class="stat-value">{{ stats.cod_count|add:stats.dcr_count|add:stats.pw_count }}</div>
                 <div class="stat-label font-tech">MINIGAMES</div>
             </div>
             <div class="stat-box">
@@ -107,13 +106,13 @@
             {# ── COLUNA ESQUERDA (Atividades) ── #}
             <div class="col-lg-7">
                 
-                {# ── MISSÕES ATIVAS (DIRETRIZES) ── #}
+            {# ── MISSÕES ATIVAS (DIRETRIZES) ── #}
                 <div class="cyber-card mb-4">
                     <div class="cyber-header d-flex justify-content-between align-items-center">
                         <div class="cyber-title">
                             <i class="bi bi-journal-code text-theme me-2"></i> MISSÕES
                         </div>
-                        <span class="badge font-tech" style="background: rgba(13,202,240,0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); letter-spacing: 1px;">
+                        <span class="badge font-tech bg-theme-alpha border-theme text-theme" style="border: 1px solid; letter-spacing: 1px;">
                             SET ATUAL
                         </span>
                     </div>
@@ -121,7 +120,7 @@
                         {% for mission in active_missions %}
                             <div class="mission-item mb-3">
                                 <div class="d-flex justify-content-between font-tech small mb-1" style="letter-spacing: 0.5px;">
-                                    <span class="text-white">{{ mission.title_generated }}</span>
+                                    <span class="text-theme">{{ mission.title_generated }}</span>
                                     <span class="{% if mission.is_completed %}text-neon-green{% else %}text-theme{% endif %}">
                                         {{ mission.current_progress }} / {{ mission.target_value }}
                                     </span>
@@ -129,15 +128,15 @@
                                 <div class="tech-progress" style="height: 6px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 2px;">
                                     <div class="tech-progress-bar" 
                                         style="width: {% widthratio mission.current_progress mission.target_value 100 %}%; 
-                                                background: {% if mission.is_completed %}var(--neon-green){% else %}var(--neon-blue){% endif %};
-                                                box-shadow: 0 0 10px {% if mission.is_completed %}rgba(5,217,232,0.6){% else %}rgba(13,202,240,0.6){% endif %};
-                                                transition: width 0.5s ease-in-out;">
+                                               background: {% if mission.is_completed %}var(--neon-green){% else %}var(--theme-color){% endif %};
+                                               box-shadow: 0 0 10px {% if mission.is_completed %}var(--neon-green){% else %}var(--theme-color){% endif %};
+                                               transition: width 0.5s ease-in-out;">
                                     </div>
                                 </div>
                             </div>
                         {% empty %}
                             <div class="text-center p-3 border border-secondary mb-3" style="border-style: dashed !important; opacity: 0.5;">
-                                <span class="font-tech text-muted small" style="letter-spacing: 2px;">NENHUMA DIRETRIZ ENCONTRADA</span>
+                                <span class="font-tech text-theme small" style="letter-spacing: 2px;">NENHUMA DIRETRIZ ENCONTRADA</span>
                             </div>
                         {% endfor %}
 
@@ -157,104 +156,85 @@
                     </div>
                 </div>
 
-                {# LOG DO SISTEMA #}
+                {# ── LOG DO SISTEMA ── #}
                 <div class="cyber-card mb-4">
-                    <div class="cyber-header">
+                    <div class="cyber-header d-flex justify-content-between align-items-center">
                         <div class="cyber-title"><i class="bi bi-terminal"></i> LOG DO SISTEMA</div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <select id="log-filter" class="form-select form-select-sm bg-dark text-light border-secondary" style="width:auto;font-size:.75rem;">
+                                <option value="all">TODOS</option>
+                                <option value="xp_gain,xp_loss,level_up">XP</option>
+                                <option value="coin_gain,coin_loss,item_purchase,item_sell">MOEDAS</option>
+                                <option value="item_purchase,item_sell,item_activate,store_reroll">LOJA</option>
+                                <option value="achievement,mission_claim,battle_pass,classe_change">PROGRESSÃO</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="terminal-container">
-                        <ul class="terminal-list">
-                            {% for log in xp_events %}
-                            <li class="terminal-item">
-                                <div>
-                                    <span class="term-date">[{{ log.criado_em|date:"d/m" }}]</span>
-                                    <span class="term-source">[{{ log.fonte|upper }}]</span>
-                                    {{ log.descricao }}
+                        <ul class="terminal-list" id="system-log-list">
+                            {% for log in system_logs %}
+                            <li class="terminal-item log-entry"
+                                data-tipo="{{ log.tipo }}"
+                                data-log-id="{{ log.pk }}"
+                                data-titulo="{{ log.titulo }}"
+                                data-xp="{{ log.xp_delta }}"
+                                data-coin="{{ log.coin_delta }}"
+                                style="cursor:pointer;"
+                                onclick="abrirLogDetalhe(this)">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="term-date">[{{ log.criado_em|date:"d/m H:i" }}]</span>
+                                    <span class="term-source log-tipo-badge log-tipo-{{ log.tipo }}">[{{ log.get_tipo_display|upper }}]</span>
+                                    <span class="term-desc">{{ log.titulo }}</span>
                                 </div>
-                                {% if log.xp_total != 0 %}
-                                <span class="term-val {% if log.xp_total > 0 %}text-neon-green{% else %}text-neon-red{% endif %}">
-                                    {% if log.xp_total > 0 %}+{% endif %}{{ log.xp_total }} XP
-                                </span>
-                                {% endif %}
+                                <div class="d-flex gap-2">
+                                    {% if log.xp_delta != 0 %}
+                                    <span class="term-val {% if log.xp_delta > 0 %}text-neon-green{% else %}text-neon-red{% endif %}">
+                                        {% if log.xp_delta > 0 %}+{% endif %}{{ log.xp_delta }} XP
+                                    </span>
+                                    {% endif %}
+                                    {% if log.coin_delta != 0 %}
+                                    <span class="term-val {% if log.coin_delta > 0 %}text-warning{% else %}text-neon-red{% endif %}">
+                                        {% if log.coin_delta > 0 %}+{% endif %}{{ log.coin_delta }} ⬡
+                                    </span>
+                                    {% endif %}
+                                </div>
                             </li>
                             {% empty %}
-                            <li class="terminal-item text-muted">Aguardando inputs do sistema...</li>
+                            <li class="terminal-item text-theme">Aguardando inputs do sistema...</li>
                             {% endfor %}
                         </ul>
                     </div>
                 </div>
-            </div>
+
+            </div>{# Fecha col-lg-7 #}
 
             {# ── COLUNA DIREITA ── #}
             <div class="col-lg-5">
-                    
-                    {# ── MATRIZ DE SISTEMA & BUFFS ── #}
-                    <div class="cyber-card mb-4">
-                        <div class="cyber-header">
-                            <div class="cyber-title"><i class="bi bi-radar"></i> MATRIZ DE SISTEMA</div>
+                {# ── BUILD ATUAL (CONQUISTAS EQUIPADAS) ── #}
+                <div class="cyber-card">
+                    <div class="cyber-header d-flex justify-content-between align-items-center">
+                        <div class="cyber-title">
+                            <i class="bi bi-cpu text-theme me-2"></i> CONQUISTAS EM DESTAQUE
                         </div>
-                        <div class="p-3">
-                            
-                            {% if bonus.buffs_temporarios %}
-                                <div class="active-buffs-container mb-4">
-                                    <div class="d-flex justify-content-between align-items-end mb-2">
-                                        <span class="font-tech text-theme" style="font-size: 0.65rem; letter-spacing: 2px;">CARGAS TÁTICAS ATIVAS</span>
-                                    </div>
-                                    
-                                    {% for buff in bonus.buffs_temporarios %}
-                                        <div class="d-flex justify-content-between align-items-center p-2 mb-2" 
-                                            style="background: rgba(5, 217, 232, 0.08); border-left: 2px solid var(--neon-green); cursor: help;"
-                                            title="{{ buff.descricao }}">
-                                            <span class="font-tech text-white" style="font-size: 0.75rem;">
-                                                <i class="bi bi-lightning-charge-fill text-neon-green me-2"></i>{{ buff.nome }}
-                                            </span>
-                                            <span class="font-tech text-neon-green" style="font-size: 0.7rem; letter-spacing: 1px;">
-                                                {{ buff.tempo_str }}
-                                            </span>
-                                        </div>
-                                    {% endfor %}
+                        <button class="btn font-tech btn-sm border-theme text-theme" style="background: color-mix(in srgb, var(--theme-color) 5%, transparent);" data-bs-toggle="modal" data-bs-target="#modalConquistas">
+                            <i class="bi bi-sliders"></i> GALERIA
+                        </button>
+                    </div>
+                    <div class="p-3">
+                        <div class="destaque-slots d-flex gap-3" id="preview-build-atual" data-max="{{ max_destaques }}">
+                            {% for pa in conquistas_em_destaque %}
+                                <div class="achievement-item em-destaque rarity-{{ pa.achievement.raridade }}" 
+                                    title="{{ pa.achievement.nome }} | {{ pa.achievement.get_bonus_type_display }}: +{{ pa.achievement.bonus_value }}">
+                                    {% if pa.achievement.imagem %}
+                                        <img src="{% static pa.achievement.imagem %}" class="ach-img">
+                                    {% else %}
+                                        <i class="bi bi-award-fill ach-icon"></i>
+                                    {% endif %}
                                 </div>
-                            {% else %}
-                                <div class="active-buffs-container mb-4 text-center border border-secondary p-2" style="border-style: dashed !important; opacity: 0.5;">
-                                    <span class="font-tech text-muted" style="font-size: 0.65rem; letter-spacing: 2px;">NENHUMA CARGA TÁTICA ATIVA</span>
-                                </div>
-                            {% endif %}
-
-                            <div class="text-center mb-2">
-                                <span class="font-tech text-theme" style="font-size: 0.65rem; letter-spacing: 2px;">SINERGIA DA BUILD ATUAL</span>
-                            </div>
-                            <div class="radar-chart-wrapper" style="position: relative; height: 260px; width: 100%; display: flex; justify-content: center;">
-                                <canvas id="skillsRadarChart"></canvas>
-                            </div>
-
+                            {% endfor %}
                         </div>
                     </div>
-
-                    {# ── BUILD ATUAL (CONQUISTAS EQUIPADAS) ── #}
-                    <div class="cyber-card">
-                        <div class="cyber-header d-flex justify-content-between align-items-center">
-                            <div class="cyber-title">
-                                <i class="bi bi-cpu text-theme me-2"></i> CONQUISTAS EM DESTAQUE
-                            </div>
-                            <button class="btn btn-outline-info font-tech btn-sm border-theme" data-bs-toggle="modal" data-bs-target="#modalConquistas">
-                                <i class="bi bi-sliders"></i> GALERIA
-                            </button>
-                        </div>
-                        <div class="p-3">
-                            <div class="destaque-slots d-flex gap-3" id="preview-build-atual" data-max="{{ max_destaques }}">
-                                {% for pa in conquistas_em_destaque %}
-                                    <div class="achievement-item em-destaque rarity-{{ pa.achievement.raridade }}" 
-                                        title="{{ pa.achievement.nome }} | {{ pa.achievement.get_bonus_type_display }}: +{{ pa.achievement.bonus_value }}">
-                                        {% if pa.achievement.imagem %}
-                                            <img src="{% static pa.achievement.imagem %}" class="ach-img">
-                                        {% else %}
-                                            <i class="bi bi-award-fill ach-icon"></i>
-                                        {% endif %}
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
+                </div>
  
                 {# ── INVENTÁRIO & CARTEIRA ── #}
                 <div class="cyber-card mb-4">
@@ -275,29 +255,104 @@
                     </div>
                 </div>
 
-                
-            </div> {# Fecha col-lg-5 #}
-        </div> {# Fecha row g-4 #}
+                {# ── MATRIZ DE SISTEMA & BUFFS ── #}
+                <div class="cyber-card mb-4">
+                    <div class="cyber-header">
+                        <div class="cyber-title"><i class="bi bi-radar"></i> MATRIZ DE SISTEMA</div>
+                    </div>
+                    <div class="p-3">
+                        
+                        {% if bonus.buffs_temporarios %}
+                            <div class="active-buffs-container mb-4">
+                                <div class="d-flex justify-content-between align-items-end mb-2">
+                                    <span class="font-tech text-theme" style="font-size: 0.65rem; letter-spacing: 2px;">CARGAS TÁTICAS ATIVAS</span>
+                                </div>
+                                
+                                {% for buff in bonus.buffs_temporarios %}
+                                    <div class="d-flex justify-content-between align-items-center p-2 mb-2" 
+                                        style="background: rgba(5, 217, 232, 0.08); border-left: 2px solid var(--neon-green); cursor: help;"
+                                        title="{{ buff.descricao }}">
+                                        <span class="font-tech text-white" style="font-size: 0.75rem;">
+                                            <i class="bi bi-lightning-charge-fill text-neon-green me-2"></i>{{ buff.nome }}
+                                        </span>
+                                        <span class="font-tech text-neon-green" style="font-size: 0.7rem; letter-spacing: 1px;">
+                                            {{ buff.tempo_str }}
+                                        </span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="active-buffs-container mb-4 text-center border border-secondary p-2" style="border-style: dashed !important; opacity: 0.5;">
+                                <span class="font-tech text-theme" style="font-size: 0.65rem; letter-spacing: 2px;">NENHUMA CARGA TÁTICA ATIVA</span>
+                            </div>
+                        {% endif %}
 
-        {# INCLUI O MODAL LIMPO #}
+                        <div class="text-center mb-2">
+                            <span class="font-tech text-theme" style="font-size: 0.65rem; letter-spacing: 2px;">SINERGIA DA BUILD ATUAL</span>
+                        </div>
+                        <div class="radar-chart-wrapper" style="position: relative; height: 260px; width: 100%; display: flex; justify-content: center;">
+                            <canvas id="skillsRadarChart"></canvas>
+                        </div>
+
+                    </div>
+                </div>
+
+
+            </div>{# Fecha col-lg-5 #}
+        </div>{# Fecha row g-4 #}
+
+        {# ── MODAIS ── #}
         {% include 'profiles/_modal_conquistas.html' %}
         {% include 'profiles/_modal_inventario.html' %}
+
+        {# ── MODAL DE DEPURAÇÃO DO LOG ── #}
+        <div class="modal fade cyber-modal" id="modalLogDetalhe" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-theme" style="background: rgba(10, 12, 20, 0.97); box-shadow: 0 0 30px rgba(0,0,0,0.8);">
+                    
+                    <div class="modal-header cyber-header border-bottom border-secondary py-3">
+                        <h6 class="modal-title cyber-title" style="letter-spacing: 2px;">
+                            <i class="bi bi-search me-2"></i> DEPURANDO: <span id="modalLogTitulo" class="text-white"></span>
+                        </h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    
+                    <div class="modal-body font-tech p-4" id="modalLogBody" style="font-size: 0.85rem; line-height: 1.8;"></div>
+                    
+                    <div class="modal-footer border-top border-secondary py-3 d-none" id="modalLogFooter">
+                        <button type="button" class="btn btn-cyber-gold w-100 font-tech py-2" id="btn-usar-retake" data-ref-id="">
+                            <span style="position: relative; z-index: 1; font-weight: bold;">
+                                <i class="bi bi-arrow-clockwise me-2"></i> INJETAR TOKEN DE RETAKE
+                            </span>
+                        </button>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
         
-    </div> {# Fecha Container #}
-</div> {# Fecha wrapper #}
+    </div>{# Fecha container #}
+</div>{# Fecha wrapper #}
+
+<script>
+    window.__LOG_BREAKDOWNS__ = {{ system_logs_breakdowns_json|safe }};
+</script>
 
 <script>
     window.PROFILE_URLS = {
         equiparCosmetico: "{% url 'profiles:equipar_cosmetico' %}",
-        equiparPassivo: "{% url 'profiles:equipar_passivo' %}",
-        toggleConquista: "{% url 'profiles:conquista_destaque' %}",
-        usarConsumivel: "{% url 'profiles:usar_consumivel' %}"
+        equiparPassivo:   "{% url 'profiles:equipar_passivo' %}",
+        toggleConquista:  "{% url 'profiles:conquista_destaque' %}",
+        usarConsumivel:   "{% url 'profiles:usar_consumivel' %}",
+        usarRetake:       "{% url 'profiles:usar_retake' %}"
     };
+    window.RETAKE_TOKENS = parseInt("{{ retake_token.usos_restantes|default:'0' }}");
 </script>
 <script src="{% static 'js/profiles.js' %}"></script>
+
+{# ── Radar Chart ── #}
 <script>
     window.RADAR_DATA = {
-        global: Number("{{ bonus.matriz_radar.global_xp }}".replace(',', '.')) || 0,
         quiz: Number("{{ bonus.matriz_radar.quiz_xp }}".replace(',', '.')) || 0,
         codigo: Number("{{ bonus.matriz_radar.codigo_xp }}".replace(',', '.')) || 0,
         decriptar: Number("{{ bonus.matriz_radar.decriptar_xp }}".replace(',', '.')) || 0,
@@ -309,48 +364,93 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    const ctxRadar = document.getElementById('skillsRadarChart');
-    if (ctxRadar) {
-        // Pega os dados injetados pelo Django de forma segura usando stringformat
-        const dataGlobal    = parseFloat("{{ bonus.matriz_radar.global_xp|stringformat:'f' }}") || 0;
-        const dataQuiz      = parseFloat("{{ bonus.matriz_radar.quiz_xp|stringformat:'f' }}") || 0;
-        const dataCodigo    = parseFloat("{{ bonus.matriz_radar.codigo_xp|stringformat:'f' }}") || 0;
-        const dataDecriptar = parseFloat("{{ bonus.matriz_radar.decriptar_xp|stringformat:'f' }}") || 0;
-        const dataPatrulha  = parseFloat("{{ bonus.matriz_radar.patrulha_xp|stringformat:'f' }}") || 0;
-        const dataMoedas    = parseFloat("{{ bonus.matriz_radar.moedas|stringformat:'f' }}") || 0;
+// ── FUNÇÃO AUXILIAR: HEX PARA RGBA ──
+function hexToRgba(hex, alpha) {
+    let c;
+    if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){
+        c = hex.substring(1).split('');
+        if(c.length == 3){ c = [c[0], c[0], c[1], c[1], c[2], c[2]]; }
+        c = '0x' + c.join('');
+        return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+alpha+')';
+    }
+    return `rgba(13, 202, 240, ${alpha})`; // fallback azul
+}
 
+const el = document.querySelector('.profile-page-wrapper');
+console.log('classes:', el.className);
+console.log('theme-color:', getComputedStyle(el).getPropertyValue('--theme-color'));
+
+// ── GRÁFICO DE MATRIZ DE SKILLS (CHART.JS) ──
+document.addEventListener('DOMContentLoaded', function() {
+    const ctxRadar = document.getElementById('skillsRadarChart');
+    
+    // Captura a cor do tema dinamicamente baseada na classe do player
+    const wrapperElement = document.querySelector('.profile-page-wrapper');
+    const computedStyles = getComputedStyle(wrapperElement);
+    const themeColorHex = computedStyles.getPropertyValue('--theme-color').trim() || '#0dcaf0';
+
+    if (ctxRadar && window.RADAR_DATA) {
         new Chart(ctxRadar, {
             type: 'radar',
             data: {
-                labels: ['GLOBAL', 'CÓDIGO', 'DECRIPTAR', 'PATRULHA', 'MOEDAS', 'QUIZ'],
-                datasets: [{
-                    label: 'Bônus Atual (%)',
-                    data: [dataGlobal, dataCodigo, dataDecriptar, dataPatrulha, dataMoedas, dataQuiz],
-                    backgroundColor: 'rgba(13, 202, 240, 0.25)', // Preenchimento azul neon
-                    borderColor: 'rgba(13, 202, 240, 0.9)',      // Borda azul neon
-                    pointBackgroundColor: 'rgba(252, 238, 10, 1)', // Pontos em ouro (Neon Gold)
-                    pointBorderColor: '#000',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgba(252, 238, 10, 1)',
-                    borderWidth: 2,
-                    pointRadius: 3,
-                }]
+                labels: ['CÓDIGO', 'DECRIPTAR', 'PATRULHA', 'MOEDAS', 'QUIZ'],
+                datasets: [
+                    {
+                        label: 'Fundo',
+                        data: [2, 2, 2, 2, 2], 
+                        fill: true,
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        borderColor: 'transparent',
+                        pointRadius: 0,
+                        order: 2 
+                    },
+                    {
+                        label: 'Sinergia Atual',
+                        data: [
+                            window.RADAR_DATA.codigo, 
+                            window.RADAR_DATA.decriptar, 
+                            window.RADAR_DATA.patrulha, 
+                            window.RADAR_DATA.moedas, 
+                            window.RADAR_DATA.quiz
+                        ],
+                        // Aplica as cores do tema dinamicamente
+                        backgroundColor: hexToRgba(themeColorHex, 0.45),
+                        borderColor: themeColorHex,      
+                        pointBackgroundColor: '#fff', 
+                        pointBorderColor: themeColorHex,
+                        pointHoverBackgroundColor: themeColorHex,
+                        pointHoverBorderColor: '#fff',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        fill: true,
+                        order: 1 
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'dataset',
+                    intersect: false
+                },
                 plugins: {
-                    legend: { display: false }, // Esconde a legenda para ficar clean
+                    legend: { display: false },
                     tooltip: {
                         backgroundColor: 'rgba(10, 12, 20, 0.9)',
-                        titleFont: { family: "'Share Tech Mono', monospace", size: 12 },
+                        titleFont: { family: "'Share Tech Mono', monospace", size: 13 },
                         bodyFont: { family: "'Share Tech Mono', monospace", size: 14 },
-                        bodyColor: '#0dcaf0',
-                        borderColor: 'rgba(13, 202, 240, 0.4)',
+                        bodyColor: themeColorHex, // Tooltip com texto na cor da classe!
+                        borderColor: hexToRgba(themeColorHex, 0.4),
                         borderWidth: 1,
+                        filter: function(tooltipItem) {
+                            return tooltipItem.datasetIndex === 1; 
+                        },
                         callbacks: {
+                            title: function() { return '// ANÁLISE DA BUILD'; },
                             label: function(context) {
-                                return ` +${context.raw}% de Bônus`;
+                                const label = context.chart.data.labels[context.dataIndex];
+                                return ` ${label}: +${context.raw}%`;
                             }
                         }
                     }
@@ -358,20 +458,240 @@
                 scales: {
                     r: {
                         angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-                        grid: { color: 'rgba(13, 202, 240, 0.15)', circular: false },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)', circular: false },
                         pointLabels: {
                             color: 'rgba(255, 255, 255, 0.6)',
                             font: { family: "'Share Tech Mono', monospace", size: 10, letterSpacing: '1px' }
                         },
-                        min: -5, 
-                        suggestedMax: 30,
-                        ticks: {
-                            display: false
-                        }
+                        min: 0, 
+                        suggestedMax: 100,
+                        ticks: { display: false }
                     }
                 }
             }
         });
     }
+});
 </script>
+
+{# ── Log do Sistema: filtro + modal de depuração ── #}
+<script>
+(function () {
+    'use strict';
+
+    // ── 1. Carrega breakdowns injetados pelo Django ──────────────
+    const LOG_BREAKDOWNS = window.__LOG_BREAKDOWNS__ || {};
+    console.log('[LOG] Breakdowns carregados:', Object.keys(LOG_BREAKDOWNS).length, LOG_BREAKDOWNS);
+
+    // ── 2. Filtro de categoria ───────────────────────────────────
+    document.getElementById('log-filter').addEventListener('change', function () {
+        const val = this.value;
+        document.querySelectorAll('#system-log-list .log-entry').forEach(li => {
+            li.style.display = (val === 'all' || val.split(',').includes(li.dataset.tipo)) ? '' : 'none';
+        });
+    });
+
+    // ── 3. Cor por categoria ─────────────────────────────────────
+    function corCategoria(cat) {
+        return ({
+            'Perk Global':      '#0dcaf0',
+            'Perk Específico':  '#05d9e8',
+            'Ofensiva':         '#bd00ff',
+            'Conquista':        '#ffd700',
+            'Módulo Passivo':   '#ff2a6d',
+            'Consumível Ativo': '#00ff9f',
+        })[cat] || '#aaaaaa';
+    }
+
+    // ── 4. Render XP ─────────────────────────────────────────────
+    function renderXP(bd, xp) {
+        if (bd.xp_base === undefined && xp === 0) return '';
+        let h = '';
+
+        if (bd.xp_base !== undefined) {
+            h += `<div class="mb-2 text-theme" style="letter-spacing:2px;font-size:.7rem;">// RASTREIO DE EXPERIÊNCIA</div>
+                  <div class="d-flex justify-content-between py-1 border-bottom border-secondary">
+                      <span class="text-theme">XP Base</span>
+                      <span class="text-neon-green fw-bold">+${bd.xp_base} XP</span>
+                  </div>`;
+
+            const bonuses = bd.bonus_breakdown || [];
+            if (bonuses.length > 0) {
+                h += `<div class="mt-2 mb-1 text-theme" style="font-size:.7rem;letter-spacing:1px;">MODIFICADORES</div>`;
+                bonuses.forEach(b => {
+                    const pct    = b.pct ?? b.valor ?? 0;
+                    const added  = b.xp_adicionado ?? 0;
+                    const cor    = corCategoria(b.categoria);
+                    const ativo  = b.ativo !== false;
+                    const motivo = b.motivo || '';
+                    h += `<div class="d-flex justify-content-between align-items-start py-1 mb-1"
+                               style="border-left:2px solid ${cor};padding-left:8px;opacity:${ativo ? 1 : 0.4};">
+                              <div>
+                                  <span style="color:${cor};font-size:.65rem;letter-spacing:1px;">[${b.categoria || b.tipo}]</span>
+                                  <span class="text-white ms-1" style="font-size:.8rem;">${b.fonte}</span>
+                                  ${motivo ? `<div class="text-theme" style="font-size:.65rem;">${motivo}</div>` : ''}
+                              </div>
+                              <div class="text-end ms-3" style="white-space:nowrap;">
+                                  ${ativo
+                                      ? `<span class="text-neon-green">+${added} XP</span><span class="text-theme ms-1" style="font-size:.7rem;">(+${pct}%)</span>`
+                                      : `<span class="text-theme" style="font-size:.7rem;">inativo</span>`}
+                              </div>
+                          </div>`;
+                });
+                h += `<div class="d-flex justify-content-between mt-2 pt-1 border-top border-secondary">
+                          <span class="text-theme">Subtotal Bônus</span>
+                          <span class="text-info">+${bd.xp_bonus_total} XP</span>
+                      </div>`;
+            } else {
+                h += `<div class="text-theme py-2" style="font-size:.75rem;">Nenhum modificador ativo.</div>`;
+            }
+
+            h += `<div class="d-flex justify-content-between mt-2 pt-2 border-top border-secondary" style="font-size:.95rem;">
+                      <span class="text-white fw-bold">XP TOTAL OBTIDO</span>
+                      <span class="text-neon-green fw-bold">+${bd.xp_final} XP</span>
+                  </div>`;
+        } else {
+            h += `<div class="mb-2 text-theme" style="letter-spacing:2px;font-size:.7rem;">// REGISTRO DE EXPERIÊNCIA</div>
+                  <div class="d-flex justify-content-between" style="font-size:.95rem;">
+                      <span class="text-white fw-bold">Total</span>
+                      <span class="${xp > 0 ? 'text-neon-green' : 'text-neon-red'} fw-bold">${xp > 0 ? '+' : ''}${xp} XP</span>
+                  </div>`;
+        }
+        return h;
+    }
+
+    // ── 5. Render Moedas ─────────────────────────────────────────
+    function renderCoins(bd, coin) {
+        if (bd.custo === undefined && coin === 0) return '';
+        let h = `<div class="mt-4 mb-2 text-theme" style="letter-spacing:2px;font-size:.7rem;">// RASTREIO DE CÂMBIO (⬡)</div>`;
+        if (bd.custo !== undefined) {
+            h += `<div class="d-flex justify-content-between">
+                      <span class="text-theme">Custo</span>
+                      <span class="text-neon-red fw-bold">-${bd.custo} ⬡</span>
+                  </div>`;
+            if (bd.desconto_aplicado) h += `<div class="text-warning mt-1" style="font-size:.75rem;"><i class="bi bi-tags-fill me-1"></i>Desconto aplicado.</div>`;
+        } else {
+            h += `<div class="d-flex justify-content-between" style="font-size:.95rem;">
+                      <span class="text-white fw-bold">Total</span>
+                      <span class="${coin > 0 ? 'text-warning' : 'text-neon-red'} fw-bold">${coin > 0 ? '+' : ''}${coin} ⬡</span>
+                  </div>`;
+        }
+        return h;
+    }
+
+    // ── 6. Render Extras ─────────────────────────────────────────
+    const SKIP = new Set(['xp_base','xp_bonus_total','xp_final','bonus_breakdown',
+                          'xp_bonus','coin_base','coin_final','custo','desconto_aplicado',
+                          'tipo_transacao','extra','fonte']);
+
+    function renderExtras(bd) {
+        const entries = Object.entries(bd).filter(([k]) => !SKIP.has(k));
+        if (!entries.length) return '';
+        let h = `<div class="mt-4 mb-2 text-theme" style="letter-spacing:2px;font-size:.7rem;">// PARÂMETROS ADICIONAIS</div>`;
+        entries.forEach(([k, v]) => {
+            h += `<div class="d-flex justify-content-between py-1">
+                      <span class="text-theme">${k}</span>
+                      <span class="text-white">${Array.isArray(v) ? v.join(', ') : v}</span>
+                  </div>`;
+        });
+        return h;
+    }
+
+    // ── 7. Abre modal ────────────────────────────────────────────
+    window.abrirLogDetalhe = function (el) {
+        const logId = el.dataset.logId;
+        const xp    = parseInt(el.dataset.xp   || 0);
+        const coin  = parseInt(el.dataset.coin  || 0);
+        const tipo  = el.dataset.tipo;
+        const bd    = LOG_BREAKDOWNS[logId] || {};
+
+        console.log('[LOG] abrirLogDetalhe | logId:', logId, '| bd:', bd);
+
+        document.getElementById('modalLogTitulo').textContent = el.dataset.titulo;
+
+        let html = renderXP(bd, xp) + renderCoins(bd, coin) + renderExtras(bd);
+        if (!html.trim()) {
+            html = `<div class="text-theme text-center py-4 border border-secondary" style="border-style:dashed!important;opacity:.6;">
+                        Nenhum detalhe adicional registrado.
+                    </div>`;
+        }
+        document.getElementById('modalLogBody').innerHTML = html;
+
+        // Retake
+        const footer  = document.getElementById('modalLogFooter');
+        const btnRtk  = document.getElementById('btn-usar-retake');
+        const isQuiz  = tipo === 'xp_gain' && bd.extra?.fonte === 'quiz';
+        const quizId  = bd.extra?.quiz_id || '';
+        if (isQuiz && quizId && (window.RETAKE_TOKENS || 0) > 0) {
+            footer.classList.remove('d-none');
+            btnRtk.dataset.refId = quizId;
+        } else {
+            footer.classList.add('d-none');
+            btnRtk.dataset.refId = '';
+        }
+
+        new bootstrap.Modal(document.getElementById('modalLogDetalhe')).show();
+    };
+
+    // ── 8. Retake token ──────────────────────────────────────────
+    document.getElementById('btn-usar-retake')?.addEventListener('click', async function () {
+        const refId = this.dataset.refId;
+        if (!refId) return;
+        if (!confirm('Isso consumirá 1 Token de Retake. Confirma?')) return;
+
+        this.disabled = true;
+        this.innerHTML = '<span style="position:relative;z-index:1;"><i class="bi bi-hourglass-split me-2"></i>INJETANDO...</span>';
+
+        try {
+            const res  = await fetch(window.PROFILE_URLS.usarRetake, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '',
+                },
+                body: JSON.stringify({ quiz_id: refId }),
+            });
+            const data = await res.json();
+            if (res.ok && data.ok) {
+                if (typeof showToast !== 'undefined') showToast('Token ativado!', 'ok');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                alert(data.error || 'Erro ao processar o Token.');
+                this.disabled = false;
+                this.innerHTML = '<span style="position:relative;z-index:1;"><i class="bi bi-arrow-clockwise me-2"></i>TENTAR NOVAMENTE</span>';
+            }
+        } catch (e) {
+            alert('Falha na comunicação com o servidor.');
+            this.disabled = false;
+            this.innerHTML = '<span style="position:relative;z-index:1;"><i class="bi bi-arrow-clockwise me-2"></i>TENTAR NOVAMENTE</span>';
+        }
+    });
+
+}());
+</script>
+
+<style>
+.log-tipo-xp_gain       { color: #00ff9f; }
+.log-tipo-xp_loss       { color: #ff2a6d; }
+.log-tipo-level_up      { color: #ffd700; }
+.log-tipo-coin_gain     { color: #fcee0a; }
+.log-tipo-coin_loss     { color: #ff2a6d; }
+.log-tipo-item_purchase { color: #bd00ff; }
+.log-tipo-item_sell     { color: #aaaaaa; }
+.log-tipo-item_activate { color: #05d9e8; }
+.log-tipo-store_reroll  { color: #888888; }
+.log-tipo-achievement   { color: #ffd700; }
+.log-tipo-mission_claim { color: #0dcaf0; }
+.log-tipo-battle_pass   { color: #bd00ff; }
+.log-tipo-classe_change { color: #ff2a6d; }
+.log-tipo-system        { color: #666666; }
+
+.log-entry:hover {
+    background: rgba(255,255,255,.04);
+    border-left: 2px solid #00ff9f;
+    padding-left: 6px;
+    transition: all .15s ease;
+}
+</style>
+
 {% endblock %}

@@ -13,17 +13,27 @@
     --bg-card:      rgba(14, 17, 24, 0.85);
 }
 
+
+
+
 .font-tech { font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; }
 
-/* Themes Baseados na Classe */
-.theme-guardian { --theme-color: var(--neon-blue); }
-.theme-sentinel { --theme-color: var(--neon-green); }
-.theme-hacker   { --theme-color: var(--neon-purple); }
-.theme-analyst  { --theme-color: var(--neon-gold); }
 /* Fallback */
-.profile-page-wrapper { --theme-color: var(--neon-blue); }
+.profile-page-wrapper { --theme-color: #ffffff; }
+
+/* Themes Baseados na Classe */
+.theme-guardian { --theme-color: var(--neon-blue); }    /* ciano */
+.theme-analyst  { --theme-color: var(--neon-purple); }  /* roxo */
+.theme-sentinel { --theme-color: var(--neon-gold); }    /* amarelo */
+.theme-hacker   { --theme-color: var(--neon-red); }     /* rosa/vermelho */
+.theme-none { --theme-color: #ffffff; }
+
+
 
 .text-theme { color: var(--theme-color) !important; }
+.border-theme { border-color: var(--theme-color) !important; }
+.bg-theme-alpha { background-color: color-mix(in srgb, var(--theme-color) 15%, transparent) !important; }
+.shadow-theme { box-shadow: 0 0 10px var(--theme-color) !important; }
 
 /* ── HERO SECTION ── */
 .profile-hero {
@@ -48,8 +58,9 @@
     position: relative; width: 140px; height: 140px;
     margin: 0 auto 20px; border: 3px solid var(--theme-color);
     box-shadow: 0 0 20px var(--theme-color);
-    clip-path: polygon(15% 0, 100% 0, 100% 85%, 85% 100%, 0 100%, 0 15%);
     background: #000;
+    overflow: visible !important;
+    margin-bottom: 25px;
 }
 
 .avatar-bg-layer { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.5; }
@@ -62,7 +73,7 @@
     padding: 2px 12px; font-weight: bold; font-size: 0.8rem; z-index: 5;
 }
 
-.profile-name { font-size: 2rem; color: #fff; text-shadow: 2px 2px 0 var(--theme-color); margin-bottom: 5px; font-weight: bold; }
+.profile-name { font-size: 2rem; color: #fff; text-shadow: none; margin-bottom: 5px; font-weight: bold; }
 .profile-class-title { color: var(--theme-color); font-size: 0.9rem; margin-bottom: 20px; }
 
 /* ── PROGRESS BAR ── */
@@ -72,10 +83,54 @@
 .xp-numbers { display: flex; justify-content: space-between; font-size: 0.7rem; color: #9ca3af; margin-top: 5px; }
 
 /* ── WEEK TRACKER ── */
-.week-tracker { display: flex; justify-content: center; gap: 8px; }
-.day-bit { width: 15px; height: 15px; background: rgba(255,255,255,0.1); clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
-.day-bit.active { background: var(--theme-color); box-shadow: 0 0 8px var(--theme-color); }
-.day-bit.hoje { border-bottom: 2px solid #fff; }
+.day-slot {
+    width: 45px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.day-slot.active {
+    color: var(--neon-blue, #0dcaf0);
+    border-color: var(--neon-blue, #0dcaf0);
+    animation: glow-blue 2s infinite alternate;
+}
+
+.day-slot.inactive {
+    color: var(--neon-red, #ff2a6d);
+    border-color: var(--neon-red, #ff2a6d);
+    animation: glow-red 2s infinite alternate;
+}
+
+.day-slot.hoje {
+    font-weight: bold;
+    border: 1px solid #00ff9f !important;
+    box-shadow: 0 0 8px rgba(0, 255, 159, 0.4), inset 0 0 6px rgba(0, 255, 159, 0.1);
+    color: #00ff9f;
+    animation: glow-hoje 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow-hoje {
+    from { box-shadow: 0 0 6px rgba(0, 255, 159, 0.3), inset 0 0 4px rgba(0, 255, 159, 0.1); }
+    to   { box-shadow: 0 0 16px rgba(0, 255, 159, 0.7), inset 0 0 8px rgba(0, 255, 159, 0.2); }
+}
+
+@keyframes glow-blue {
+    from { box-shadow: 0 0 4px rgba(13, 202, 240, 0.3); }
+    to { box-shadow: 0 0 12px rgba(13, 202, 240, 0.8); }
+}
+
+@keyframes glow-red {
+    from { box-shadow: 0 0 4px rgba(255, 42, 109, 0.3); }
+    to { box-shadow: 0 0 12px rgba(255, 42, 109, 0.8); }
+}
 
 /* ── STATS ROW ── */
 .stats-row { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; padding: 20px; }
@@ -109,8 +164,8 @@
     clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
 }
 .wallet-label { display: block; font-size: 0.7rem; color: rgba(252,238,10,0.7); }
-.wallet-value { font-size: 1.5rem; color: var(--neon-gold); text-shadow: 0 0 10px rgba(252,238,10,0.5); }
-.wallet-icon { font-size: 2rem; color: var(--neon-gold); }
+.wallet-value { color: var(--theme-color); text-shadow: 0 0 12px color-mix(in srgb, var(--theme-color) 60%, transparent); }
+.wallet-icon  { color: var(--theme-color); }
 
 .cyber-tabs { border-bottom: 1px solid rgba(255,255,255,0.1); }
 .cyber-tabs .nav-link { color: #6b7280; background: transparent; border: none; font-size: 0.8rem; }
@@ -309,9 +364,9 @@
 
 /* ── BOTÃO ESTILO LOJA ── */
 .btn-cyber-store {
-    background: rgba(13,202,240,0.05);
-    border: 1px solid rgba(13,202,240,0.55);
-    color: var(--neon-blue);
+    background: color-mix(in srgb, var(--theme-color) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--theme-color) 55%, transparent);
+    color: var(--theme-color);
     font-family: var(--tech-font);
     font-size: 0.65rem;
     letter-spacing: 3px;
@@ -323,22 +378,21 @@
     position: relative;
 }
 
-.btn-cyber-store::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--neon-blue);
-    opacity: 0;
-    transition: opacity 0.25s;
-}
-
-.btn-cyber-store:hover {
-    color: #000;
-    box-shadow: 0 0 24px rgba(13,202,240,0.5);
+.btn-cyber-store::before { background: var(--theme-color); }
+.btn-cyber-store:hover, .btn-cyber-store:hover * {
+    box-shadow: 0 0 24px color-mix(in srgb, var(--theme-color) 50%, transparent);
 }
 
 .btn-cyber-store:hover::before { opacity: 1; }
 .btn-cyber-store > * { position: relative; z-index: 1; }
+
+.btn-cyber-store { text-decoration: none !important; }
+
+@keyframes cyber-pulse {
+    0%, 100% { box-shadow: 0 0 8px color-mix(in srgb, var(--theme-color) 40%, transparent); }
+    50%       { box-shadow: 0 0 22px color-mix(in srgb, var(--theme-color) 80%, transparent); }
+}
+.btn-pulse-anim { animation: cyber-pulse 2s ease-in-out infinite; }
 
 /* ── DETALHES ── */
 #ach-preview-desc {
@@ -581,3 +635,4 @@
     0%, 100% { box-shadow: 0 0 10px rgba(252, 238, 10, 0.4); transform: scale(1); }
     50% { box-shadow: 0 0 25px rgba(252, 238, 10, 0.8); transform: scale(1.02); }
 }
+
