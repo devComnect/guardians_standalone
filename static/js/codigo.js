@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── XP dinâmico ───────────────────────────────────────
     function updateXpDisplay() {
         if (!xpEl) return;
-        const half     = Math.floor(MAX_ATT / 2);
+        const half     = Math.floor(MAX_ATT / 3);
         const attUsed  = currentRow + 1;
         const potential = attUsed <= half ? MAX_XP : Math.round(MAX_XP * 0.5);
         xpEl.textContent = potential;

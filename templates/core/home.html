@@ -20,38 +20,48 @@
 
             <!-- Avatar + Frame -->
             <div class="avatar-zone">
-                <div class="avatar-frame-outer classe-{{ player.classe|default:'none' }}">
-                    <div class="avatar-frame-inner">
-                        {% if player.avatar %}
-                            <img src="{{ player.avatar.url }}" alt="avatar" class="avatar-img">
-                        {% else %}
-                            <div class="avatar-placeholder">
-                                <i class="bi bi-person-fill"></i>
-                            </div>
-                        {% endif %}
-                    </div>
-                    <div class="classe-badge classe-{{ player.classe|default:'none' }}">
-                        {% if player.classe == 'guardian' %}<i class="bi bi-shield-fill"></i>
-                        {% elif player.classe == 'analyst' %}<i class="bi bi-graph-up"></i>
-                        {% elif player.classe == 'sentinel' %}<i class="bi bi-eye-fill"></i>
-                        {% elif player.classe == 'hacker' %}<i class="bi bi-terminal-fill"></i>
-                        {% else %}<i class="bi bi-person-fill"></i>
-                        {% endif %}
-                    </div>
+                <div class="avatar-frame {% if frame_ativo %}has-cosmetic{% endif %}">
+                    
+                    <div class="avatar-bg-layer {% if bg_ativo %}cosmetic-bg cosmetic-bg-{{ bg_ativo.item.item_id }} rarity-bg-{{ bg_ativo.item.raridade|lower }}{% endif %}"></div>
+                    
+                    {% if player.avatar %}
+                        <img src="{{ player.avatar.url }}" alt="avatar" class="avatar-img">
+                    {% else %}
+                        <div class="avatar-img d-flex align-items-center justify-content-center">
+                            <i class="bi bi-person-fill" style="font-size: 2.5rem; color: var(--text-dim);"></i>
+                        </div>
+                    {% endif %}
+
+                    {% if frame_ativo %}
+                        <div class="avatar-frame-overlay cosmetic-frame rarity-{{ frame_ativo.item.raridade|lower }}">
+                            <i class="bi {{ frame_ativo.item.icon }} cosmetic-frame-icon"></i>
+                        </div>
+                    {% endif %}
+
+                    <div class="level-badge font-tech">LVL.{{ player.level|default:'1' }}</div>
                 </div>
             </div>
 
             <!-- Info do player -->
             <div class="player-info">
                 <h2 class="player-name">{{ player.display_name|default:request.user.username }}</h2>
-                <p class="player-classe font-tech classe-txt-{{ player.classe|default:'none' }}">
-                    // {{ player.get_classe_display|default:'Sem Classe' }}
-                </p>
-                {% if ranking_pos %}
-                <span class="player-rank-badge font-tech">
-                    <i class="bi bi-bar-chart-fill"></i> #{{ ranking_pos }} no ranking
-                </span>
-                {% endif %}
+                
+                <div class="profile-titles-container d-flex flex-column align-items-center">
+                    <div class="profile-class-title class-widget font-tech" style="--theme-color: var(--classe-{{ player.classe|default:'none' }})">
+                        <span class="scanner-line"></span>
+                        // CLASSE: {{ player.get_classe_display|upper|default:'SEM CLASSE' }} //
+                    </div>
+
+                    <div class="profile-class-title title-widget font-tech">
+                        {% if titulo_ativo %}
+                            <span class="glitch-text" data-text="{{ titulo_ativo.item.name }}">
+                                {{ titulo_ativo.item.name }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted" style="opacity: 0.3; font-size: 0.7rem;">[ SEM CODINOME ]</span>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
             <!-- Barra de XP -->

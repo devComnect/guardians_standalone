@@ -5,7 +5,7 @@ Todos os minigames devem usar grant_xp() para conceder XP.
 
 from django.utils import timezone
 from django.db import transaction
-from .models import OfensivaConfig
+from .models import OfensivaConfig, BattlePassTier
 
 
 def xp_para_nivel(nivel):
@@ -705,7 +705,8 @@ def coletar_recompensa_bp(user, tier_number):
     Retorna (sucesso, mensagem, recompensa_descricao).
     """
     from .models import BattlePassConfig, PlayerBattlePass, PlayerNotification
-    from apps.store.models import PlayerItem, CoinTransaction
+    from apps.store.models import PlayerItem, StoreTransaction
+
 
     bp_config = BattlePassConfig.get_ativo()
     if not bp_config:
@@ -733,11 +734,11 @@ def coletar_recompensa_bp(user, tier_number):
     if tier.recompensa_tipo == 'coins' and player:
         player.coins += tier.recompensa_coins
         player.save()
-        CoinTransaction.objects.create(
-            player    = user,
-            tipo      = 'recompensa',
-            valor     = tier.recompensa_coins,
-            descricao = f'Battle Pass Tier {tier_number}',
+        StoreTransaction.objects.create(
+            player      = user,
+            tipo        = 'purchase',
+            coins_delta = tier.recompensa_coins,
+            descricao   = f'Battle Pass Tier {tier_number} — {tier.recompensa_descricao or "Recompensa"}',
         )
 
     elif tier.recompensa_tipo in ('item', 'cosmetico') and tier.recompensa_item:

@@ -90,29 +90,50 @@
 
                     {# ── ABA 3: COSMÉTICOS ── #}
                     <div class="tab-pane fade" id="tab-modal-cosm">
-                        <div class="d-flex flex-wrap justify-content-center gap-4 mt-4 pb-4">
-                            {% for pi in inventario_cosmeticos %}
-                                <div class="hud-module-slot occupied rarity-{{ pi.item.raridade|lower }}">
-                                    <div class="card-inner">
-                                        <div class="card-front">
-                                            <span class="hud-slot-num font-tech">
-                                                {% if pi.equipado %}<span class="text-success">ATIVO</span>{% else %}INATIVO{% endif %}
-                                            </span>
-                                            <i class="bi {{ pi.item.icon|default:'bi-palette' }} hud-slot-icon"></i>
-                                            <span class="hud-slot-name">{{ pi.item.name }}</span>
-                                        </div>
-                                        <div class="card-back">
-                                            <p class="card-back-desc font-tech">{{ pi.item.description }}</p>
-                                        </div>
-                                    </div>
-                                    <button class="btn-sell-hud font-tech btn-cosmetico" data-pi-id="{{ pi.id }}" 
-                                            style="bottom: -30px; font-size: 0.65rem; padding: 4px 12px; {% if pi.equipado %}border-color: var(--neon-red); color: var(--neon-red);{% else %}border-color: var(--neon-green); color: var(--neon-green);{% endif %}">
-                                        {% if pi.equipado %}DESEQUIPAR{% else %}EQUIPAR{% endif %}
-                                    </button>
+                        <div class="container-fluid mt-4 pb-4">
+                            
+                            {# Função auxiliar para renderizar as sessões #}
+                            {% regroup inventario_cosmeticos by item.effect as cosmeticos_agrupados %}
+
+                            {# --- SESSÃO: MOLDURAS (FRAMES) --- #}
+                            <div class="cosmetic-section mb-5">
+                                <h6 class="font-tech text-theme mb-3"><i class="bi bi-border-outer me-2"></i> MOLDURAS DE AVATAR</h6>
+                                <div class="d-flex flex-wrap gap-4">
+                                    {% for pi in inventario_cosmeticos %}
+                                        {% if "COSMETIC_FRAME" in pi.item.effect %}
+                                            {% include "profiles/_card_cosmetico.html" with pi=pi %}
+                                        {% endif %}
+                                    {% endfor %}
                                 </div>
-                            {% empty %}
-                                <p class="text-theme font-tech w-100 text-center py-5">Você não possui cosméticos.</p>
-                            {% endfor %}
+                            </div>
+
+                            {# --- SESSÃO: PLANOS DE FUNDO (BACKGROUNDS) --- #}
+                            <div class="cosmetic-section mb-5">
+                                <h6 class="font-tech text-theme mb-3" style="color: var(--neon-purple) !important;"><i class="bi bi-image me-2"></i> BACKDROPS NEURAIS</h6>
+                                <div class="d-flex flex-wrap gap-4">
+                                    {% for pi in inventario_cosmeticos %}
+                                        {% if "COSMETIC_BACKGROUND" in pi.item.effect %}
+                                            {% include "profiles/_card_cosmetico.html" with pi=pi %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            {# --- SESSÃO: TÍTULOS (TITLES) --- #}
+                            <div class="cosmetic-section">
+                                <h6 class="font-tech text-theme mb-3" style="color: var(--neon-gold) !important;"><i class="bi bi-type me-2"></i> CODINOMES & TÍTULOS</h6>
+                                <div class="d-flex flex-wrap gap-4">
+                                    {% for pi in inventario_cosmeticos %}
+                                        {% if "COSMETIC_TITLE" in pi.item.effect %}
+                                            {% include "profiles/_card_cosmetico.html" with pi=pi %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            {% if not inventario_cosmeticos %}
+                                <p class="text-theme font-tech w-100 text-center py-5">Você não possui cosméticos no inventário.</p>
+                            {% endif %}
                         </div>
                     </div>
 

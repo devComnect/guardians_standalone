@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from .models import AdminPost
+from apps.store.models import PlayerItem
 from apps.minigames.models import PatrolAttempt
 from apps.profiles.services import get_ofensiva_bonus_pct
 from apps.missions.services import MissionService # Importe o serviço
@@ -42,13 +43,27 @@ def home(request):
     except Exception:
         pass
 
-    return render(request, 'core/home.html', {
-        'posts':       posts,
-        'player':      player,
+    frame_ativo = None
+    bg_ativo = None
+    titulo_ativo = None
+    if player:
+        # Busca os itens que estão com 'equipado=True'
+        frame_ativo = PlayerItem.objects.filter(player=request.user, equipado=True, item__effect='COSMETIC_FRAME').first()
+        bg_ativo = PlayerItem.objects.filter(player=request.user, equipado=True, item__effect='COSMETIC_BACKGROUND').first()
+        titulo_ativo = PlayerItem.objects.filter(player=request.user, equipado=True, item__effect='COSMETIC_TITLE').first()
+
+    context = {
+        'posts': posts,
+        'player': player,
         'patrol_done': patrol_done,
-        'patrol_won':  patrol_won,
+        'patrol_won': patrol_won,
         'ranking_pos': ranking_pos,
-        'ofensiva_bonus':  get_ofensiva_bonus_pct(request.user) if player else 0,
+        'ofensiva_bonus': get_ofensiva_bonus_pct(request.user) if player else 0,
         'mission_set': mission_data,
         'active_missions': active_missions,
-    })
+        'frame_ativo': frame_ativo,
+        'bg_ativo': bg_ativo,
+        'titulo_ativo': titulo_ativo,
+    }
+
+    return render(request, 'core/home.html', context)

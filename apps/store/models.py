@@ -96,6 +96,7 @@ class Item(models.Model):
         ('COMMON', 'Common'),
         ('RARE',   'Rare'),
         ('EPIC',   'Epic'),
+        ('LEGENDARY', 'Legendary'),
     ]
 
     # Efeitos possíveis — usados pelo services.py para aplicar lógica
@@ -162,7 +163,7 @@ class Item(models.Model):
     name        = models.CharField(max_length=100, verbose_name='Nome')
     description = models.TextField(verbose_name='Descrição')
     tipo        = models.CharField(max_length=12, choices=TIPO_CHOICES)
-    raridade    = models.CharField(max_length=6, choices=RARIDADE_CHOICES, default='COMMON')
+    raridade    = models.CharField(max_length=12, choices=RARIDADE_CHOICES, default='COMMON')
     build       = models.CharField(max_length=10, choices=BUILD_CHOICES, default='NONE')
     effect      = models.CharField(max_length=40, choices=EFFECT_CHOICES)
 

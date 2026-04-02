@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'base.html' %} 
 {% load static %}
 
 {% block title %}Perfil // {{ player.display_name|default:request.user.username|upper }}{% endblock %}
@@ -23,11 +23,20 @@
                     <a href="{% url 'profiles:selecao_classe' %}" class="btn-cyber-store font-tech ms-2 {% if not player.classe or player.classe == 'none' %}btn-pulse-anim{% endif %}" style="font-size:0.8rem; padding: 12px 28px; text-decoration: none;">
                         <i class="bi bi-diagram-3-fill"></i> CLASSE
                     </a>
+                    <a href="#" class="btn-cyber-store font-tech ms-2 {% if bp_disponíveis and bp_disponíveis > 0 %}btn-pulse-anim{% endif %}"
+                    style="font-size:0.8rem; padding: 12px 28px; text-decoration: none;"
+                    data-bs-toggle="modal" data-bs-target="#modalBattlePass">
+                        <i class="bi bi-stars"></i> BATTLE PASS
+                        {% if bp_disponíveis and bp_disponíveis > 0 %}
+                            <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">{{ bp_disponíveis }}</span>
+                        {% endif %}
+                    </a>
                 </div>
             </div>
 
-            <div class="avatar-frame">
-                <div class="avatar-bg-layer" {% if bg_ativo %}style="background-image: url('{{ bg_ativo.item.imagem }}');"{% endif %}></div>
+            <div class="avatar-frame {% if frame_ativo %}has-cosmetic{% endif %}">
+                <div class="avatar-bg-layer {% if bg_ativo %}cosmetic-bg cosmetic-bg-{{ bg_ativo.item.item_id }} rarity-bg-{{ bg_ativo.item.raridade|lower }}{% endif %}"
+                    {% if bg_ativo %}title="{{ bg_ativo.item.name }}"{% endif %}></div>
                 
                 {% if player.avatar %}
                     <img src="{{ player.avatar.url }}" alt="Avatar" class="avatar-img">
@@ -38,20 +47,42 @@
                 {% endif %}
                 
                 {% if frame_ativo %}
-                    <img src="{{ frame_ativo.item.imagem }}" class="avatar-frame-overlay">
+                    <div class="avatar-frame-overlay cosmetic-frame rarity-{{ frame_ativo.item.raridade|lower }}"
+                        title="{{ frame_ativo.item.name }}">
+                        <i class="bi {{ frame_ativo.item.icon }} cosmetic-frame-icon"></i>
+                    </div>
                 {% endif %}
 
                 <div class="level-badge font-tech">LVL.{{ player.level }}</div>
+
+                {% if player.bio %}
+                <div class="cyber-quote-tooltip font-tech">
+                    <span class="quote-mark">"</span>{{ player.bio }}<span class="quote-mark">"</span>
+                </div>
+                {% endif %}
             </div>
 
             <h2 class="profile-name">
                 {{ player.display_name|default:request.user.username }}
             </h2>
             
-            <div class="profile-class-title font-tech">
-                // CLASSE: {{ player.get_classe_display|upper }} //
-                {% if titulo_ativo %} | {{ titulo_ativo.item.nome }}{% endif %}
+            <div class="profile-titles-container d-flex flex-column align-items-center">
+                <div class="profile-class-title class-widget font-tech">
+                    <span class="scanner-line"></span>
+                    // CLASSE: {{ player.get_classe_display|upper }} //
+                </div>
+
+                <div class="profile-class-title title-widget font-tech">
+                    {% if titulo_ativo %}
+                        <span class="glitch-text" data-text="{{ titulo_ativo.item.name }}">
+                            {{ titulo_ativo.item.name }}
+                        </span>
+                    {% else %}
+                        <span class="text-muted" style="opacity: 0.3; font-size: 0.7rem;">[ SEM CODINOME ]</span>
+                    {% endif %}
+                </div>
             </div>
+
 
             <div class="xp-system">
                 <div class="tech-progress">
@@ -112,9 +143,6 @@
                         <div class="cyber-title">
                             <i class="bi bi-journal-code text-theme me-2"></i> MISSÕES
                         </div>
-                        <span class="badge font-tech bg-theme-alpha border-theme text-theme" style="border: 1px solid; letter-spacing: 1px;">
-                            SET ATUAL
-                        </span>
                     </div>
                     <div class="p-3">
                         {% for mission in active_missions %}
@@ -128,7 +156,7 @@
                                 <div class="tech-progress" style="height: 6px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 2px;">
                                     <div class="tech-progress-bar" 
                                         style="width: {% widthratio mission.current_progress mission.target_value 100 %}%; 
-                                               background: {% if mission.is_completed %}var(--neon-green){% else %}var(--theme-color){% endif %};
+                                               background: var(--theme-color);
                                                box-shadow: 0 0 10px {% if mission.is_completed %}var(--neon-green){% else %}var(--theme-color){% endif %};
                                                transition: width 0.5s ease-in-out;">
                                     </div>
@@ -304,6 +332,7 @@
         {# ── MODAIS ── #}
         {% include 'profiles/_modal_conquistas.html' %}
         {% include 'profiles/_modal_inventario.html' %}
+        {% include 'profiles/_modal_battle_pass.html' %}
 
         {# ── MODAL DE DEPURAÇÃO DO LOG ── #}
         <div class="modal fade cyber-modal" id="modalLogDetalhe" tabindex="-1">
@@ -357,7 +386,7 @@
         codigo: Number("{{ bonus.matriz_radar.codigo_xp }}".replace(',', '.')) || 0,
         decriptar: Number("{{ bonus.matriz_radar.decriptar_xp }}".replace(',', '.')) || 0,
         patrulha: Number("{{ bonus.matriz_radar.patrulha_xp }}".replace(',', '.')) || 0,
-        moedas: Number("{{ bonus.matriz_radar.moedas }}".replace(',', '.')) || 0
+        //moedas: Number("{{ bonus.matriz_radar.moedas }}".replace(',', '.')) || 0
     };
 </script>
 
@@ -377,8 +406,6 @@ function hexToRgba(hex, alpha) {
 }
 
 const el = document.querySelector('.profile-page-wrapper');
-console.log('classes:', el.className);
-console.log('theme-color:', getComputedStyle(el).getPropertyValue('--theme-color'));
 
 // ── GRÁFICO DE MATRIZ DE SKILLS (CHART.JS) ──
 document.addEventListener('DOMContentLoaded', function() {
@@ -393,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(ctxRadar, {
             type: 'radar',
             data: {
-                labels: ['CÓDIGO', 'DECRIPTAR', 'PATRULHA', 'MOEDAS', 'QUIZ'],
+                labels: ['CÓDIGO', 'DECRIPTAR', 'PATRULHA', 'QUIZ'],
                 datasets: [
                     {
                         label: 'Fundo',
@@ -410,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             window.RADAR_DATA.codigo, 
                             window.RADAR_DATA.decriptar, 
                             window.RADAR_DATA.patrulha, 
-                            window.RADAR_DATA.moedas, 
+                            //window.RADAR_DATA.moedas, 
                             window.RADAR_DATA.quiz
                         ],
                         // Aplica as cores do tema dinamicamente
@@ -463,8 +490,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             color: 'rgba(255, 255, 255, 0.6)',
                             font: { family: "'Share Tech Mono', monospace", size: 10, letterSpacing: '1px' }
                         },
-                        min: 0, 
-                        suggestedMax: 100,
+                        min: -1, 
+                        suggestedMax: 50,
                         ticks: { display: false }
                     }
                 }
@@ -481,7 +508,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ── 1. Carrega breakdowns injetados pelo Django ──────────────
     const LOG_BREAKDOWNS = window.__LOG_BREAKDOWNS__ || {};
-    console.log('[LOG] Breakdowns carregados:', Object.keys(LOG_BREAKDOWNS).length, LOG_BREAKDOWNS);
 
     // ── 2. Filtro de categoria ───────────────────────────────────
     document.getElementById('log-filter').addEventListener('change', function () {

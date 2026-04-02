@@ -1,86 +1,69 @@
 from django.core.management.base import BaseCommand
 
-
-# XP acumulado por tier (curva: fácil no início, tryhard no final)
-# Casual chega ~tier 20-25 | Regular ~tier 30-35 | Dedicado ~tier 40-45 | Tryhard ~tier 50
 BP_XP_CURVE = [
-    # tier: xp_acumulado
-    (1,  400),    (2,  900),    (3,  1500),   (4,  2200),   (5,  3000),
-    (6,  3900),   (7,  4900),   (8,  6000),   (9,  7200),   (10, 8500),
-    (11, 10000),  (12, 11600),  (13, 13300),  (14, 15100),  (15, 17000),
-    (16, 19000),  (17, 21100),  (18, 23300),  (19, 25600),  (20, 28000),
-    (21, 30500),  (22, 33100),  (23, 35800),  (24, 38600),  (25, 41500),
-    (26, 44500),  (27, 47600),  (28, 50800),  (29, 54100),  (30, 57500),
-    (31, 61000),  (32, 64600),  (33, 68300),  (34, 72100),  (35, 76000),
-    (36, 80000),  (37, 84100),  (38, 88300),  (39, 92600),  (40, 97000),
-    (41, 101500), (42, 106100), (43, 110800), (44, 115600), (45, 120500),
-    (46, 126000), (47, 132000), (48, 138500), (49, 145500), (50, 153000),
+    (1, 400), (2, 900), (3, 1500), (4, 2200), (5, 3000),
+    (6, 4000), (7, 5200), (8, 6500), (9, 8000), (10, 9800),
+    (11, 11800), (12, 14000), (13, 16500), (14, 19200), (15, 22200),
+    (16, 25500), (17, 29000), (18, 32800), (19, 37000), (20, 41500),
+    (21, 46300), (22, 51500), (23, 57000), (24, 62800), (25, 69000),
+    (26, 75500), (27, 82300), (28, 89500), (29, 97000), (30, 105000),
+    (31, 113500), (32, 122500), (33, 132000), (34, 142000), (35, 152500),
+    (36, 163500), (37, 175000), (38, 187000), (39, 199500), (40, 212500),
+    (41, 226000), (42, 240000), (43, 254500), (44, 269500), (45, 285000),
+    (46, 301000), (47, 317500), (48, 334500), (49, 352000), (50, 370000),
 ]
 
-# Recompensas por tier
-# (tier, tipo, coins, item_nome_ou_None, descricao)
 BP_REWARDS = [
-    # Faixa Iniciante (1-10) — pequenas recompensas motivacionais
-    (1,  'coins',     50,  None,                     '50 Guardian Coins'),
-    (2,  'item',       0,  'Sniffer de Metadados',   'Sniffer de Metadados (1 uso)'),
-    (3,  'coins',    100,  None,                     '100 Guardian Coins'),
-    (4,  'cosmetico',  0,  'Frame: Guardião',        'Frame: Guardião'),
-    (5,  'coins',    150,  None,                     '150 Guardian Coins'),
-    (6,  'item',       0,  'Vida Reserva',           'Vida Reserva (3 usos)'),
-    (7,  'coins',    200,  None,                     '200 Guardian Coins'),
-    (8,  'item',       0,  'Injetor de Overclock',   'Injetor de Overclock'),
-    (9,  'coins',    250,  None,                     '250 Guardian Coins'),
-    (10, 'cosmetico',  0,  'Frame: Hacker',          'Frame: Hacker'),
-
-    # Faixa Regular (11-25) — recompensas mais substanciais
-    (11, 'coins',    300,  None,                     '300 Guardian Coins'),
-    (12, 'item',       0,  'Lanterna',               'Lanterna (5 usos)'),
-    (13, 'coins',    350,  None,                     '350 Guardian Coins'),
-    (14, 'item',       0,  'Multiplicador de Coins', 'Multiplicador de Coins'),
-    (15, 'coins',    400,  None,                     '400 Guardian Coins'),
-    (16, 'item',       0,  'Escudo de Streak',       'Escudo de Streak'),
-    (17, 'coins',    450,  None,                     '450 Guardian Coins'),
-    (18, 'item',       0,  'Amplificador I',         'Amplificador I (+25% XP)'),
-    (19, 'coins',    500,  None,                     '500 Guardian Coins'),
-    (20, 'item',       0,  'Catalisador',            'Upgrade: Catalisador'),
-
-    (21, 'coins',    500,  None,                     '500 Guardian Coins'),
-    (22, 'item',       0,  'Amplificador II',        'Amplificador II (+50% XP)'),
-    (23, 'coins',    600,  None,                     '600 Guardian Coins'),
-    (24, 'item',       0,  'Sinergia',               'Upgrade: Sinergia'),
-    (25, 'coins',    750,  None,                     '750 Guardian Coins — marco!'),
-
-    # Faixa Dedicado (26-40) — recompensas raras
-    (26, 'item',       0,  'Escudo de Streak',       'Escudo de Streak'),
-    (27, 'coins',    600,  None,                     '600 Guardian Coins'),
-    (28, 'item',       0,  'Moldura de Destaque',    'Upgrade: Moldura de Destaque'),
-    (29, 'coins',    650,  None,                     '650 Guardian Coins'),
-    (30, 'item',       0,  'Amplificador II',        'Amplificador II (+50% XP)'),
-
-    (31, 'coins',    700,  None,                     '700 Guardian Coins'),
-    (32, 'item',       0,  'Momentum',               'Upgrade: Momentum'),
-    (33, 'coins',    750,  None,                     '750 Guardian Coins'),
-    (34, 'item',       0,  'Token de Retake',        'Token de Retake'),
-    (35, 'coins',    800,  None,                     '800 Guardian Coins'),
-
-    (36, 'item',       0,  'Colecionador',           'Upgrade: Colecionador'),
-    (37, 'coins',    850,  None,                     '850 Guardian Coins'),
-    (38, 'item',       0,  'Núcleo Amplificado',     'Upgrade: Núcleo Amplificado'),
-    (39, 'coins',    900,  None,                     '900 Guardian Coins'),
-    (40, 'item',       0,  'Amplificador III',       'Amplificador III (+100% XP)'),
-
-    # Faixa Tryhard (41-50) — recompensas lendárias
-    (41, 'coins',   1000,  None,                     '1.000 Guardian Coins'),
-    (42, 'item',       0,  'Token de Retake',        'Token de Retake'),
-    (43, 'coins',   1000,  None,                     '1.000 Guardian Coins'),
-    (44, 'item',       0,  'Slot de Expansão',       'Upgrade: Slot de Expansão'),
-    (45, 'coins',   1200,  None,                     '1.200 Guardian Coins'),
-
-    (46, 'item',       0,  'Amplificador III',       'Amplificador III (+100% XP)'),
-    (47, 'coins',   1500,  None,                     '1.500 Guardian Coins'),
-    (48, 'item',       0,  'Frame: Lendário',        'Frame Lendário — Exclusivo'),
-    (49, 'coins',   2000,  None,                     '2.000 Guardian Coins'),
-    (50, 'item',       0,  'Token de Retake',        '🏆 TIER MÁXIMO — Token de Retake + Título Especial'),
+    (1, 'coins', 50, None, '50 Coins'),
+    (2, 'item', 0, 'Sniffer de Metadados', 'Sniffer de Metadados (FREE_HINT)'),
+    (3, 'coins', 75, None, '75 Coins'),
+    (4, 'item', 0, 'Backup de Memória', 'Backup de Memória (TOKEN_RETAKE)'),
+    (5, 'cosmetic', 0, 'Rookie Protocol', 'Título COMMON'),
+    (6, 'coins', 75, None, '75 Coins'),
+    (7, 'item', 0, 'Buffer de Contingência', 'Buffer de Contingência (EXTRA_LIFE_TIME)'),
+    (8, 'coins', 100, None, '100 Coins'),
+    (9, 'item', 0, 'Sniffer de Metadados', 'Sniffer de Metadados x2'),
+    (10, 'cosmetic', 0, 'Deep Void', 'Frame COMMON'),
+    (11, 'coins', 100, None, '100 Coins'),
+    (12, 'item', 0, 'Injetor de Overclock', 'Injetor de Overclock (XP_BOOST 3d)'),
+    (13, 'coins', 125, None, '125 Coins'),
+    (14, 'item', 0, 'Protocolo Persistência', 'Protocolo Persistência (STREAK_FREEZE)'),
+    (15, 'cosmetic', 0, 'Script Kiddie', 'Título COMMON'),
+    (16, 'coins', 125, None, '125 Coins'),
+    (17, 'item', 0, 'Backup de Memória', 'Backup de Memória (TOKEN_RETAKE)'),
+    (18, 'coins', 150, None, '150 Coins'),
+    (19, 'item', 0, 'Expansor de Cache', 'Expansor de Cache (STREAK_CAP_BOOST)'),
+    (20, 'cosmetic', 0, 'Circuit Grid', 'Background COMMON'),
+    (21, 'coins', 150, None, '150 Coins'),
+    (22, 'item', 0, 'Buffer de Contingência', 'Buffer de Contingência x2'),
+    (23, 'coins', 175, None, '175 Coins'),
+    (24, 'item', 0, 'Injetor de Overclock', 'Injetor de Overclock (XP_BOOST 3d)'),
+    (25, 'cosmetic', 0, 'Caçador de Bugs', 'Título RARE'),
+    (26, 'coins', 175, None, '175 Coins'),
+    (27, 'item', 0, 'Backup de Memória', 'Backup de Memória (TOKEN_RETAKE)'),
+    (28, 'coins', 200, None, '200 Coins'),
+    (29, 'item', 0, 'Protocolo Persistência', 'Protocolo Persistência x2'),
+    (30, 'cosmetic', 0, 'Digital Rain', 'Background RARE'),
+    (31, 'coins', 200, None, '200 Coins'),
+    (32, 'item', 0, 'Injetor de Overclock', 'Injetor de Overclock (XP_BOOST 3d)'),
+    (33, 'coins', 225, None, '225 Coins'),
+    (34, 'item', 0, 'Script de Arbitragem', 'Script de Arbitragem (CONVERT_GOLD_XP)'),
+    (35, 'cosmetic', 0, 'Fantasma Digital', 'Título RARE'),
+    (36, 'coins', 250, None, '250 Coins'),
+    (37, 'item', 0, 'Backup de Memória', 'Backup de Memória (TOKEN_RETAKE)'),
+    (38, 'coins', 250, None, '250 Coins'),
+    (39, 'item', 0, 'Expansor de Cache', 'Expansor de Cache x2'),
+    (40, 'cosmetic', 0, 'Plasma Fire', 'Frame RARE'),
+    (41, 'coins', 300, None, '300 Coins'),
+    (42, 'item', 0, 'Injetor de Overclock', 'Injetor de Overclock (XP_BOOST 3d)'),
+    (43, 'coins', 300, None, '300 Coins'),
+    (44, 'item', 0, 'Monetizador de Expertise', 'Monetizador de Expertise (CONVERT_XP_GOLD)'),
+    (45, 'cosmetic', 0, 'Firewall Humano', 'Título EPIC'),
+    (46, 'coins', 400, None, '400 Coins'),
+    (47, 'item', 0, 'Backup de Memória', 'Backup de Memória (TOKEN_RETAKE)'),
+    (48, 'coins', 400, None, '400 Coins'),
+    (49, 'cosmetic', 0, 'Blood Matrix', 'Frame EPIC'),
+    (50, 'cosmetic', 0, 'Synthwave Sunset', 'Background EPIC'),
 ]
 
 
@@ -113,20 +96,20 @@ class Command(BaseCommand):
         for tier_num, tipo, coins, item_nome, descricao in BP_REWARDS:
             item = None
             if item_nome:
-                item = Item.objects.filter(nome=item_nome, disponivel=True).first()
+                item = Item.objects.filter(name=item_nome, disponivel=True).first()
                 if not item:
                     self.stdout.write(
-                        self.style.WARNING(f'  Item não encontrado: "{item_nome}" — tier {tier_num} sem item')
+                        self.style.WARNING(f'Item não encontrado: "{item_nome}" — tier {tier_num} sem item')
                     )
 
             _, was_created = BattlePassTier.objects.get_or_create(
                 battle_pass=bp,
                 tier=tier_num,
                 defaults={
-                    'xp_necessario':      xp_map[tier_num],
-                    'recompensa_tipo':    tipo,
-                    'recompensa_coins':   coins,
-                    'recompensa_item':    item,
+                    'xp_necessario': xp_map[tier_num],
+                    'recompensa_tipo': tipo,
+                    'recompensa_coins': coins,
+                    'recompensa_item': item,
                     'recompensa_descricao': descricao,
                 }
             )

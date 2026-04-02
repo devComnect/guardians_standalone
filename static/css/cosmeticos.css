@@ -1,0 +1,317 @@
+/* ══════════════════════════════════════════════════
+   SISTEMA DE COSMÉTICOS — COMNECT GUARDIANS
+   ══════════════════════════════════════════════════ */
+
+:root {
+    --neon-blue:   #0dcaf0;
+    --neon-green:  #05d9e8;
+    --neon-gold:   #fcee0a;
+    --neon-red:    #ff2a6d;
+    --neon-purple: #bd00ff;
+}
+
+/* --- ESTRUTURA BASE DO AVATAR --- */
+.avatar-frame {
+    position: relative;
+    background: #000;
+    overflow: visible !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-bg-layer, .avatar-img, .avatar-frame-overlay.cosmetic-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    /* O Shape canônico do portal */
+    clip-path: polygon(15% 0, 85% 0, 100% 15%, 100% 85%, 85% 100%, 15% 100%, 0 85%, 0 15%);
+}
+
+/* --- MOLDURAS (FRAMES) --- */
+.cosmetic-frame.rarity-legendary {
+    border: 3px solid var(--neon-gold);
+    filter: drop-shadow(0 0 12px var(--neon-gold));
+    animation: pulse-gold 2s infinite;
+}
+
+/* ── COSMÉTICOS: FRAMES ── */
+.avatar-frame-overlay.cosmetic-frame {
+    position: absolute;
+    inset: -4px; 
+    border-radius: 0;
+    pointer-events: none;
+    z-index: 10;
+    display: flex;
+    justify-content: flex-end;
+    padding: 5px;
+}
+
+.cosmetic-frame-icon {
+    font-size: 2cqb;
+}
+
+.cosmetic-frame.rarity-epic {
+    border: 3px solid var(--neon-purple);
+    filter: drop-shadow(0 0 10px rgba(189, 0, 255, 0.6));
+    animation: frame-pulse-epic 2s ease-in-out infinite;
+    clip-path: polygon(15% 0, 85% 0, 100% 15%, 100% 85%, 85% 100%, 15% 100%, 0 85%, 0 15%);
+}
+
+.cosmetic-frame.rarity-legendary {
+    border: 3px solid var(--neon-gold);
+    filter: drop-shadow(0 0 15px rgba(252, 238, 10, 0.8));
+    animation: frame-pulse-gold 2s ease-in-out infinite;
+    /* Um corte levemente diferente para parecer mais "tecnológico" */
+    clip-path: polygon(15% 0, 85% 0, 100% 15%, 100% 85%, 85% 100%, 15% 100%, 0 85%, 0 15%);
+}
+
+@keyframes frame-pulse-gold {
+    0%, 100% { box-shadow: 0 0 20px rgba(252, 238, 10, 0.4); }
+    50% { box-shadow: 0 0 40px rgba(252, 238, 10, 0.7); }
+}
+
+.cosmetic-frame.rarity-rare {
+    border: 4px solid #0dcaf0;
+    filter: drop-shadow(0 0 8px #0dcaf0);
+    animation: frame-pulse-rare 2.5s ease-in-out infinite;
+}
+
+.cosmetic-frame.rarity-common {
+    border: 2px solid #adb5bd;
+    clip-path: none;
+    opacity: 0.8;
+}
+
+@keyframes frame-pulse-rare {
+    0%, 100% { box-shadow: 0 0 14px rgba(13,202,240,0.5), inset 0 0 10px rgba(13,202,240,0.15); }
+    50%       { box-shadow: 0 0 22px rgba(13,202,240,0.8), inset 0 0 16px rgba(13,202,240,0.25); }
+}
+
+@keyframes frame-pulse-epic {
+    0%, 100% { box-shadow: 0 0 20px rgba(189,0,255,0.6), inset 0 0 14px rgba(189,0,255,0.2); }
+    50%       { box-shadow: 0 0 32px rgba(189,0,255,0.9), inset 0 0 22px rgba(189,0,255,0.35); }
+}
+
+/* ── COSMÉTICOS: BACKGROUNDS ── */
+.avatar-bg-layer.cosmetic-bg,
+.avatar-img,
+.avatar-frame-overlay.cosmetic-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    clip-path: polygon(15% 0, 85% 0, 100% 15%, 100% 85%, 85% 100%, 15% 100%, 0 85%, 0 15%);
+}
+
+/* 211 — Circuit Grid */
+.cosmetic-bg-211 {
+    background-color: #00141e;
+    background-image: 
+        linear-gradient(rgba(13, 202, 240, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(13, 202, 240, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+    position: absolute;
+    inset: 0;
+}
+
+/* Pontos de conexão nos cruzamentos */
+.cosmetic-bg-211::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(13, 202, 240, 0.4) 1px, transparent 1px);
+    background-size: 20px 20px;
+    background-position: -1px -1px;
+}
+
+/* Brilho de pulso nas trilhas */
+.cosmetic-bg-211::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(13, 202, 240, 0.15), transparent 70%);
+    animation: circuit-pulse 3s ease-in-out infinite;
+}
+
+@keyframes circuit-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.1); }
+}
+/* 212 — Digital Rain */
+.cosmetic-bg-212 {
+    background: repeating-linear-gradient(
+        180deg,
+        rgba(0,255,70,0.08) 0px,
+        rgba(0,255,70,0.08) 2px,
+        transparent 2px,
+        transparent 10px
+    );
+    background-color: rgba(0, 15, 5, 0.7);
+    animation: bg-rain-scroll 1.5s linear infinite;
+}
+
+@keyframes bg-rain-scroll {
+    from { background-position: 0 0; }
+    to   { background-position: 0 80px; }
+}
+
+/* 213 — Glitch Static */
+.cosmetic-bg-213 {
+    background-color: #0a0514;
+    background-image: 
+        repeating-linear-gradient(45deg, rgba(255, 42, 109, 0.1) 0px, rgba(255, 42, 109, 0.1) 1px, transparent 1px, transparent 6px),
+        repeating-linear-gradient(-45deg, rgba(5, 217, 232, 0.1) 0px, rgba(5, 217, 232, 0.1) 1px, transparent 1px, transparent 6px);
+    position: absolute;
+    inset: 0;
+    animation: bg-glitch-v2 0.2s infinite;
+}
+
+/* Efeito de interferência horizontal */
+.cosmetic-bg-213::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 2px);
+    background-size: 100% 4px;
+    animation: static-noise 0.5s steps(5) infinite;
+}
+
+@keyframes bg-glitch-v2 {
+    0% { transform: translate(0); filter: hue-rotate(0deg); }
+    20% { transform: translate(-2px, 1px); }
+    40% { transform: translate(-2px, -1px); filter: hue-rotate(90deg); }
+    60% { transform: translate(2px, 1px); }
+    80% { transform: translate(2px, -1px); filter: hue-rotate(0deg); }
+    100% { transform: translate(0); }
+}
+/* 214 — Synthwave Sunset (Lendário) */
+.cosmetic-bg-214 {
+    background: #0a0e17; /* Fundo base escuro */
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    /* Camadas: Céu -> Sol -> Mar -> Areia */
+    background-image: 
+        /* Areia (Frente) */
+        linear-gradient(to top, rgba(252, 238, 10, 0.4) 0%, transparent 20%),
+        /* Mar (Meio) */
+        linear-gradient(to top, rgba(0, 217, 232, 0.3) 20%, transparent 50%),
+        /* Céu (Fundo) */
+        linear-gradient(to bottom, #2d0036 0%, #0a0e17 100%);
+    z-index: 1;
+}
+
+/* Criando o Sol e o Efeito de Linhas (Scanlines) */
+.cosmetic-bg-214::before {
+    content: "";
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(to bottom, #ff2a6d 0%, #fcee0a 100%);
+    border-radius: 50%;
+    box-shadow: 0 0 30px rgba(255, 42, 109, 0.6);
+    z-index: 2;
+    animation: sun-pulse 4s ease-in-out infinite;
+}
+
+/* Linhas de Horizonte (Grelha Retro) */
+.cosmetic-bg-214::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 50%;
+    background: 
+        linear-gradient(transparent 95%, rgba(13, 202, 240, 0.3) 95%),
+        linear-gradient(90deg, transparent 95%, rgba(13, 202, 240, 0.3) 95%);
+    background-size: 15px 15px;
+    transform: perspective(40px) rotateX(45deg);
+    z-index: 3;
+    animation: grid-move 2s linear infinite;
+}
+
+/* Animações do Sunset */
+@keyframes sun-pulse {
+    0%, 100% { transform: translateX(-50%) scale(1); filter: brightness(1); }
+    50% { transform: translateX(-50%) scale(1.1); filter: brightness(1.3); }
+}
+
+@keyframes grid-move {
+    from { background-position: 0 0; }
+    to { background-position: 0 15px; }
+}
+
+/* 215 — Blueprint Schematics */
+.cosmetic-bg-215 {
+    background-color: rgba(0, 10, 30, 0.9);
+    background-image: 
+        linear-gradient(rgba(13, 110, 253, 0.2) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(13, 110, 253, 0.2) 1px, transparent 1px),
+        linear-gradient(rgba(13, 110, 253, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(13, 110, 253, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px, 40px 40px, 8px 8px, 8px 8px;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+/* Linha de Varredura (Scanner) */
+.cosmetic-bg-215::after {
+    content: "";
+    position: absolute;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, transparent, rgba(13, 110, 253, 0.15), transparent);
+    animation: blueprint-scan 4s linear infinite;
+}
+
+@keyframes blueprint-scan {
+    0% { top: -100%; }
+    100% { top: 100%; }
+}
+/* rarity-bg fallback se não tiver item_id específico */
+.rarity-bg-rare    { border: 1px solid rgba(13,202,240,0.3); }
+.rarity-bg-epic    { border: 1px solid rgba(189,0,255,0.3); }
+.rarity-bg-common  { border: 1px solid rgba(170,170,170,0.2); }
+
+/* Estilo das sessões de cosméticos */
+.cosmetic-section {
+    position: relative;
+    padding-left: 15px;
+    border-left: 2px solid rgba(255,255,255,0.05);
+}
+
+.cosmetic-section h6 {
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 3px;
+    opacity: 0.8;
+}
+
+/* Efeito visual para item equipado na grid */
+.is-active-cosmetic {
+    border: 1px solid var(--neon-green) !important;
+    background: rgba(5, 217, 232, 0.05) !important;
+}
+
+.pulse-text {
+    animation: text-pulse 2s infinite;
+}
+
+@keyframes text-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* Ajuste para o botão não sumir tanto */
+.hud-module-slot:hover .btn-cosmetico {
+    opacity: 1;
+    bottom: -20px;
+}

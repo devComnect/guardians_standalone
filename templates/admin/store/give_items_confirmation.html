@@ -1,0 +1,86 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+
+<h1 style="color: #0dcaf0;">📦 Entrega de Itens em Massa</h1>
+<p style="color:#8b949e; margin-bottom: 24px;">
+    Selecione o player e a quantidade. Isso criará ou incrementará os itens no inventário selecionado.
+</p>
+
+<div style="background: #1a1a2e; padding: 20px; border: 1px solid #2d3748; border-radius: 4px; margin-bottom: 24px;">
+    <form action="" method="post">
+        {% csrf_token %}
+        
+        <div style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <label style="color: #fcee0a; font-weight: bold;">{{ form.player.label }}</label>
+                {{ form.player }}
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <label style="color: #fcee0a; font-weight: bold;">{{ form.quantidade.label }}</label>
+                {{ form.quantidade }}
+            </div>
+
+            {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+
+            <div style="display: flex; gap: 12px;">
+                <input type="hidden" name="action" value="give_items_to_player" />
+                <button type="submit" name="apply" style="padding:10px 20px; background:#0dcaf0; color:#000; border:none; cursor:pointer; font-weight:bold; height: fit-content;">
+                    ⚡ Confirmar Entrega
+                </button>
+                
+                <a href="../" style="padding:10px 20px; border:1px solid #444; color:#ccc; text-decoration:none; font-size: 13px;">
+                    Cancelar
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<h2 style="color:#fcee0a; margin-bottom:12px;">Itens Selecionados ({{ items.count }})</h2>
+<table style="width:100%; border-collapse:collapse;">
+    <thead>
+        <tr style="background:#1f2833; color:#0dcaf0; font-size:0.85rem;">
+            <th style="padding:12px; text-align:left; border-bottom: 2px solid #0dcaf0;">ID</th>
+            <th style="padding:12px; text-align:left; border-bottom: 2px solid #0dcaf0;">Item</th>
+            <th style="padding:12px; text-align:left; border-bottom: 2px solid #0dcaf0;">Tipo</th>
+            <th style="padding:12px; text-align:left; border-bottom: 2px solid #0dcaf0;">Raridade</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr style="border-bottom:1px solid #2d3748;">
+            <td style="padding:12px; color:#8b949e;">#{{ item.item_id }}</td>
+            <td style="padding:12px;">
+                <strong style="color:#fff;">{{ item.name }}</strong><br>
+                <small style="color:#555;">{{ item.effect }}</small>
+            </td>
+            <td style="padding:12px; color:#ccc;">{{ item.get_tipo_display }}</td>
+            <td style="padding:12px;">
+                {% if item.raridade == 'COMMON' %}<span style="color:#adb5bd;">⬤ Common</span>
+                {% elif item.raridade == 'RARE' %}<span style="color:#0dcaf0;">⬤ Rare</span>
+                {% elif item.raridade == 'EPIC' %}<span style="color:#9333ea;">⬤ Epic</span>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<style>
+    /* Estilização básica para os selects/inputs do Django Form */
+    select, input[type="number"] {
+        background: #0f172a;
+        color: #fff;
+        border: 1px solid #444;
+        padding: 8px;
+        border-radius: 4px;
+    }
+    select:focus, input:focus {
+        border-color: #0dcaf0;
+        outline: none;
+    }
+</style>
+
+{% endblock %}

@@ -251,6 +251,8 @@ class PlayerAdmin(admin.ModelAdmin):
         from apps.missions.models import UserMissionSet
         from apps.missions.services import MissionService
         from apps.store.models import PlayerItem, ActiveEffect, DailyStore, StoreTransaction
+        from apps.profiles.models import PlayerBattlePass
+
 
 
         count = queryset.count()
@@ -294,6 +296,8 @@ class PlayerAdmin(admin.ModelAdmin):
             ActiveEffect.objects.filter(player=user).delete()
             DailyStore.objects.filter(player=user).delete()
             StoreTransaction.objects.filter(player=user).delete()  # ⚠️ ambiente de teste apenas
+            bp_count = PlayerBattlePass.objects.filter(player=user).count()
+            PlayerBattlePass.objects.filter(player=user).delete()
             
             # ── 1º PASSO: Zera o perfil do player e SALVA
             player_obj.xp_total            = 0
@@ -321,6 +325,7 @@ class PlayerAdmin(admin.ModelAdmin):
             print(f"  ├─ Lojas diárias removidas:   {loja_diaria_count}")
             print(f"  ├─ Transações removidas:      {transacoes_count}")
             print(f"  ├─ System logs removidos:     {system_logs_count}")
+            print(f"  ├─ Battle Passes removidos:   {bp_count}")
             print(f"  └─ Perfil zerado ✅")
 
         self.message_user(

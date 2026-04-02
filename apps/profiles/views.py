@@ -861,3 +861,81 @@ def coletar_tier_bp(request):
     from .services import coletar_recompensa_bp
     sucesso, mensagem, descricao = coletar_recompensa_bp(request.user, tier_n)
     return JsonResponse({'ok': sucesso, 'mensagem': mensagem, 'recompensa': descricao})
+
+# ─────────────────────────────────────────────
+# PERFIL PÚBLICO (Visão de Terceiros)
+# ─────────────────────────────────────────────
+
+@login_required
+def public_profile(request, player_id):
+    from django.shortcuts import get_object_or_404
+    from django.contrib.auth.models import User
+    from django.db.models import Q
+    # 1. Busca o usuário alvo pelo ID
+    target_user = get_object_or_404(User, pk=player_id)
+    player_obj = getattr(target_user, 'player', None)
+
+    # Se o usuário não tiver um player configurado (admin, por exemplo)
+    if not player_obj:
+        messages.error(request, 'Perfil de jogador não encontrado.')
+        return redirect('rankings:index')
+
+    # Se o player clicar no próprio perfil pelo ranking, redireciona para a home do perfil dele
+    if target_user == request.user:
+        return redirect('profiles:index')
+
+    from apps.store.models import PlayerItem
+    from apps.profiles.models import PlayerAchievement, SystemLog, AchievementConfig, OfensivaConfig
+
+    # 2. Busca os cosméticos equipados do player alvo
+    frame_ativo = PlayerItem.objects.filter(
+        player=target_user, equipado=True, item__effect='COSMETIC_FRAME'
+    ).select_related('item').first()
+
+    bg_ativo = PlayerItem.objects.filter(
+        player=target_user, equipado=True, item__effect='COSMETIC_BACKGROUND'
+    ).select_related('item').first()
+
+    titulo_ativo = PlayerItem.objects.filter(
+        player=target_user, equipado=True, item__effect='COSMETIC_TITLE'
+    ).select_related('item').first()
+
+    # 3. Busca apenas as conquistas em destaque
+    todas_conquistas = PlayerAchievement.objects.filter(
+        player=target_user
+    ).select_related('achievement').order_by('-desbloqueada_em')
+    conquistas_destaque = PlayerAchievement.objects.filter(
+        player=target_user, em_destaque=True
+    ).select_related('achievement')
+
+    # 4. Busca os logs recentes (limite de 15 para não poluir a tela)
+    logs_recentes = SystemLog.objects.filter(
+        player=target_user
+    ).filter(
+        Q(xp_delta__gt=0) | Q(coin_delta__gt=0)
+    ).order_by('-criado_em')[:15]
+
+    # 5. Calcula o bônus de ofensiva (respeitando o teto)
+    try:
+        teto_ofensiva = OfensivaConfig.get().teto_bonus_ofensiva
+    except Exception:
+        teto_ofensiva = 100 # Fallback de segurança
+        
+    ofensiva_bonus = min(player_obj.ofensiva, teto_ofensiva)
+
+    # 6. Configurações gerais
+    config = AchievementConfig.get()
+
+    context = {
+        'player_obj': player_obj,
+        'frame_ativo': frame_ativo,
+        'bg_ativo': bg_ativo,
+        'titulo_ativo': titulo_ativo,
+        'conquistas_todas': todas_conquistas, 
+        'conquistas_destaque': conquistas_destaque, 
+        'logs_recentes': logs_recentes,
+        'ofensiva_bonus': ofensiva_bonus,
+        'config': config,
+    }
+
+    return render(request, 'profiles/public_profile.html', context)

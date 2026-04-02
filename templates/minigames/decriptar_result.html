@@ -2,78 +2,237 @@
 {% load static %}
 
 {% block title %}Resultado — Decriptar{% endblock %}
+
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/decriptar.css' %}">
+<link rel="stylesheet" href="{% static 'css/game_result.css' %}">
 {% endblock %}
 
 {% block content %}
+
+{% if is_perfect %}
+<div class="result-particles" id="particles"></div>
+{% endif %}
+
 <div class="result-wrapper">
     <div class="result-panel {% if is_perfect %}result-perfect{% elif attempt.timer_expired %}result-fail{% elif attempt.abandoned %}result-abandoned{% endif %}">
 
-        <div class="result-strip"></div>
+        <div class="result-xp-hero">
 
-        <div class="result-icon">
-            {% if is_perfect %}<i class="bi bi-trophy-fill"></i>
-            {% elif attempt.timer_expired %}<i class="bi bi-alarm-fill"></i>
-            {% elif attempt.abandoned %}<i class="bi bi-flag-fill"></i>
-            {% else %}<i class="bi bi-shield-check"></i>{% endif %}
+            <div class="result-icon-wrap">
+                {% if is_perfect %}<i class="bi bi-trophy-fill"></i>
+                {% elif attempt.timer_expired %}<i class="bi bi-alarm-fill"></i>
+                {% elif attempt.abandoned %}<i class="bi bi-flag-fill"></i>
+                {% else %}<i class="bi bi-shield-check"></i>{% endif %}
+            </div>
+
+            <p class="result-status-label">
+                {% if is_perfect %}DECRIPTAÇÃO COMPLETA
+                {% elif attempt.timer_expired %}TEMPO ESGOTADO
+                {% elif attempt.abandoned %}MISSÃO ABANDONADA
+                {% else %}SESSÃO ENCERRADA{% endif %}
+            </p>
+
+            <h1 class="result-title-text">
+                {% if is_perfect %}// PERFECT RUN
+                {% elif attempt.timer_expired %}// TIMER EXPIRED
+                {% elif attempt.abandoned %}// ABORTED
+                {% else %}// MISSION COMPLETE{% endif %}
+            </h1>
+
+            <p class="result-quiz-name">Decriptar — {{ attempt.date|date:"d/m/Y" }}</p>
+
+            <div class="xp-counter-wrap">
+                <span class="xp-counter-label">XP GANHO</span>
+                <span class="xp-counter-value" id="xpCounter">0</span>
+                <span class="xp-counter-suffix">XP</span>
+            </div>
+
+            <div class="result-level-bar-wrap">
+                <div class="level-bar-header">
+                    <div class="level-bar-label">
+                        <i class="bi bi-cpu-fill"></i>
+                        NÍVEL
+                        <span class="level-badge">{{ request.user.player.level }}</span>
+                    </div>
+                    <span class="level-bar-xp-text">
+                        {{ request.user.player.xp_no_nivel_atual }} / {{ request.user.player.xp_necessario_nivel_atual }} XP
+                    </span>
+                </div>
+                <div class="level-bar-track">
+                    <div class="level-bar-fill" id="levelBarFill"></div>
+                    <div class="levelup-flash" id="levelupFlash"></div>
+                </div>
+            </div>
+
         </div>
 
-        <h1 class="result-title font-tech">
-            {% if is_perfect %}// DECRIPTAÇÃO COMPLETA
-            {% elif attempt.timer_expired %}// TEMPO ESGOTADO
-            {% elif attempt.abandoned %}// MISSÃO ABANDONADA
-            {% else %}// SESSÃO ENCERRADA{% endif %}
-        </h1>
-
-        <p class="result-subtitle">Decriptar — {{ attempt.date|date:"d/m/Y" }}</p>
-
-        <div class="result-stats">
-            <div class="result-stat">
-                <span class="stat-big font-tech">{{ attempt.xp_earned }}</span>
-                <span class="stat-lbl">XP GANHO</span>
+        <div class="result-stats-row">
+            <div class="result-stat-cell">
+                <span class="stat-icon"><i class="bi bi-star-fill"></i></span>
+                <span class="stat-value">{{ attempt.xp_earned }}</span>
+                <span class="stat-label">XP BASE</span>
             </div>
-            <div class="result-stat">
-                <span class="stat-big font-tech">{{ attempt.correct_count }}/{{ total_words }}</span>
-                <span class="stat-lbl">PALAVRAS</span>
+            <div class="result-stat-cell">
+                <span class="stat-icon"><i class="bi bi-translate"></i></span>
+                <span class="stat-value">{{ attempt.correct_count }}/{{ total_words }}</span>
+                <span class="stat-label">PALAVRAS</span>
             </div>
-            <div class="result-stat">
-                <span class="stat-big font-tech">{{ attempt.coins_earned }}</span>
-                <span class="stat-lbl">COINS</span>
+            <div class="result-stat-cell">
+                <span class="stat-icon"><i class="bi bi-coin"></i></span>
+                <span class="stat-value">{{ attempt.coins_earned }}</span>
+                <span class="stat-label">COINS</span>
             </div>
         </div>
 
-        {# Palavras reveladas #}
-        <div class="result-words-reveal">
-            {% for w in attempt.words_sequence %}
-            <div class="revealed-word {% if w.solved %}revealed-correct{% else %}revealed-miss{% endif %}">
-                <i class="bi {% if w.solved %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %}"></i>
-                <span class="font-tech">{{ w.palavra }}</span>
-                {% if not w.solved and w.dica %}
-                <span class="revealed-hint">{{ w.dica }}</span>
-                {% endif %}
+        {% if attempt.words_sequence %}
+        <div class="game-detail-block game-words-reveal">
+            <div class="game-detail-label">
+                <i class="bi bi-list-check"></i> PALAVRAS DA SESSÃO
             </div>
-            {% endfor %}
+            <div class="words-grid">
+                {% for w in attempt.words_sequence %}
+                <div class="word-item {% if w.solved %}word-correct{% else %}word-miss{% endif %}">
+                    <i class="bi {% if w.solved %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %} word-item-icon"></i>
+                    <span class="word-item-text">{{ w.palavra }}</span>
+                    {% if not w.solved and w.dica %}
+                    <span class="word-item-hint">{{ w.dica }}</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
         </div>
-
-        {% if attempt.timer_expired %}
-        <p class="result-msg font-tech">// Tempo limite atingido. XP zerado.</p>
-        {% elif attempt.abandoned %}
-        <p class="result-msg font-tech">// Protocolo encerrado antecipadamente.</p>
         {% endif %}
 
-        {# ── BREAKDOWN DE XP ── #}
-        {% include 'minigames/_xp_breakdown.html' %}
+        {% if attempt.timer_expired or attempt.abandoned %}
+        <div class="result-msg-block">
+            {% if attempt.timer_expired %}
+            <p class="result-msg-text">// Tempo limite atingido. XP zerado.</p>
+            {% elif attempt.abandoned %}
+            <p class="result-msg-text">// Protocolo encerrado antecipadamente.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if xp_result and xp_result.bonus_breakdown %}
+        <div class="result-modifiers-section">
+            <div class="modifiers-header">
+                <i class="bi bi-cpu-fill"></i> MODIFICADORES ATIVOS
+            </div>
+            <div class="bonus-cards-grid">
+                {% for b in xp_result.bonus_breakdown %}
+                <div class="bonus-card {% if b.categoria == 'Perk Global' %}cat-perk-global{% elif b.categoria == 'Perk Específico' %}cat-perk-especifico{% elif b.categoria == 'Ofensiva' %}cat-ofensiva{% elif b.categoria == 'Conquista' %}cat-conquista{% elif b.categoria == 'Módulo Passivo' %}cat-modulo{% elif b.categoria == 'Consumível Ativo' %}cat-consumivel{% else %}cat-default{% endif %}"
+                     style="animation-delay: {{ forloop.counter0 }}00ms;">
+                    <div class="bonus-card-inner">
+                        <div class="bonus-card-front">
+                            <span class="bonus-card-cat">{{ b.categoria|default:b.tipo }}</span>
+                            <i class="bi bonus-card-icon {% if b.categoria == 'Perk Global' %}bi-lightning-charge-fill{% elif b.categoria == 'Perk Específico' %}bi-lightning-fill{% elif b.categoria == 'Ofensiva' %}bi-fire{% elif b.categoria == 'Conquista' %}bi-trophy-fill{% elif b.categoria == 'Módulo Passivo' %}bi-cpu-fill{% elif b.categoria == 'Consumível Ativo' %}bi-capsule-pill{% else %}bi-plus-circle-fill{% endif %}"></i>
+                            <span class="bonus-card-name">{{ b.fonte }}</span>
+                            {% if b.ativo == False %}<span class="bonus-card-xp is-inactive">inativo</span>
+                            {% elif b.xp_adicionado == 0 %}<span class="bonus-card-xp is-zero">+0 XP</span>
+                            {% else %}<span class="bonus-card-xp">+{{ b.xp_adicionado }} XP</span>{% endif %}
+                        </div>
+                        <div class="bonus-card-back">
+                            <span class="bonus-card-back-cat">{{ b.categoria|default:b.tipo }}</span>
+                            <span class="bonus-card-back-name">{{ b.fonte }}</span>
+                            {% if b.motivo %}<span class="bonus-card-back-motivo">{{ b.motivo }}</span>{% endif %}
+                            {% if b.ativo == False %}<span class="bonus-card-back-xp is-inactive">inativo</span>
+                            {% elif b.xp_adicionado == 0 %}<span class="bonus-card-back-xp is-zero">+0 XP (+{{ b.pct }}%)</span>
+                            {% else %}<span class="bonus-card-back-xp">+{{ b.xp_adicionado }} XP (+{{ b.pct }}%)</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="modifiers-subtotal">
+                <span class="modifiers-subtotal-label"><i class="bi bi-plus-slash-minus"></i> SUBTOTAL BÔNUS</span>
+                <span class="modifiers-subtotal-val">+{{ xp_result.xp_bonus }} XP</span>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if xp_result and xp_result.xp_final %}
+        <div class="result-total-block">
+            <span class="result-total-label"><i class="bi bi-check2-circle"></i> XP TOTAL OBTIDO</span>
+            <span class="result-total-value">+{{ xp_result.xp_final }} XP</span>
+        </div>
+        {% endif %}
 
         <div class="result-actions">
             <a href="{% url 'challenges:index' %}" class="btn-result">
-                <i class="bi bi-arrow-left"></i> DESAFIOS
+                <i class="bi bi-arrow-left"></i> <span>DESAFIOS</span>
             </a>
             <a href="{% url 'core:home' %}" class="btn-result secondary">
-                <i class="bi bi-house-door"></i> BASE
+                <i class="bi bi-house-door"></i> <span>BASE</span>
             </a>
         </div>
 
     </div>
 </div>
+
+<script>
+(function () {
+    const STORAGE_KEY   = 'xp_result_{{ request.user.pk }}_{{ attempt.pk }}';
+    const XP_FROM_DJ    = {{ xp_result.xp_final|default:0 }};
+    const XP_FINAL      = XP_FROM_DJ > 0
+        ? (localStorage.setItem(STORAGE_KEY, XP_FROM_DJ), XP_FROM_DJ)
+        : (Number(localStorage.getItem(STORAGE_KEY)) || 0);
+    const XP_PCT_BEFORE = {{ request.user.player.xp_percentual }};
+    const XP_NO_NIVEL   = {{ request.user.player.xp_no_nivel_atual }};
+    const XP_NECESSARIO = {{ request.user.player.xp_necessario_nivel_atual }};
+    const IS_PERFECT    = {{ is_perfect|yesno:"true,false" }};
+
+    const counterEl    = document.getElementById('xpCounter');
+    const barFill      = document.getElementById('levelBarFill');
+    const levelupFlash = document.getElementById('levelupFlash');
+
+    function animateCounter(target, duration) {
+        if (target === 0) { counterEl.textContent = '0'; return; }
+        const start = performance.now();
+        const ease  = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+        function step(now) {
+            const p = Math.min((now - start) / duration, 1);
+            counterEl.textContent = Math.round(ease(p) * target).toLocaleString('pt-BR');
+            if (p < 1) requestAnimationFrame(step);
+            else counterEl.textContent = target.toLocaleString('pt-BR');
+        }
+        requestAnimationFrame(step);
+    }
+
+    function startAnimations() {
+        animateCounter(XP_FINAL, 4500);
+        if (!barFill) return;
+        const pctFinal = Math.min(100, Math.round((XP_NO_NIVEL / XP_NECESSARIO) * 100));
+        const leveledUp = XP_FINAL > 0 && pctFinal <= XP_PCT_BEFORE;
+        barFill.style.cssText = `width:${XP_PCT_BEFORE}%;transition:none`;
+        setTimeout(() => {
+            barFill.style.transition = 'width 1.8s cubic-bezier(0.22,1,0.36,1)';
+            if (leveledUp) {
+                barFill.style.width = '100%';
+                setTimeout(() => {
+                    if (levelupFlash) { levelupFlash.classList.add('active'); setTimeout(() => levelupFlash.classList.remove('active'), 700); }
+                    barFill.style.cssText = 'width:0%;transition:none';
+                    setTimeout(() => { barFill.style.transition = 'width 1.2s cubic-bezier(0.22,1,0.36,1)'; barFill.style.width = pctFinal + '%'; }, 80);
+                }, 1900);
+            } else {
+                barFill.style.width = pctFinal + '%';
+            }
+        }, 400);
+    }
+
+    setTimeout(startAnimations, 600);
+
+    if (IS_PERFECT) {
+        const container = document.getElementById('particles');
+        if (container) {
+            const colors = ['#fcee0a','#00ff9f','#0dcaf0','#bd00ff','#ff2a6d'];
+            for (let i = 0; i < 60; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.cssText = `left:${Math.random()*100}%;top:${-Math.random()*20}px;background:${colors[Math.floor(Math.random()*colors.length)]};width:${2+Math.random()*3}px;height:${2+Math.random()*3}px;animation-duration:${3+Math.random()*5}s;animation-delay:${Math.random()*3}s;box-shadow:0 0 4px currentColor;border-radius:${Math.random()>.5?'50%':'0'}`;
+                container.appendChild(p);
+            }
+        }
+    }
+})();
+</script>
 {% endblock %}

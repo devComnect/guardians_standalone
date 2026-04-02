@@ -73,8 +73,8 @@ def index(request):
         ).order_by('-started_at').first()
 
         # Verifica se a tentativa é de hoje
-        if pw_attempt and pw_attempt.started_at.date() != today:
-            pw_attempt = None  # tentativa de outro dia, ignora
+        if pw_attempt and timezone.localdate(pw_attempt.started_at) != today:
+            pw_attempt = None
 
         if not pw_attempt:
             pw_status = 'disponivel'

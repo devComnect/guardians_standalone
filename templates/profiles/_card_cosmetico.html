@@ -1,0 +1,18 @@
+<div class="hud-module-slot occupied rarity-{{ pi.item.raridade|lower }} {% if pi.equipado %}is-active-cosmetic{% endif %}" style="width: 130px; height: 170px;">
+    <div class="card-inner">
+        <div class="card-front">
+            <span class="hud-slot-num font-tech" style="font-size: 0.6rem;">
+                {% if pi.equipado %}<span class="text-success pulse-text">● ATIVO</span>{% else %}DISPONÍVEL{% endif %}
+            </span>
+            <i class="bi {{ pi.item.icon|default:'bi-palette' }} hud-slot-icon" style="font-size: 2.2rem;"></i>
+            <span class="hud-slot-name">{{ pi.item.name }}</span>
+        </div>
+        <div class="card-back">
+            <p class="card-back-desc font-tech" style="font-size: 0.6rem;">{{ pi.item.description }}</p>
+        </div>
+    </div>
+    <button class="btn-sell-hud font-tech btn-cosmetico" data-pi-id="{{ pi.id }}" 
+            style="bottom: -25px; width: 90%; {% if pi.equipado %}border-color: var(--neon-red); color: var(--neon-red);{% else %}border-color: var(--neon-green); color: var(--neon-green);{% endif %}">
+        {% if pi.equipado %}REMOVER{% else %}EQUIPAR{% endif %}
+    </button>
+</div>

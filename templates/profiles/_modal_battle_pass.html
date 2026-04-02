@@ -1,0 +1,240 @@
+{% load static %}
+
+<div class="modal fade cyber-modal" id="modalBattlePass" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-theme"
+         style="background: rgba(10,12,20,0.97); box-shadow: 0 0 40px rgba(0,0,0,0.9);">
+
+      {# ── HEADER ── #}
+      <div class="modal-header cyber-header border-bottom border-secondary py-3">
+        <div>
+          <h6 class="modal-title cyber-title mb-0" style="letter-spacing:2px;">
+            <i class="bi bi-stars text-theme me-2"></i> BATTLE PASS
+            {% if battle_pass %}
+              <span class="text-theme" style="font-size:0.7rem; opacity:0.7;">
+                — SEASON {{ battle_pass.season.numero }}
+              </span>
+            {% endif %}
+          </h6>
+          {% if battle_pass %}
+            <div class="font-tech mt-1" style="font-size:0.65rem; letter-spacing:2px; color: rgba(255,255,255,0.4);">
+              {{ battle_pass.descricao }}
+            </div>
+          {% endif %}
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body p-4">
+        {% if not battle_pass %}
+          {# ── SEM BATTLE PASS ATIVO ── #}
+          <div class="text-center py-5 border border-secondary"
+               style="border-style: dashed !important; opacity: 0.5;">
+            <i class="bi bi-slash-circle text-theme" style="font-size:2rem;"></i>
+            <div class="font-tech text-theme mt-3" style="letter-spacing:2px;">
+              NENHUM BATTLE PASS ATIVO
+            </div>
+          </div>
+
+        {% else %}
+          {# ── BARRA DE PROGRESSO GERAL ── #}
+          <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="font-tech text-theme" style="font-size:0.7rem; letter-spacing:2px;">
+                PROGRESSO DA TEMPORADA
+              </span>
+              <span class="font-tech" style="font-size:0.75rem; color: rgba(255,255,255,0.7);">
+                {{ bp_xp_atual }} XP
+                {% if player_bp %}
+                  &nbsp;|&nbsp; TIER {{ player_bp.tier_atual }}
+                {% endif %}
+              </span>
+            </div>
+            <div class="tech-progress" style="height:8px;">
+              <div class="tech-progress-bar"
+                   style="width: {{ bp_pct_proximo }}%;
+                          background: var(--theme-color);
+                          box-shadow: 0 0 10px var(--theme-color);
+                          transition: width 0.5s ease;">
+              </div>
+            </div>
+            {% if bp_xp_para_proximo > 0 %}
+              <div class="font-tech mt-1" style="font-size:0.65rem; color: rgba(255,255,255,0.4); letter-spacing:1px;">
+                {{ bp_xp_para_proximo }} XP para o próximo tier
+              </div>
+            {% else %}
+              <div class="font-tech mt-1 text-neon-green" style="font-size:0.65rem; letter-spacing:1px;">
+                BATTLE PASS COMPLETO
+              </div>
+            {% endif %}
+          </div>
+
+          {# ── LISTA DE TIERS ── #}
+          <div class="bp-tiers-list" style="max-height: 460px; overflow-y: auto; padding-right: 4px;">
+            {% for t in bp_tiers %}
+              <div class="bp-tier-row d-flex align-items-center gap-3 p-2 mb-2
+                           {% if t.coletado %}bp-tier-coletado
+                           {% elif t.disponivel %}bp-tier-disponivel
+                           {% else %}bp-tier-bloqueado{% endif %}"
+                   style="border-radius: 4px; position: relative;">
+
+                {# Número do tier #}
+                <div class="font-tech text-center flex-shrink-0"
+                     style="width: 36px; font-size:0.75rem;
+                            color: {% if t.coletado %}rgba(255,255,255,0.3){% elif t.disponivel %}var(--neon-green){% else %}rgba(255,255,255,0.2){% endif %};">
+                  {{ t.tier.tier }}
+                </div>
+
+                {# Ícone / imagem do item #}
+                <div class="flex-shrink-0 d-flex align-items-center justify-content-center"
+                     style="width:40px; height:40px; border-radius:4px;
+                            background: rgba(255,255,255,0.05);
+                            border: 1px solid rgba(255,255,255,{% if t.desbloqueado %}0.15{% else %}0.05{% endif %});">
+                  {% if t.tier.recompensa_tipo == 'coins' %}
+                    <i class="bi bi-coin"
+                       style="font-size:1.3rem; color:{% if t.coletado %}rgba(252,238,10,0.3){% else %}var(--neon-gold){% endif %};"></i>
+                  {% elif t.tier.recompensa_item and t.tier.recompensa_item.icon %}
+                    <i class="{{ t.tier.recompensa_item.icon }}"
+                       style="font-size:1.3rem; color:{% if t.coletado %}rgba(255,255,255,0.2){% elif t.desbloqueado %}var(--theme-color){% else %}rgba(255,255,255,0.15){% endif %};"></i>
+                  {% else %}
+                    <i class="bi bi-gift"
+                       style="font-size:1.3rem; color: rgba(255,255,255,0.2);"></i>
+                  {% endif %}
+                </div>
+
+                {# Descrição #}
+                <div class="flex-grow-1">
+                  <div class="font-tech"
+                       style="font-size:0.8rem;
+                              color:{% if t.coletado %}rgba(255,255,255,0.3){% elif t.desbloqueado %}#fff{% else %}rgba(255,255,255,0.35){% endif %};">
+                    {{ t.tier.recompensa_descricao|default:t.tier.get_recompensa_tipo_display }}
+                  </div>
+                  <div class="font-tech mt-1"
+                       style="font-size:0.65rem; letter-spacing:1px;
+                              color:{% if t.coletado %}rgba(255,255,255,0.2){% elif t.disponivel %}rgba(0,255,159,0.6){% else %}rgba(255,255,255,0.2){% endif %};">
+                    {% if t.coletado %}
+                      <i class="bi bi-check-circle-fill me-1"></i>COLETADO
+                    {% elif t.disponivel %}
+                      <i class="bi bi-unlock-fill me-1"></i>DISPONÍVEL
+                    {% else %}
+                      <i class="bi bi-lock-fill me-1"></i>{{ t.tier.xp_necessario }} XP
+                    {% endif %}
+                  </div>
+                </div>
+
+                {# Recompensa coins badge #}
+                {% if t.tier.recompensa_tipo == 'coins' and t.tier.recompensa_coins > 0 %}
+                  <div class="font-tech flex-shrink-0"
+                       style="font-size:0.8rem;
+                              color:{% if t.coletado %}rgba(252,238,10,0.3){% else %}var(--neon-gold){% endif %};">
+                    +{{ t.tier.recompensa_coins }} ⬡
+                  </div>
+                {% endif %}
+
+                {# Botão de coletar #}
+                {% if t.disponivel %}
+                  <button class="btn-coletar-tier font-tech flex-shrink-0"
+                          data-tier="{{ t.tier.tier }}"
+                          style="padding: 6px 16px; font-size:0.7rem; letter-spacing:1px;
+                                 background: rgba(0,255,159,0.1);
+                                 border: 1px solid var(--neon-green);
+                                 color: var(--neon-green);
+                                 border-radius: 3px; cursor: pointer;
+                                 transition: all 0.2s ease;">
+                    <i class="bi bi-gift-fill me-1"></i>RESGATAR
+                  </button>
+                {% endif %}
+
+              </div>
+            {% endfor %}
+          </div>
+
+        {% endif %}
+      </div>{# modal-body #}
+    </div>
+  </div>
+</div>
+
+{# ── Estilos do Battle Pass ── #}
+<style>
+.bp-tier-disponivel {
+    background: rgba(0, 255, 159, 0.04);
+    border-left: 2px solid var(--neon-green);
+}
+.bp-tier-coletado {
+    background: rgba(255,255,255,0.02);
+    border-left: 2px solid rgba(255,255,255,0.08);
+}
+.bp-tier-bloqueado {
+    background: transparent;
+    border-left: 2px solid rgba(255,255,255,0.05);
+}
+.bp-tiers-list::-webkit-scrollbar { width: 4px; }
+.bp-tiers-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+.bp-tiers-list::-webkit-scrollbar-thumb { background: var(--theme-color); border-radius: 2px; }
+.btn-coletar-tier:hover {
+    background: rgba(0, 255, 159, 0.18) !important;
+    box-shadow: 0 0 12px rgba(0, 255, 159, 0.3);
+}
+</style>
+
+{# ── JS de coleta ── #}
+<script>
+(function () {
+    'use strict';
+
+    const COLETAR_URL = "{% url 'profiles:bp_coletar' %}";
+    const CSRF = () => document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+    document.getElementById('modalBattlePass')
+        .addEventListener('click', async function (e) {
+            const btn = e.target.closest('.btn-coletar-tier');
+            if (!btn) return;
+
+            const tier = btn.dataset.tier;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>...';
+
+            try {
+                const res  = await fetch(COLETAR_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF(),
+                    },
+                    body: JSON.stringify({ tier: parseInt(tier) }),
+                });
+                const data = await res.json();
+
+                if (res.ok && data.ok) {
+                    if (typeof showToast !== 'undefined') {
+                        showToast(data.mensagem || 'Recompensa coletada!', 'ok');
+                    }
+                    // Atualiza a row visualmente sem reload
+                    const row = btn.closest('.bp-tier-row');
+                    row.classList.remove('bp-tier-disponivel');
+                    row.classList.add('bp-tier-coletado');
+                    btn.remove();
+
+                    const statusEl = row.querySelector('.font-tech:last-of-type');
+                    if (statusEl) {
+                        statusEl.style.color = 'rgba(255,255,255,0.2)';
+                        statusEl.innerHTML   = '<i class="bi bi-check-circle-fill me-1"></i>COLETADO';
+                    }
+
+                    // Atualiza badge no botão do hero após breve delay
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    if (typeof showToast !== 'undefined') {
+                        showToast(data.error || data.mensagem || 'Erro ao coletar.', 'erro');
+                    }
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-gift-fill me-1"></i>RESGATAR';
+                }
+            } catch {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-gift-fill me-1"></i>RESGATAR';
+            }
+        });
+}());
+</script>

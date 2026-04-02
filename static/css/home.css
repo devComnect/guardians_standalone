@@ -58,6 +58,75 @@
     padding: 28px 0 16px;
 }
 
+.avatar-frame {
+    position: relative;
+    width: 110px; /* Um pouco maior que o anterior na home */
+    height: 110px;
+    background: #000;
+    border: 3px solid var(--classe-{{ player.classe|default:'none' }});
+    box-shadow: 0 0 15px var(--classe-{{ player.classe|default:'none' }});
+    margin: 0 auto;
+    overflow: visible !important;
+}
+
+.avatar-frame.has-cosmetic {
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Camadas Compartilhadas */
+.avatar-bg-layer, .avatar-img, .avatar-frame-overlay.cosmetic-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    clip-path: polygon(15% 0, 85% 0, 100% 15%, 100% 85%, 85% 100%, 15% 100%, 0 85%, 0 15%);
+}
+
+.avatar-img { z-index: 2; object-fit: cover; }
+.avatar-bg-layer { z-index: 1; opacity: 0.6; }
+.avatar-frame-overlay.cosmetic-frame { z-index: 10; pointer-events: none; }
+
+/* Level Badge flutuando na home */
+.level-badge {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 1px 8px;
+    font-size: 0.65rem;
+    z-index: 20;
+    font-weight: bold;
+}
+
+/* --- Widgets de Título e Classe (Sincronizados com Perfil) --- */
+.profile-titles-container {
+    width: 100%;
+    margin-top: 12px;
+    gap: 6px;
+}
+
+.class-widget {
+    color: var(--theme-color);
+    font-size: 0.65rem;
+    padding: 3px 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border-left: 2px solid var(--theme-color);
+    clip-path: polygon(0 0, 95% 0, 100% 30%, 100% 100%, 5% 100%, 0 70%);
+    text-shadow: 0 0 8px var(--theme-color);
+    overflow: hidden;
+    position: relative;
+}
+
+.title-widget {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #fff;
+}
+
 .avatar-frame-outer {
     position: relative;
     width: 100px; height: 100px;

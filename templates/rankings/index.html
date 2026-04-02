@@ -11,35 +11,52 @@
 <div class="rankings-wrapper">
 <div class="rankings-container">
 
-    <!-- Header -->
-    <div class="page-header">
-        <div>
-            <h1 class="page-title font-tech">// RANKINGS</h1>
-            {% if season %}
-            <p class="page-sub font-tech">
-                SEASON {{ season.numero }} — {{ season.nome|upper }}
-                &nbsp;·&nbsp;
-                <span class="{% if season.dias_restantes <= 7 %}timer-urgent{% endif %}">
-                    {{ season.dias_restantes }} DIA{{ season.dias_restantes|pluralize:"S" }} RESTANTE{{ season.dias_restantes|pluralize:"S" }}
-                </span>
-            </p>
-            {% else %}
-            <p class="page-sub font-tech">// NENHUMA TEMPORADA ATIVA</p>
-            {% endif %}
+    {% if season %}
+    <div class="season-countdown-bar {% if season.dias_restantes <= 7 %}countdown-urgent{% endif %}">
+        <p class="season-label">TEMPORADA ATIVA</p>
+        <p class="season-name">SEASON {{ season.numero }} — {{ season.nome|upper }}</p>
+
+        <div class="countdown-units" id="countdown" data-end="{{ season.fim|date:'Y-m-d' }}">
+            <div class="countdown-unit">
+                <span class="countdown-num" id="cd-days">--</span>
+                <span class="countdown-lbl">DIAS</span>
+            </div>
+            <span class="countdown-sep">:</span>
+            <div class="countdown-unit">
+                <span class="countdown-num" id="cd-hours">--</span>
+                <span class="countdown-lbl">HORAS</span>
+            </div>
+            <span class="countdown-sep">:</span>
+            <div class="countdown-unit">
+                <span class="countdown-num" id="cd-mins">--</span>
+                <span class="countdown-lbl">MIN</span>
+            </div>
+            <span class="countdown-sep">:</span>
+            <div class="countdown-unit">
+                <span class="countdown-num" id="cd-secs">--</span>
+                <span class="countdown-lbl">SEG</span>
+            </div>
         </div>
 
-        {% if minha_posicao %}
-        <div class="my-position-hud">
-            <span class="my-pos-label font-tech">SUA POSIÇÃO</span>
-            <span class="my-pos-value font-tech">#{{ minha_posicao.posicao }}</span>
-            <span class="my-pos-val font-tech">{{ minha_posicao.valor }}
-                {% if categoria == 'xp' %}XP
-                {% elif categoria == 'moedas' %}⬡
-                {% else %}✓{% endif %}
-            </span>
-        </div>
+        {% if season.premio_descricao %}
+        <button class="btn-prizes" id="btnPrizes">
+            <i class="bi bi-gift-fill"></i>
+            <span>VER RECOMPENSAS</span>
+        </button>
         {% endif %}
     </div>
+    {% endif %}
+
+    {% if minha_posicao %}
+    <div class="my-position-hud">
+        <span class="my-pos-label">SUA POSIÇÃO</span>
+        <span class="my-pos-rank">#{{ minha_posicao.posicao }}</span>
+        <span class="my-pos-val">
+            {{ minha_posicao.valor }}
+            {% if categoria == 'xp' %}XP{% elif categoria == 'moedas' %}⬡{% else %}✓{% endif %}
+        </span>
+    </div>
+    {% endif %}
 
     {% if not season %}
     <div class="empty-state">
@@ -49,12 +66,11 @@
     </div>
     {% else %}
 
-    <!-- Tabs de categoria -->
     <div class="rank-tabs">
         <a href="?tab=xp"       class="rank-tab {% if categoria == 'xp' %}active{% endif %}">
             <i class="bi bi-star-fill"></i> XP
         </a>
-        <a href="?tab=ofensiva"  class="rank-tab {% if categoria == 'ofensiva' %}active{% endif %}">
+        <a href="?tab=ofensiva" class="rank-tab {% if categoria == 'ofensiva' %}active{% endif %}">
             <i class="bi bi-lightning-charge-fill"></i> OFENSIVA
         </a>
         <a href="?tab=moedas"   class="rank-tab {% if categoria == 'moedas' %}active{% endif %}">
@@ -62,25 +78,46 @@
         </a>
     </div>
 
-    <!-- Pódio top 3 -->
     {% if podio or tabela %}
+    {% load rankings_extras %}
+
+    {% if podio %}
     <div class="podium-section">
         {% for snap in podio %}
-        <div class="podium-card pos-{{ forloop.counter }} {% if snap.player == request.user %}podium-mine{% endif %}">
+        {% with snap_c=cosmetics_map|get_item:snap.player.pk %}
+        
+        <a href="{% url 'profiles:public_profile' snap.player.pk %}"
+            class="podium-card pos-{{ forloop.counter }} {% if snap.player == request.user %}podium-mine{% endif %}">
+
             <div class="podium-crown">
                 {% if forloop.counter == 1 %}<i class="bi bi-trophy-fill"></i>
                 {% elif forloop.counter == 2 %}<i class="bi bi-award-fill"></i>
-                {% else %}<i class="bi bi-patch-check-fill"></i>
-                {% endif %}
+                {% else %}<i class="bi bi-patch-check-fill"></i>{% endif %}
             </div>
 
             <div class="podium-avatar">
+                <div class="avatar-bg-layer {% if snap_c.bg %}cosmetic-bg cosmetic-bg-{{ snap_c.bg.item.item_id }}{% endif %}"></div>
+                
                 {% if snap.player.player.avatar %}
-                    <img src="{{ snap.player.player.avatar.url }}" alt="avatar">
+                    <img src="{{ snap.player.player.avatar.url }}" alt="avatar" class="avatar-img">
                 {% else %}
-                    <i class="bi bi-person-fill"></i>
+                    <div class="avatar-img d-flex align-items-center justify-content-center" style="color: var(--text-dim);">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                {% endif %}
+
+                {% if snap_c.frame %}
+                <div class="avatar-frame-overlay cosmetic-frame rarity-{{ snap_c.frame.item.raridade|lower }}" title="{{ snap_c.frame.item.name }}">
+                    <i class="bi {{ snap_c.frame.item.icon }} cosmetic-frame-icon"></i>
+                </div>
                 {% endif %}
             </div>
+
+            {% if snap_c.titulo %}
+            <div class="podium-honor-title class-widget font-tech rarity-text-{{ snap_c.titulo.item.raridade|lower }}">
+                {{ snap_c.titulo.item.name|upper }}
+            </div>
+            {% endif %}
 
             <div class="podium-info">
                 <span class="podium-name">
@@ -93,24 +130,18 @@
 
             <div class="podium-valor font-tech">
                 {{ snap.valor }}
-                {% if categoria == 'xp' %}XP
-                {% elif categoria == 'moedas' %}⬡
-                {% else %}✓{% endif %}
+                {% if categoria == 'xp' %}XP{% elif categoria == 'moedas' %}⬡{% else %}✓{% endif %}
             </div>
 
-            <div class="podium-base"></div>
-            <div class="podium-number font-tech">#{{ forloop.counter }}</div>
-        </div>
-        {% empty %}
-        <div class="empty-state" style="padding: 40px;">
-            <i class="bi bi-people"></i>
-            <p class="font-tech">// SEM DADOS AINDA</p>
-            <span>Execute <code>python manage.py calcular_ranking</code> para gerar o ranking.</span>
-        </div>
+            <div class="podium-base">
+                <span class="podium-number font-tech">#{{ forloop.counter }}</span>
+            </div>
+        </a>
+        {% endwith %}
         {% endfor %}
     </div>
+    {% endif %}
 
-    <!-- Tabela 4º em diante -->
     {% if tabela %}
     <div class="rank-table">
         <div class="rank-table-header font-tech">
@@ -121,20 +152,40 @@
         </div>
 
         {% for snap in tabela %}
-        <div class="rank-row {% if snap.player == request.user %}rank-row-mine{% endif %}">
+        {% with snap_c=cosmetics_map|get_item:snap.player.pk %}
+        
+        <a href="{% url 'profiles:public_profile' snap.player.pk %}"
+            class="rank-row {% if snap.player == request.user %}rank-row-mine{% endif %}">
+
             <span class="rank-pos font-tech">{{ snap.posicao }}</span>
 
             <div class="rank-player">
                 <div class="rank-avatar">
+                    <div class="avatar-bg-layer {% if snap_c.bg %}cosmetic-bg cosmetic-bg-{{ snap_c.bg.item.item_id }}{% endif %}"></div>
+                    
                     {% if snap.player.player.avatar %}
-                        <img src="{{ snap.player.player.avatar.url }}" alt="">
+                        <img src="{{ snap.player.player.avatar.url }}" alt="avatar" class="avatar-img">
                     {% else %}
-                        <i class="bi bi-person-fill"></i>
+                        <div class="avatar-img d-flex align-items-center justify-content-center" style="color: var(--text-dim);">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                    {% endif %}
+
+                    {% if snap_c.frame %}
+                    <div class="avatar-frame-overlay cosmetic-frame rarity-{{ snap_c.frame.item.raridade|lower }}"></div>
                     {% endif %}
                 </div>
-                <span class="rank-name">
-                    {{ snap.player.player.display_name|default:snap.player.username }}
-                </span>
+                
+                <div class="rank-player-info">
+                    <span class="rank-name">
+                        {{ snap.player.player.display_name|default:snap.player.username }}
+                        {% if snap_c.titulo %}
+                        <span class="rank-title-quote rarity-text-{{ snap_c.titulo.item.raridade|lower }}">
+                            "{{ snap_c.titulo.item.name }}"
+                        </span>
+                        {% endif %}
+                    </span>
+                </div>
             </div>
 
             <span class="rank-classe font-tech">
@@ -143,14 +194,13 @@
 
             <span class="rank-valor font-tech">
                 {{ snap.valor }}
-                {% if categoria == 'xp' %}XP
-                {% elif categoria == 'moedas' %}⬡
-                {% else %}✓{% endif %}
+                {% if categoria == 'xp' %}XP{% elif categoria == 'moedas' %}⬡{% else %}✓{% endif %}
             </span>
-        </div>
+
+        </a>
+        {% endwith %}
         {% endfor %}
     </div>
-    {% endif %}
 
     {% else %}
     <div class="empty-state">
@@ -159,21 +209,115 @@
         <span>Execute <code>python manage.py calcular_ranking</code> para popular o ranking.</span>
     </div>
     {% endif %}
-
-    <!-- Prêmios da temporada -->
-    {% if season.premio_descricao %}
-    <div class="prizes-panel">
-        <div class="prizes-header font-tech">
-            <i class="bi bi-gift-fill"></i> PRÊMIOS DA TEMPORADA
-        </div>
-        <div class="prizes-body">
-            {{ season.premio_descricao|linebreaksbr }}
-        </div>
-    </div>
     {% endif %}
-
     {% endif %}{# /season #}
 
 </div>
 </div>
+
+{% if season and season.premio_descricao %}
+<div class="prizes-overlay" id="prizesOverlay">
+    <div class="prizes-terminal">
+        <div class="terminal-titlebar">
+            <div class="terminal-dots">
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+            </div>
+            <span class="terminal-title">RECOMPENSAS — SEASON {{ season.numero }}</span>
+            <button class="terminal-close" id="btnClosePrizes">✕</button>
+        </div>
+        <div class="terminal-body">
+            <div class="terminal-prompt">guardian@comnect:~$ cat recompensas_season_{{ season.numero }}.txt</div>
+            <div class="terminal-output" id="terminalOutput"></div>
+            <span class="terminal-cursor" id="terminalCursor"></span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+(function () {
+
+    const cdEl = document.getElementById('countdown');
+
+    if (cdEl) {
+        const endDateStr = cdEl.dataset.end; 
+        
+        if (endDateStr) {
+            const endDate = new Date(endDateStr + 'T23:59:59');
+
+            function pad(n) { return String(n).padStart(2, '0'); }
+
+            function tick() {
+                const diff = endDate - Date.now();
+                if (diff <= 0) {
+                    document.getElementById('cd-days').textContent  = '00';
+                    document.getElementById('cd-hours').textContent = '00';
+                    document.getElementById('cd-mins').textContent  = '00';
+                    document.getElementById('cd-secs').textContent  = '00';
+                    return;
+                }
+                const days  = Math.floor(diff / 86400000);
+                const hours = Math.floor((diff % 86400000) / 3600000);
+                const mins  = Math.floor((diff % 3600000)  / 60000);
+                const secs  = Math.floor((diff % 60000)    / 1000);
+                
+                document.getElementById('cd-days').textContent  = pad(days);
+                document.getElementById('cd-hours').textContent = pad(hours);
+                document.getElementById('cd-mins').textContent  = pad(mins);
+                document.getElementById('cd-secs').textContent  = pad(secs);
+            }
+
+            tick();
+            setInterval(tick, 1000);
+        } else {
+            console.error("Erro: Data final (data-end) está vazia!");
+        }
+    }
+
+    const btnPrizes      = document.getElementById('btnPrizes');
+    const overlay        = document.getElementById('prizesOverlay');
+    const btnClose       = document.getElementById('btnClosePrizes');
+    const terminalOutput = document.getElementById('terminalOutput');
+
+    // CORREÇÃO: Aspas adicionadas em volta da variável do Django
+    const PRIZES_TEXT = "{{ season.premio_descricao|escapejs }}";
+
+    let typingInterval = null;
+
+    function typeText(text, el, speed = 18) {
+        el.textContent = '';
+        let i = 0;
+        if (typingInterval) clearInterval(typingInterval);
+        typingInterval = setInterval(() => {
+            el.textContent += text[i];
+            i++;
+            if (i >= text.length) clearInterval(typingInterval);
+        }, speed);
+    }
+
+    function openPrizes() {
+        console.log("Abrindo modal de prêmios...");
+        if (!overlay) return;
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => typeText(PRIZES_TEXT, terminalOutput, 18), 350);
+    }
+
+    function closePrizes() {
+        if (!overlay) return;
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+        if (typingInterval) clearInterval(typingInterval);
+        if (terminalOutput) terminalOutput.textContent = '';
+    }
+
+    if (btnPrizes)  btnPrizes.addEventListener('click', openPrizes);
+    if (btnClose)   btnClose.addEventListener('click', closePrizes);
+    if (overlay)    overlay.addEventListener('click', e => { if (e.target === overlay) closePrizes(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closePrizes(); });
+
+})();
+</script>
 {% endblock %}
