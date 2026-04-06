@@ -170,9 +170,9 @@ def _ctx_bonus(user, player):
         'codigo_xp': 0.0,
         'decriptar_xp': 0.0,
         'patrulha_xp': 0.0,
+        'cofre_xp': 0.0, 
         'moedas': 0.0,
     }
-    
     global_xp_acumulado = 0.0
     buffs_temporarios = []
 
@@ -192,9 +192,11 @@ def _ctx_bonus(user, player):
         elif tipo == 'anagram_xp_pct': radar_stats['decriptar_xp'] += valor
         elif tipo == 'patrol_xp_pct': radar_stats['patrulha_xp'] += valor
         elif tipo == 'coin_pct': radar_stats['moedas'] += valor
+        elif tipo == 'pw_xp_pct': radar_stats['cofre_xp'] += valor
         elif tipo == 'minigame_xp_pct': 
             radar_stats['codigo_xp'] += valor
             radar_stats['decriptar_xp'] += valor
+            radar_stats['cofre_xp'] += valor
 
     perks_ativos = Perk.objects.filter(
         classe=player.classe, level_required__lte=player.level, ativo=True
@@ -205,36 +207,27 @@ def _ctx_bonus(user, player):
         elif perk.tipo == 'xp_quiz': radar_stats['quiz_xp'] += perk.valor
         elif perk.tipo == 'xp_codigo': radar_stats['codigo_xp'] += perk.valor
         elif perk.tipo == 'xp_decriptar': radar_stats['decriptar_xp'] += perk.valor
+        elif perk.tipo == 'xp_password':  radar_stats['cofre_xp'] += perk.valor
         elif perk.tipo == 'coin_bonus': radar_stats['moedas'] += perk.valor
+
+    from apps.store.services import get_passive_bonus_xp_pct
 
     passivos_equipados = PlayerItem.objects.filter(
         player=user, slot_index__isnull=False, item__tipo='passive'
     ).select_related('item')
 
-    for pi in passivos_equipados:
-        efeito = pi.item.effect
-        valor = pi.item.value
-        valor_sec = pi.item.value_secondary 
+    # Simula cada fonte para capturar bônus específicos por minigame
+    fontes_radar = {
+        'quiz_xp':     'quiz',
+        'codigo_xp':   'codigo',
+        'decriptar_xp':'decriptar',
+        'patrulha_xp': 'patrol',
+        'cofre_xp':    'password',
+    }
 
-        if efeito == 'XP_CODE_CHALLENGE': 
-            radar_stats['codigo_xp'] += valor
-        elif efeito == 'XP_DECRYPT_CHALLENGE': 
-            radar_stats['decriptar_xp'] += valor
-        elif efeito == 'XP_PATROL_CHALLENGE': 
-            radar_stats['patrulha_xp'] += valor
-
-        # Resolve o bug do item 13 usando a coluna secundária para o buff
-        elif efeito == 'TIME_REDUCTION_XP_BOOST':
-            global_xp_acumulado += valor_sec
-
-        # Cálculos dinâmicos baseados no status imediato do player
-        elif efeito == 'XP_PER_LEVEL':
-            global_xp_acumulado += (valor * player.level)
-        elif efeito == 'XP_PER_COIN':
-            bonus = (player.coins // 10) * valor
-            if pi.item.max_bonus > 0:
-                bonus = min(bonus, pi.item.max_bonus)
-            global_xp_acumulado += bonus
+    for chave_radar, fonte_sim in fontes_radar.items():
+        bonus_fonte, _ = get_passive_bonus_xp_pct(user, fonte=fonte_sim, retornar_breakdown=True)
+        radar_stats[chave_radar] += bonus_fonte
 
     agora = timezone.now()
     efeitos_ativos = ActiveEffect.objects.filter(
@@ -431,17 +424,13 @@ def _ctx_inventario(user):
     from apps.store.models import PlayerItem, StoreConfig
     
     config = StoreConfig.get()
-    
-    inventario = PlayerItem.objects.filter(
-        player=user
-    ).select_related('item').order_by('item__tipo', '-adquirido_em')
+    inventario = PlayerItem.objects.filter(player=user).select_related('item').order_by('item__tipo', '-adquirido_em')
 
     consumiveis = [pi for pi in inventario if pi.item.tipo == 'consumable']
     passivos    = [pi for pi in inventario if pi.item.tipo == 'passive']
     cosmeticos  = [pi for pi in inventario if pi.item.tipo == 'cosmetic']
 
     slots_max = config.max_passivos_slots
-    
     slots_grade = []
     slot_ocupado = {pi.slot_index: pi for pi in passivos if pi.slot_index is not None}
     
@@ -457,8 +446,11 @@ def _ctx_inventario(user):
         'inventario_cosmeticos':  cosmeticos,
         'slots_grade':            slots_grade,
         'slots_max':              slots_max,
+        'itens_novos_count':      sum(1 for pi in inventario if getattr(pi, 'is_new', False)),
+        'passivos_novos_count':   sum(1 for pi in passivos if getattr(pi, 'is_new', False)),
+        'consumiveis_novos_count':sum(1 for pi in consumiveis if getattr(pi, 'is_new', False)),
+        'cosmeticos_novos_count': sum(1 for pi in cosmeticos if getattr(pi, 'is_new', False)),
     }
-
 
 def _ctx_conquistas(user):
     """Galeria de conquistas — separadas em desbloqueadas e bloqueadas."""
@@ -861,6 +853,13 @@ def coletar_tier_bp(request):
     from .services import coletar_recompensa_bp
     sucesso, mensagem, descricao = coletar_recompensa_bp(request.user, tier_n)
     return JsonResponse({'ok': sucesso, 'mensagem': mensagem, 'recompensa': descricao})
+
+@login_required
+@require_POST
+def marcar_inventario_visto(request):
+    from apps.store.models import PlayerItem
+    PlayerItem.objects.filter(player=request.user, is_new=True).update(is_new=False)
+    return JsonResponse({'ok': True})
 
 # ─────────────────────────────────────────────
 # PERFIL PÚBLICO (Visão de Terceiros)

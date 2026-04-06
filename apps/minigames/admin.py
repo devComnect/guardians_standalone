@@ -4,7 +4,10 @@ from django.utils import timezone
 from django.contrib import messages
 
 from .models import (Quiz, QuizQuestion, QuizOption, QuizAttempt, MiniGameContent, PatrolAttempt, PasswordGameConfig, PasswordAttempt,
-                     WordBank, DecriptarConfig, DecriptarAttempt, CodigoConfig, CodigoAttempt)
+                     WordBank, DecriptarConfig, DecriptarAttempt, CodigoConfig, CodigoAttempt, PatrolConfig )
+
+
+
 
 ################
 ###ADMIN QUIZ###
@@ -65,12 +68,32 @@ class MiniGameContentAdmin(admin.ModelAdmin):
 ## ADMIN PATROL ##
 ##################
 
+@admin.register(PatrolConfig)
+class PatrolConfigAdmin(admin.ModelAdmin):
+    fieldsets = (
+        ('Recompensas', {
+            'fields': ('xp_base', 'coin_min', 'coin_max')
+        }),
+        ('Regras', {
+            'fields': ('max_attempts', 'patrol_limit'),
+            'description': 'patrol_limit = máx. de patrulhas em uma janela de 7 dias',
+        }),
+    )
+
+    def has_add_permission(self, request):
+        return not PatrolConfig.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(PatrolAttempt)
 class PatrolAttemptAdmin(admin.ModelAdmin):
-    list_display  = ('player', 'date', 'won', 'attempts_count', 'xp_earned', 'coins_earned', 'completed')
-    list_filter   = ('won', 'completed', 'date')
-    readonly_fields = ('player', 'date', 'secret', 'guesses', 'attempts_count', 'xp_earned', 'coins_earned', 'started_at', 'completed_at')
-    actions       = ['resetar_patrulha']
+    list_display    = ('player', 'date', 'won', 'attempts_count', 'xp_earned', 'coins_earned', 'completed')
+    list_filter     = ('won', 'completed', 'date')
+    readonly_fields = ('player', 'date', 'secret', 'guesses', 'attempts_count',
+                       'xp_earned', 'coins_earned', 'started_at', 'completed_at')
+    actions         = ['resetar_patrulha']
 
     @admin.action(description='🗑️ Resetar patrulha — libera para refazer hoje')
     def resetar_patrulha(self, request, queryset):
@@ -87,12 +110,13 @@ class PatrolAttemptAdmin(admin.ModelAdmin):
 class PasswordGameConfigAdmin(admin.ModelAdmin):
     list_display = ('time_limit_seconds', 'xp_reward', 'coin_reward',
                     'rules_count_easy', 'rules_count_medium', 'rules_count_hard',
-                    'active_days', 'ativo')
+                    'rules_count_insane', 'rules_count_math', 'active_days', 'ativo')
     fieldsets = (
         ('Recompensas', {'fields': ('xp_reward', 'coin_reward', 'ativo')}),
         ('Timer', {'fields': ('time_limit_seconds',)}),
         ('Qtd. de Regras por Dificuldade', {'fields': (
-            'rules_count_easy', 'rules_count_medium', 'rules_count_hard'
+            'rules_count_easy', 'rules_count_medium', 'rules_count_hard', 
+            'rules_count_insane', 'rules_count_math'
         )}),
         ('Disponibilidade', {'fields': ('active_days',),
             'description': '0=Seg, 1=Ter, 2=Qua, 3=Qui, 4=Sex, 5=Sab, 6=Dom'}),
@@ -159,8 +183,8 @@ class DecriptarConfigAdmin(admin.ModelAdmin):
         ('Recompensas', {
             'fields': ('xp_per_word', 'coin_reward')
         }),
-        ('Timer', {
-            'fields': ('time_limit_seconds',)
+        ('Timer e Penalidades', { # <-- Atualizado aqui
+            'fields': ('time_limit_seconds', 'hint_time_penalty_pct')
         }),
         ('Dificuldade — Qtd. de Palavras por Sessão', {
             'fields': ('words_count_easy', 'words_count_medio', 'words_count_hard', 'max_lives')
@@ -202,20 +226,15 @@ class CodigoConfigAdmin(admin.ModelAdmin):
         ('Recompensas', {
             'fields': ('xp_reward', 'coin_reward')
         }),
-        ('Timer', {
-            'fields': ('time_limit_seconds',)
-        }),
-        ('Configuração da Palavra', {
-            'fields': ('word_length', 'max_attempts'),
-            'description': 'O sistema selecionará automaticamente palavras do banco com o comprimento e dificuldade definidos.'
+        ('Timer e Penalidades', { # <-- Atualizado aqui
+            'fields': ('time_limit_seconds', 'hint_time_penalty_pct')
         }),
         ('Disponibilidade', {
             'fields': ('ativo', ('day_seg', 'day_ter', 'day_qua', 'day_qui', 'day_sex', 'day_sab', 'day_dom')),
         }),
     )
-
     def has_add_permission(self, request):
-        return not CodigoConfig.objects.exists()
+        return not CodigoConfig.objects.exists() 
 
     def has_delete_permission(self, request, obj=None):
         return False

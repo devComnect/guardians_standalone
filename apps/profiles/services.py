@@ -6,11 +6,13 @@ Todos os minigames devem usar grant_xp() para conceder XP.
 from django.utils import timezone
 from django.db import transaction
 from .models import OfensivaConfig, BattlePassTier
+from django.db.models import Sum
 
 
 def xp_para_nivel(nivel):
-    return int(50 * (nivel ** 2.5))
-
+    if nivel <= 10:
+        return 160 * nivel
+    return int(16 * (nivel ** 2))
 
 def get_perks_ativos(user):
     """Retorna todos os perks ativos do player baseado na classe e level."""
@@ -43,7 +45,7 @@ def calcular_xp_com_bonus(user, xp_base, fonte, contexto=None):
     breakdown   = []
 
     # ── Perks globais ────────────────────────────
-    perks_global = get_perks_ativos(user).filter(tipo='xp_global')
+    perks_global = get_perks_ativos(user).filter(tipo='global_xp_pct')
     for perk in perks_global:
         bonus_pct += perk.valor
         breakdown.append({
@@ -213,18 +215,71 @@ def grant_xp(user, xp_base, fonte, descricao='', contexto=None):
 
 
 @transaction.atomic
-def grant_coins(user, coins_base, fonte='bonus'):
-    """Concede coins ao player aplicando perk de bônus de moedas."""
+def grant_coins(user, coins_base, fonte='bonus', aplicar_bonus=True, registrar=True):
+    """
+    Concede coins ao player aplicando bônus quando aplicar_bonus=True.
+    Fontes de preço fixo (venda) devem chamar com aplicar_bonus=False.
+    Registra SystemLog automaticamente.
+    Retorna dict com detalhes do ganho.
+    """
+    from .log_service import registrar_log
+
     player = getattr(user, 'player', None)
     if not player or coins_base <= 0:
-        return 0
+        return {'base': 0, 'bonus_pct': 0, 'final': 0, 'fonte': fonte}
 
-    bonus_pct  = get_perk_valor(user, 'coin_bonus')
+    bonus_pct = 0
+
+    if aplicar_bonus:
+        # Bônus específico de moeda — Perk
+        bonus_pct += get_perk_valor(user, 'coin_bonus')
+
+        # Bônus específico de moeda — Conquista em destaque
+        bonus_pct += get_achievement_bonus(user, 'coin_pct')
+
+        # Bônus global (afeta XP e coins) — Perk
+        bonus_pct += get_perk_valor(user, 'global_xp_pct')
+
+        # Bônus global (afeta XP e coins) — Conquista em destaque
+        bonus_pct += get_achievement_bonus(user, 'global_xp_pct')
+
+        # Bônus global — Item passivo XP_BOOST_DAYS (também afeta coins)
+        from apps.store.models import ActiveEffect
+        from django.utils import timezone
+        boost_ativo = ActiveEffect.objects.filter(
+            player=user,
+            effect='XP_BOOST_DAYS',
+            expires_at__gt=timezone.now()
+        ).first()
+        if boost_ativo:
+            bonus_pct += float(boost_ativo.value)
+
     coins_final = int(coins_base * (1 + bonus_pct / 100))
-    player.coins += coins_final
-    player.save()
-    return coins_final
 
+    player.coins += coins_final
+    player.save(update_fields=['coins'])
+
+    if registrar:
+        registrar_log(
+            user=user,
+            tipo='coins',
+            titulo=f'+{coins_final}⬡ ({fonte})',
+            xp_delta=0,
+            coin_delta=coins_final,
+            breakdown={
+                'base':      coins_base,
+                'bonus_pct': bonus_pct,
+                'final':     coins_final,
+                'fonte':     fonte,
+            }
+        )
+
+    return {
+        'base':      coins_base,
+        'bonus_pct': bonus_pct,
+        'final':     coins_final,
+        'fonte':     fonte,
+    }
 
 def _notificar_perks_desbloqueados(user, classe, nivel):
     """Cria notificação para cada perk desbloqueado nesse nível."""
@@ -279,9 +334,9 @@ def trocar_classe(user, nova_classe):
 
     # Define a mensagem dependendo do contexto
     if is_primeira_vez:
-        mensagem_log = f'Você definiu sua classe e se juntou aos {player.get_classe_display()}.'
+        mensagem_log = f'Você definiu sua classe e se juntou aos {player.get_classe_display()}s.'
     else:
-        mensagem_log = f'Você deixou os {classe_antiga} e se juntou aos {player.get_classe_display()}.'
+        mensagem_log = f'Você deixou os {classe_antiga}s e se juntou aos {player.get_classe_display()}s.'
 
     PlayerNotification.objects.create(
         player   = user,
@@ -369,15 +424,25 @@ def get_ofensiva_bonus_pct(user):
     bonus = min(player.ofensiva, teto)
     return bonus
 
+def get_dias_tolerancia_calculado(user):
+    from .models import OfensivaConfig
+    # Ajuste o import abaixo conforme a estrutura real do seu app store
+    from apps.store.models import ActiveEffect 
+
+    config = OfensivaConfig.get()
+    tolerancia = config.dias_tolerancia
+
+    efeitos_freeze = ActiveEffect.objects.filter(
+        player=user,
+        effect='STREAK_FREEZE',
+        expires_at__gt=timezone.now()
+    ).aggregate(total=Sum('value'))
+    
+    extra = efeitos_freeze['total'] or 0
+    return tolerancia + int(extra)
 
 @transaction.atomic
 def registrar_desafio_diario(user):
-    """
-    Chamado quando o player conclui qualquer desafio no dia.
-    - Garante +1 ofensiva apenas uma vez por dia
-    - Atualiza streak
-    - Retorna dict com o que mudou
-    """
     from django.utils import timezone
     from .models import OfensivaConfig
 
@@ -387,76 +452,64 @@ def registrar_desafio_diario(user):
 
     today = timezone.localdate()
 
-    # Já registrou desafio hoje — não conta novamente
     if player.last_challenge_date == today:
         return {'ja_registrado': True}
 
-    config    = OfensivaConfig.get()
     resultado = {}
-
-    # ── Streak ──────────────────────────────────────────────
+    
     if player.last_challenge_date is None:
-        # Primeiro desafio
         player.streak_days = 1
     else:
         dias_passados = (today - player.last_challenge_date).days
+        dias_tolerancia = get_dias_tolerancia_calculado(user)
 
-        if dias_passados <= config.dias_tolerancia:
-            # Dentro da tolerância — mantém/aumenta streak
+        if dias_passados <= dias_tolerancia:
             player.streak_days += 1
         else:
-            # Passou da tolerância — zera streak
             resultado['streak_zerada'] = True
             resultado['streak_anterior'] = player.streak_days
             player.streak_days = 1
 
-    # ── Ofensiva ─────────────────────────────────────────────
-    player.ofensiva            += 1
-    player.last_challenge_date  = today
-    player.last_play_date       = today
+    player.ofensiva += 1
+    player.last_challenge_date = today
+    player.last_play_date = today
     player.save()
 
     resultado.update({
-        'ja_registrado':     False,
-        'ofensiva_atual':    player.ofensiva,
-        'streak_atual':      player.streak_days,
+        'ja_registrado': False,
+        'ofensiva_atual': player.ofensiva,
+        'streak_atual': player.streak_days,
         'bonus_ofensiva_pct': get_ofensiva_bonus_pct(user),
     })
     return resultado
 
-
 @transaction.atomic
 def verificar_streak_decay(user):
-    """
-    Verifica se o player perdeu a streak por inatividade.
-    Chamado pelo management command diário.
-    Retorna True se a streak foi zerada.
-    """
     from django.utils import timezone
-    from .models import OfensivaConfig, PlayerNotification
+    from .models import PlayerNotification
 
     player = getattr(user, 'player', None)
     if not player or not player.last_challenge_date:
         return False
 
-    today         = timezone.localdate()
+    today = timezone.localdate()
     dias_passados = (today - player.last_challenge_date).days
-    config        = OfensivaConfig.get()
+    dias_tolerancia = get_dias_tolerancia_calculado(user)
 
-    if dias_passados > config.dias_tolerancia and player.streak_days > 0:
-        streak_anterior     = player.streak_days
-        player.streak_days  = 0
+    if dias_passados > dias_tolerancia and player.streak_days > 0:
+        streak_anterior = player.streak_days
+        player.streak_days = 0
         player.save()
 
         PlayerNotification.objects.create(
-            player   = user,
-            tipo     = 'sistema',
-            titulo   = 'Streak perdida!',
-            mensagem = (
+            player=user,
+            tipo='sistema',
+            titulo='Streak perdida!',
+            mensagem=(
                 f'Sua sequência de {streak_anterior} dia(s) foi zerada '
                 f'por {dias_passados} dias de inatividade. Volte a jogar para reconstruir!'
             ),
-            icone    = 'bi-exclamation-triangle-fill',
+            icone='bi-exclamation-triangle-fill',
         )
         return True
     return False
@@ -482,28 +535,6 @@ def get_achievement_bonus(user, bonus_type):
         [:config.max_destaques]
     )
     return sum(pa.achievement.bonus_value for pa in destaques)
-
-
-def _auto_gerenciar_destaque(user, nova_conquista_pa):
-    """
-    Conquistas ganhas entram em destaque automaticamente.
-    Se o limite for atingido, a mais antiga sai do destaque.
-    """
-    from .models import PlayerAchievement, AchievementConfig
-
-    config = AchievementConfig.get()
-    destaques_atuais = (
-        PlayerAchievement.objects
-        .filter(player=user, em_destaque=True)
-        .order_by('desbloqueada_em')
-    )
-
-    if destaques_atuais.count() >= config.max_destaques:
-        # Remove destaque da mais antiga para abrir espaço
-        mais_antiga = destaques_atuais.first()
-        if mais_antiga and mais_antiga.pk != nova_conquista_pa.pk:
-            mais_antiga.em_destaque = False
-            mais_antiga.save()
 
 
 @transaction.atomic
@@ -538,9 +569,8 @@ def verificar_conquistas(user, trigger_type, valor_atual=None):
         pa = PlayerAchievement.objects.create(
             player      = user,
             achievement = conquista,
-            em_destaque = True,
+            em_destaque = False,
         )
-        _auto_gerenciar_destaque(user, pa)
 
         # Notificação
         PlayerNotification.objects.create(
@@ -645,13 +675,13 @@ def _verificar_ranking(user, top_n):
     from apps.rankings.models import Season, RankingSnapshot
     season = Season.objects.filter(ativa=True).first()
     if not season:
-        return 0
+        return None  # sem season ativa — indeterminado
     snap = RankingSnapshot.objects.filter(
         season=season, player=user, categoria='xp'
     ).first()
-    if snap and snap.posicao <= top_n:
-        return 1
-    return 0
+    if not snap:
+        return None  # sem snapshot — indeterminado
+    return snap.posicao <= top_n
 
 
 # ─────────────────────────────────────────────
@@ -732,24 +762,17 @@ def coletar_recompensa_bp(user, tier_number):
 
     # ── Entrega a recompensa ──────────────────────
     if tier.recompensa_tipo == 'coins' and player:
-        player.coins += tier.recompensa_coins
-        player.save()
-        StoreTransaction.objects.create(
-            player      = user,
-            tipo        = 'purchase',
-            coins_delta = tier.recompensa_coins,
-            descricao   = f'Battle Pass Tier {tier_number} — {tier.recompensa_descricao or "Recompensa"}',
-        )
+        from apps.profiles.services import grant_coins
+        grant_coins(user, tier.recompensa_coins, fonte='battlepass', aplicar_bonus=False, registrar=False)
+
 
     elif tier.recompensa_tipo in ('item', 'cosmetico') and tier.recompensa_item:
         item = tier.recompensa_item
         pi, created = PlayerItem.objects.get_or_create(
             player=user, item=item,
-            defaults={'usos_restantes': item.usos_max or 1}
         )
         if not created:
             pi.quantidade     += 1
-            pi.usos_restantes += item.usos_max or 1
             pi.save()
 
     # ── Registra coleta ───────────────────────────

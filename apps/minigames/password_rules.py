@@ -10,7 +10,6 @@ PASSWORD_RULES_DB = {
     105: {"id": 105, "diff": "easy",   "desc": "Pelo menos duas letras minúsculas.",                   "regex": r"(?:[a-z].*){2}"},
     106: {"id": 106, "diff": "easy",   "desc": "Deve começar com uma letra.",                          "regex": r"^[a-zA-Z]"},
     107: {"id": 107, "diff": "easy",   "desc": "Deve conter um hífen (-) ou underline (_).",           "regex": r"[-_]"},
-    108: {"id": 108, "diff": "easy",   "desc": "Máximo de 20 caracteres.",                             "regex": r"^.{0,20}$"},
     109: {"id": 109, "diff": "easy",   "desc": "Pelo menos dois números.",                             "regex": r"(?:\d.*){2}"},
     # MÉDIO
     201: {"id": 201, "diff": "medium", "desc": "Deve conter o ano atual (2025).",                      "regex": r"2025"},
@@ -20,8 +19,8 @@ PASSWORD_RULES_DB = {
     205: {"id": 205, "diff": "medium", "desc": "Deve conter uma extensão de script (.PY, .SH, .BAT).", "regex": r"\.(PY|SH|BAT)"},
     206: {"id": 206, "diff": "medium", "desc": "Deve conter 'ADMIN' ou 'USER'.",                       "regex": r"(ADMIN|USER)"},
     207: {"id": 207, "diff": "medium", "desc": "Deve conter o operador matemático '+' ou '='.",        "regex": r"[+=]"},
-    208: {"id": 208, "diff": "medium", "desc": "Deve conter exatamente 18 caracteres.",                "regex": r"^.{18}$"},
     209: {"id": 209, "diff": "medium", "desc": "Deve conter três caracteres repetidos em sequência.",  "regex": r"(.)\1\1"},
+    210: {"id": 210, "diff": "medium", "desc": "Deve conter exatamente 22 caracteres.",                "regex": r"^.{22}$"},
     # DIFÍCIL
     301: {"id": 301, "diff": "hard",   "desc": "Deve conter um protocolo (HTTP, FTP, SSH, TELNET).",   "regex": r"(HTTP|FTP|SSH|TELNET)"},
     302: {"id": 302, "diff": "hard",   "desc": "Deve conter 'SUDO' em maiúsculas.",                    "regex": r"SUDO"},
@@ -34,12 +33,11 @@ PASSWORD_RULES_DB = {
     # INSANO
     401: {"id": 401, "diff": "insane", "desc": "Formato de IP (Ex: 192.168.1.1).",                     "regex": r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"},
     402: {"id": 402, "diff": "insane", "desc": "Código Hexadecimal de cor (Ex: #FFFFFF).",             "regex": r"#[0-9A-Fa-f]{6}"},
-    403: {"id": 403, "diff": "insane", "desc": "NÃO pode conter a palavra 'SENHA'.",                   "regex": r"^((?!SENHA).)*$"},
     404: {"id": 404, "diff": "insane", "desc": "Deve conter uma tag HTML (Ex: <DIV>, <BR>).",          "regex": r"<[A-Z]+>"},
     405: {"id": 405, "diff": "insane", "desc": "Deve conter formato de versão (vX.X.X).",              "regex": r"v\d+\.\d+\.\d+"},
     406: {"id": 406, "diff": "insane", "desc": "Porta lógica (AND, OR, XOR, NOT).",                   "regex": r"\b(AND|OR|XOR|NOT)\b"},
     407: {"id": 407, "diff": "insane", "desc": "Formato de moeda ($99.99).",                           "regex": r"\$\d+\.\d{2}"},
-    408: {"id": 408, "diff": "insane", "desc": "NÃO pode conter as vogais A, E ou I.",                 "regex": r"^[^AEIaei]*$"},
+    408: {"id": 408, "diff": "insane", "desc": "NÃO pode conter as vogais A ou I.",                 "regex": r"^[^AIai]*$"},
     # DINÂMICAS (math)
     500: {"id": 500, "diff": "medium", "template": "A soma de todos os números deve ser {}.", "js_type": "sum"},
     501: {"id": 501, "diff": "hard",   "template": "O primeiro número menos o último deve ser {}.", "js_type": "sub_first_last"},
@@ -50,14 +48,13 @@ PASSWORD_RULES_DB = {
 def generate_rules_sequence(config):
     selected = []
 
-    # Regra matemática dinâmica
     math_ids = [k for k in PASSWORD_RULES_DB if k >= 500]
-    if math_ids:
-        mid = random.choice(math_ids)
-        val = random.randint(15, 50) if mid == 500 else random.randint(1, 8)
-        selected.append(f"{mid}:{val}")
+    if math_ids and config.rules_count_math > 0:
+        for _ in range(config.rules_count_math):
+            mid = random.choice(math_ids)
+            val = random.randint(15, 50) if mid == 500 else random.randint(1, 8)
+            selected.append(f"{mid}:{val}")
 
-    # Regras por dificuldade
     by_diff = {'easy': [], 'medium': [], 'hard': [], 'insane': []}
     for k, v in PASSWORD_RULES_DB.items():
         if k < 500:
@@ -69,6 +66,7 @@ def generate_rules_sequence(config):
     selected += sample(by_diff['easy'],   config.rules_count_easy)
     selected += sample(by_diff['medium'], config.rules_count_medium)
     selected += sample(by_diff['hard'],   config.rules_count_hard)
+    selected += sample(by_diff['insane'], config.rules_count_insane)
 
     random.shuffle(selected)
     return selected

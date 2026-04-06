@@ -123,7 +123,7 @@
                     </span>
                     <span class="meta-item">
                         <i class="bi bi-list-check"></i>
-                        {{ pw_config.rules_count_easy|add:pw_config.rules_count_medium|add:pw_config.rules_count_hard }} regras
+                        {{ pw_config.rules_count_easy|add:pw_config.rules_count_medium|add:pw_config.rules_count_hard|add:pw_config.rules_count_insane|add:pw_config.rules_count_math }} regras
                     </span>
                 </div>
             </div>
@@ -234,8 +234,9 @@
             <div class="card-body">
                 <h3 class="challenge-title">Código</h3>
                 <p class="challenge-desc">
-                    Descubra a palavra secreta de {{ codigo_config.word_length }} letras em
-                    {{ codigo_config.max_attempts }} tentativas.
+                    Descubra a palavra secreta de cibersegurança em até 8 tentativas.
+                    Dificuldade e comprimento variam a cada rodada!
+                    <br>
                     <span style="color: var(--c-codigo);">■</span> certo &nbsp;
                     <span style="color: var(--neon-gold);">■</span> presente &nbsp;
                     <span style="color: var(--text-dim);">■</span> ausente
@@ -244,8 +245,7 @@
                 <div class="challenge-meta">
                     <span class="meta-item"><i class="bi bi-star-fill"></i> {{ codigo_config.xp_reward }} XP</span>
                     <span class="meta-item"><i class="bi bi-coin"></i> {{ codigo_config.coin_reward }} Coins</span>
-                    <span class="meta-item"><i class="bi bi-hash"></i> {{ codigo_config.word_length }} letras</span>
-                    <span class="meta-item"><i class="bi bi-arrow-repeat"></i> {{ codigo_config.max_attempts }} tentativas</span>
+                    <span class="meta-item"><i class="bi bi-shuffle"></i> Palavra aleatória</span>
                     <span class="meta-item">
                         <i class="bi bi-clock"></i>
                         {% if codigo_config.time_limit_seconds %}{{ codigo_config.time_limit_seconds }}s{% else %}Livre{% endif %}

@@ -28,4 +28,9 @@ urlpatterns = [
     path('codigo/play/',                       views.play_codigo,        name='play_codigo'),
     path('codigo/check/',                      views.check_codigo_guess, name='check_codigo'),
     path('codigo/resultado/<int:attempt_id>/', views.codigo_result,      name='codigo_result'),
+    #Retake
+    path('retake/', views.retake_consumivel, name='retake_consumivel'),
+    #Hint
+    path('decriptar/hint/', views.request_hint_decriptar, name='hint_decriptar'),
+    path('codigo/hint/', views.request_hint_codigo, name='hint_codigo'),
 ]

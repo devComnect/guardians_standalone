@@ -38,6 +38,7 @@
                                  data-pa-id="{{ pa.id }}"
                                  data-nome="{{ pa.achievement.nome }}"
                                  data-desc="{{ pa.achievement.descricao }}"
+                                 data-req="{{ pa.achievement.get_trigger_type_display }} ({{ pa.achievement.trigger_value }})"
                                  data-bonus="{{ pa.achievement.get_bonus_type_display }}: +{{ pa.achievement.bonus_value }}">
                                 {% if pa.achievement.imagem %}
                                     <img src="{% static pa.achievement.imagem %}" class="ach-img">
@@ -50,7 +51,8 @@
                         {% for ac in conquistas_bloqueadas %}
                             <div class="achievement-item locked {% if forloop.counter > 5 %}d-none tranca-extra{% endif %}" 
                                  data-nome="???" 
-                                 data-desc="Requisito: {{ ac.get_trigger_type_display }} ({{ ac.trigger_value }})"
+                                 data-desc="Bloqueada."
+                                 data-req="{{ ac.get_trigger_type_display }} ({{ ac.trigger_value }})"
                                  data-bonus="Efeito Desconhecido">
                                 <i class="bi bi-question-lg ach-icon"></i>
                             </div>
@@ -66,7 +68,7 @@
                     {% endif %}
                 </div>
 
-                <div class="w-25 cyber-card p-4 details-panel" style="background: rgba(10, 12, 20, 0.98); border: 1px solid rgba(13,202,240,0.2);">
+                <div class="w-25 cyber-card p-4 details-panel d-flex flex-column" style="background: rgba(10, 12, 20, 0.98); border: 1px solid rgba(13,202,240,0.2);">
                     <div id="ach-preview-img" class="text-center mb-4 mt-2">
                         <div class="achievement-item mx-auto border-secondary" style="width: 80px; height: 80px; animation: none;">
                             <i class="bi bi-cpu ach-icon"></i>
@@ -74,13 +76,22 @@
                     </div>
                     <h5 id="ach-preview-nome" class="text-white text-center font-tech text-uppercase">Selecione um Mod</h5>
                     <hr class="border-secondary my-3" style="opacity: 0.3;">
-                    <p id="ach-preview-desc">Passe o mouse ou clique em uma conquista para ver seus atributos.</p>
                     
-                    <div class="wallet-display mt-4 flex-column align-items-start" style="clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);">
+                    <div style="height: 85px; overflow-y: auto;" class="mb-2">
+                        <p id="ach-preview-desc" class="mb-0">Passe o mouse ou clique em uma conquista para ver seus atributos.</p>
+                    </div>
+                    
+                    <div class="wallet-display flex-column align-items-start mt-auto mb-3 p-2 border border-secondary" style="border-style: dashed !important; background: rgba(0,0,0,0.3);">
+                        <span class="font-tech text-uppercase" style="font-size: 0.65rem; color: var(--neon-purple); letter-spacing: 1px;">CRITÉRIO DE SISTEMA</span>
+                        <span id="ach-preview-req" class="text-white" style="font-size: 0.8rem;">-</span>
+                    </div>
+
+                    <div class="wallet-display flex-column align-items-start" style="clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);">
                         <span class="wallet-label font-tech text-uppercase" style="color: rgba(252,238,10,0.6); letter-spacing: 2px;">BÔNUS ATIVO</span>
                         <span id="ach-preview-bonus" class="wallet-value font-tech" style="font-size: 1.1rem; color: var(--neon-gold); text-shadow: 0 0 12px rgba(252,238,10,0.6);">-</span>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
     </div>

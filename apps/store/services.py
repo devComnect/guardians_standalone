@@ -20,6 +20,35 @@ from .models import (
     DailyStore, StoreConfig, StoreTransaction,
 )
 
+# Consumíveis que usam ActiveEffect com duração — não podem ser stackados
+_EFEITOS_NAO_STACKAVEIS = {
+    'XP_BOOST_DAYS',
+    'STREAK_CAP_BOOST',
+    'STREAK_FREEZE',
+    'EXTRA_LIFE_TIME',
+    'TOKEN_RETAKE',
+    'FREE_HINT',
+}
+ 
+# Tabela de drop do Pacote de Cargas: item_id → peso relativo por raridade
+_LOOT_PACK_POOL = [
+    # (item_id, raridade)      peso
+    (1,  'COMMON'),   # Backup de Memória
+    (2,  'COMMON'),   # Injetor de Overclock
+    (5,  'COMMON'),   # Sniffer de Metadados
+    (3,  'RARE'),     # Expansor de Cache
+    (4,  'RARE'),     # Protocolo Persistência
+    (6,  'RARE'),     # Buffer de Contingência
+    (7,  'EPIC'),     # Script de Arbitragem
+    (8,  'EPIC'),     # Monetizador de Expertise
+]
+ 
+_LOOT_PESOS = {
+    'COMMON': 60,
+    'RARE':   30,
+    'EPIC':   10,
+}
+
 
 # ─────────────────────────────────────────────
 # HELPERS INTERNOS
@@ -376,11 +405,6 @@ def _comprar_cosmetico(user, player, item, preco_final, desconto):
 
 @transaction.atomic
 def vender_passivo(user, item_id):
-    """
-    Remove passivo do slot e do inventário.
-    Reembolsa 50% do custo original (sem desconto).
-    Retorna (sucesso, mensagem, coins_recebidos).
-    """
     try:
         pi = PlayerItem.objects.select_related('item').get(
             player=user, item__item_id=item_id, item__tipo='passive'
@@ -389,21 +413,19 @@ def vender_passivo(user, item_id):
         return False, 'Item não encontrado no inventário.', 0
 
     reembolso = pi.item.cost // 2
-    player    = getattr(user, 'player', None)
+    nome      = pi.item.name
 
-    if player:
-        player.coins += reembolso
-        player.save()
+    from apps.profiles.services import grant_coins
+    grant_coins(user, reembolso, fonte='venda', aplicar_bonus=False)
 
     StoreTransaction.objects.create(
         player      = user,
         item        = pi.item,
         tipo        = 'sell',
         coins_delta = reembolso,
-        descricao   = f'Venda de "{pi.item.name}" (reembolso 50%)',
+        descricao   = f'Venda de "{nome}" (reembolso 50%)',
     )
 
-    nome = pi.item.name
     pi.delete()
 
     return True, f'"{nome}" vendido por {reembolso}⬡.', reembolso
@@ -417,8 +439,9 @@ def vender_passivo(user, item_id):
 def ativar_consumivel(user, item_id):
     """
     Ativa um consumível do inventário.
-    Efeitos instantâneos são aplicados imediatamente.
-    Efeitos com duração criam um ActiveEffect.
+    - Bloqueia reativação de efeitos não-stackáveis já ativos.
+    - Efeitos instantâneos são aplicados imediatamente.
+    - Efeitos com duração criam um ActiveEffect.
     Retorna (sucesso, mensagem, resultado_extra).
     """
     try:
@@ -427,24 +450,38 @@ def ativar_consumivel(user, item_id):
         )
     except PlayerItem.DoesNotExist:
         return False, 'Consumível não encontrado no inventário.', {}
-
+ 
     item   = pi.item
     player = getattr(user, 'player', None)
     if not player:
         return False, 'Perfil não encontrado.', {}
-
+ 
+    # ── Stack check: bloqueia se efeito não-stackável já está ativo ──────────
+    if item.effect in _EFEITOS_NAO_STACKAVEIS:
+        ja_ativo = ActiveEffect.objects.filter(
+            player=user,
+            effect=item.effect,
+            expires_at__gt=timezone.now(),
+        ).exists()
+        if ja_ativo:
+            return (
+                False,
+                f'"{item.name}" já está ativo. Aguarde expirar antes de usar outro.',
+                {},
+            )
+ 
     resultado = _aplicar_efeito_consumivel(user, player, item)
-
+ 
     if not resultado.get('sucesso', True):
         return False, resultado.get('mensagem', 'Erro ao aplicar efeito.'), {}
-
+ 
     # Consome 1 unidade
     if pi.quantidade > 1:
         pi.quantidade -= 1
         pi.save()
     else:
         pi.delete()
-
+ 
     StoreTransaction.objects.create(
         player      = user,
         item        = item,
@@ -453,9 +490,21 @@ def ativar_consumivel(user, item_id):
         coins_delta = resultado.get('coins_delta', 0),
         descricao   = f'Ativação de "{item.name}"',
     )
-
+ 
     return True, resultado.get('mensagem', f'"{item.name}" ativado!'), resultado
 
+
+def _sortear_item_loot_pack():
+    """
+    Sorteia 1 item_id do pool do Pacote de Cargas usando pesos por raridade.
+    Retorna o item_id sorteado.
+    """
+    pool_ids      = [entry[0] for entry in _LOOT_PACK_POOL]
+    pool_raridades = [entry[1] for entry in _LOOT_PACK_POOL]
+    pesos         = [_LOOT_PESOS[r] for r in pool_raridades]
+    sorteado      = random.choices(pool_ids, weights=pesos, k=1)[0]
+    return sorteado
+ 
 
 def _aplicar_efeito_consumivel(user, player, item):
     """
@@ -463,91 +512,147 @@ def _aplicar_efeito_consumivel(user, player, item):
     Retorna dict com resultado da operação.
     """
     effect = item.effect
-
+ 
+    # ── LOOT_PACK — Pacote de Cargas ─────────────────────────
+    if effect == 'LOOT_PACK':
+        config = StoreConfig.get()
+ 
+        total_consumiveis = PlayerItem.objects.filter(
+            player=user, item__tipo='consumable'
+        ).aggregate(total=Sum('quantidade'))['total'] or 0
+ 
+        if total_consumiveis >= config.max_consumiveis:
+            return {
+                'sucesso': False,
+                'mensagem': f'Inventário cheio (máx. {config.max_consumiveis}). Libere espaço antes de abrir o pacote.',
+            }
+ 
+        item_id_dropado = _sortear_item_loot_pack()
+ 
+        try:
+            item_dropado = Item.objects.get(item_id=item_id_dropado)
+        except Item.DoesNotExist:
+            return {'sucesso': False, 'mensagem': 'Erro interno: item sorteado não encontrado.'}
+ 
+        pi_drop, criado = PlayerItem.objects.get_or_create(
+            player=user,
+            item=item_dropado,
+            defaults={'quantidade': 1},
+        )
+        if not criado:
+            pi_drop.quantidade += 1
+            pi_drop.save()
+ 
+        return {
+            'mensagem':       f'Pacote aberto! Você recebeu: {item_dropado.name} ({item_dropado.get_raridade_display()})',
+            'item_dropado_id':   item_dropado.item_id,
+            'item_dropado_nome': item_dropado.name,
+            'item_dropado_raridade': item_dropado.raridade,
+            'item_dropado_icon':     item_dropado.icon,
+        }
+  
     # ── Efeitos instantâneos ─────────────────────────────────
 
     if effect == 'CONVERT_GOLD_XP':
-        # Script de Arbitragem: 100 Coins → 150 XP
         custo_coins = int(item.value_secondary) if item.value_secondary else 100
-        xp_ganho    = int(item.value)
+        xp_ganho_base = int(item.value)
+
+        # 1. Trava de Segurança
         if player.coins < custo_coins:
-            return {'sucesso': False, 'mensagem': f'Coins insuficientes (necessário: {custo_coins}⬡)'}
+            return {'sucesso': False, 'mensagem': f'Coins insuficientes. Você precisa de {custo_coins}⬡ para esta transação.'}
+
+        from apps.profiles.services import grant_xp
+        
+        # Deduz os coins
         player.coins -= custo_coins
         player.save()
-        from apps.profiles.services import grant_xp
-        grant_xp(user, xp_ganho, 'bonus', f'Script de Arbitragem: {custo_coins}⬡ → {xp_ganho}XP')
+
+        resultado_xp = grant_xp(user, xp_ganho_base, 'store', f'Script de Arbitragem: {custo_coins}⬡ → XP')
+        
+        xp_final = resultado_xp.get('xp_final', xp_ganho_base)
+
         return {
-            'mensagem':    f'+{xp_ganho} XP concedidos!',
-            'xp_delta':    xp_ganho,
+            'sucesso': True,
+            'mensagem': f'Sucesso! {custo_coins}⬡ convertidos em +{xp_final} XP (bônus aplicados).',
+            'xp_delta': xp_final,
             'coins_delta': -custo_coins,
         }
 
     if effect == 'CONVERT_XP_GOLD':
-        # Monetizador de Expertise: 500 XP → 80 Coins
-        xp_custo    = int(item.value_secondary) if item.value_secondary else 500
-        coins_ganho = int(item.value)
+        xp_custo        = int(item.value_secondary) if item.value_secondary else 500
+        coins_ganho_base = int(item.value)
+
         if player.xp_total < xp_custo:
-            return {'sucesso': False, 'mensagem': f'XP insuficiente (necessário: {xp_custo}XP)'}
-        from apps.profiles.services import revoke_xp
-        revoke_xp(user, xp_custo, f'Monetizador de Expertise: -{xp_custo}XP → {coins_ganho}⬡')
+            return {'sucesso': False, 'mensagem': f'XP insuficiente. Você precisa de {xp_custo} XP.'}
+
+        from apps.profiles.services import revoke_xp, grant_coins
+
+        revoke_xp(user, xp_custo, f'Monetizador de Expertise: -{xp_custo} XP → Coins')
         player.refresh_from_db()
-        player.coins += coins_ganho
-        player.save()
+
+        coin_result  = grant_coins(user, coins_ganho_base, 'consumivel')  # bonus aplicado
+        coins_final  = coin_result['final']
+
         return {
-            'mensagem':    f'+{coins_ganho}⬡ recebidos!',
+            'sucesso':     True,
+            'mensagem':    f'Sucesso! {xp_custo} XP convertidos em +{coins_final}⬡ (bônus aplicados).',
             'xp_delta':    -xp_custo,
-            'coins_delta': coins_ganho,
+            'coins_delta': coins_final,
         }
-
     # ── Efeitos com duração — criam ActiveEffect ─────────────
-
+ 
     efeitos_com_duracao = {
         'XP_BOOST_DAYS',
         'STREAK_CAP_BOOST',
         'STREAK_FREEZE',
         'EXTRA_LIFE_TIME',
     }
-
+ 
     if effect in efeitos_com_duracao:
         duracao = item.duration_days or 1
         expires = timezone.now() + timedelta(days=duracao)
-
-        # Não empilha: se já existe efeito igual, estende
-        ae, criado = ActiveEffect.objects.get_or_create(
-            player=user, item=item, effect=effect,
-            defaults={'value': item.value, 'expires_at': expires}
+ 
+        # Stack check já foi feito em ativar_consumivel — aqui só cria
+        ActiveEffect.objects.create(
+            player=user,
+            item=item,
+            effect=effect,
+            value=item.value,
+            expires_at=expires,
         )
-        if not criado:
-            ae.expires_at = max(ae.expires_at, expires)
-            ae.save()
-
+ 
         labels = {
-            'XP_BOOST_DAYS':    f'+{int(item.value)}% XP por {duracao} dia(s)',
-            'STREAK_CAP_BOOST': f'+{int(item.value)} no teto da ofensiva por {duracao} dia(s)',
-            'STREAK_FREEZE':    f'Streak protegida por {duracao} dia(s)',
-            'EXTRA_LIFE_TIME':  f'+{int(item.value)}s e +1 vida no próximo desafio',
+            'XP_BOOST_DAYS':    f'+{int(item.value)}% XP por {duracao} dia(s).',
+            'STREAK_CAP_BOOST': f'+{int(item.value)} no teto da ofensiva por {duracao} dia(s).',
+            'STREAK_FREEZE':    f'Streak protegida por {duracao} dia(s).',
+            'EXTRA_LIFE_TIME':  f'+{int(item.value)}s e +1 vida no próximo desafio.',
         }
         return {'mensagem': labels.get(effect, f'Efeito ativo por {duracao} dia(s)!')}
-
-    # ── TOKEN_RETAKE — marca flag no player ──────────────────
+ 
+    # ── TOKEN_RETAKE ──────────────────────────────────────────
     if effect == 'TOKEN_RETAKE':
-        # Usa um campo auxiliar via ActiveEffect sem duração fixa
-        expires = timezone.now() + timedelta(days=30)  # 30 dias para usar
-        ActiveEffect.objects.get_or_create(
-            player=user, item=item, effect='TOKEN_RETAKE',
-            defaults={'value': 1, 'expires_at': expires}
+        expires = timezone.now() + timedelta(days=30)
+        ActiveEffect.objects.create(
+            player=user,
+            item=item,
+            effect='TOKEN_RETAKE',
+            value=1,
+            expires_at=expires,
         )
-        return {'mensagem': 'Token de refação guardado! Use antes de iniciar um desafio.'}
-
-    # ── FREE_HINT ────────────────────────────────────────────
+        return {'mensagem': 'Token de refação guardado! Disponível nos próximos desafios.'}
+ 
+    # ── FREE_HINT ─────────────────────────────────────────────
     if effect == 'FREE_HINT':
         expires = timezone.now() + timedelta(days=7)
-        ActiveEffect.objects.get_or_create(
-            player=user, item=item, effect='FREE_HINT',
-            defaults={'value': 1, 'expires_at': expires}
+        ActiveEffect.objects.create(
+            player=user,
+            item=item,
+            effect='FREE_HINT',
+            value=1,
+            expires_at=expires,
         )
-        return {'mensagem': 'Dica grátis ativa para o próximo desafio!'}
-
+        return {'mensagem': 'Dica grátis ativa para o próximo desafio! (sem penalidade de tempo)'}
+ 
     return {'mensagem': f'"{item.name}" ativado com sucesso!'}
 
 
@@ -583,8 +688,9 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None, retornar_breakdown
         motivo = ''
 
         if effect == 'XP_PER_COIN':
-            b      = min((player.coins // 10) * item.value, item.max_bonus)
-            motivo = f"{player.coins} coins → {player.coins // 10} grupos × {item.value}% (max {item.max_bonus}%)"
+            raw    = (player.coins // 10) * item.value
+            b      = raw if item.max_bonus == 0 else min(raw, item.max_bonus)
+            motivo = f"{player.coins} coins → {player.coins // 10} grupos × {item.value}% = {b}%"
 
         elif effect == 'XP_LOW_CASH':
             if player.coins < 10:
@@ -606,17 +712,21 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None, retornar_breakdown
 
         elif effect == 'XP_PER_SECOND':
             seg    = contexto.get('segundos_restantes', 0)
-            b      = min(seg * item.value, item.max_bonus)
-            motivo = f"{seg}s restantes × {item.value}% (max {item.max_bonus}%)"
+            raw    = seg * item.value
+            b      = raw if item.max_bonus == 0 else min(raw, item.max_bonus)
+            motivo = f"{seg}s restantes × {item.value}% = {b}%"
 
         elif effect == 'XP_QUICK_WIN':
-            tentativas = contexto.get('tentativas', 99)
-            won        = contexto.get('won', False)
-            if tentativas < 3 and won:
-                b      = item.value
-                motivo = f"vitória em {tentativas} tentativas ✅"
+            if fonte == 'quiz':
+                motivo = "não se aplica a quiz ❌"
             else:
-                motivo = f"tentativas={tentativas}, won={won} ❌"
+                tentativas = contexto.get('tentativas', 99)
+                won        = contexto.get('won', False)
+                if tentativas < 3 and won:
+                    b      = item.value
+                    motivo = f"vitória em {tentativas} tentativas ✅"
+                else:
+                    motivo = f"tentativas={tentativas}, won={won} ❌"
 
         elif effect == 'XP_SAME_RARITY':
             raridades = [p.item.raridade for p in passivos]
@@ -628,14 +738,16 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None, retornar_breakdown
 
         elif effect == 'XP_PER_COMMON':
             commons = sum(1 for p in passivos if p.item.raridade == 'COMMON')
-            b       = min(commons * item.value, item.max_bonus)
-            motivo  = f"{commons} comuns × {item.value}% (max {item.max_bonus}%)"
+            raw     = commons * item.value
+            b       = raw if item.max_bonus == 0 else min(raw, item.max_bonus)
+            motivo  = f"{commons} comuns × {item.value}% = {b}%"
 
         elif effect == 'XP_PER_EMPTY_SLOT':
             config = StoreConfig.get()
             vazios = config.max_passivos_slots - passivos.count()
-            b      = min(vazios * item.value, item.max_bonus)
-            motivo = f"{vazios} slots vazios × {item.value}%"
+            raw    = vazios * item.value
+            b      = raw if item.max_bonus == 0 else min(raw, item.max_bonus)
+            motivo = f"{vazios} slots vazios × {item.value}% = {b}%"
 
         elif effect == 'XP_STACK_MULTIPLIER':
             multiplicadores.append(item)
@@ -645,34 +757,43 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None, retornar_breakdown
             cosmeticos = PlayerItem.objects.filter(
                 player=user, item__tipo='cosmetic', equipado=True
             ).count()
-            b      = min(cosmeticos * item.value, item.max_bonus)
-            motivo = f"{cosmeticos} cosméticos × {item.value}%"
+            raw    = cosmeticos * item.value
+            b      = raw if item.max_bonus == 0 else min(raw, item.max_bonus)
+            motivo = f"{cosmeticos} cosméticos × {item.value}% = {b}%"
 
         elif effect == 'XP_PER_FEATURED_ACHIEVEMENT':
             from apps.profiles.models import PlayerAchievement
             destaques = PlayerAchievement.objects.filter(player=user, em_destaque=True).count()
-            b         = min(destaques * item.value, item.max_bonus)
-            motivo    = f"{destaques} conquistas em destaque × {item.value}%"
+            raw       = destaques * item.value
+            b         = raw if item.max_bonus == 0 else min(raw, item.max_bonus)
+            motivo    = f"{destaques} conquistas em destaque × {item.value}% = {b}%"
 
         elif effect == 'XP_TOP_3':
             from apps.profiles.services import _verificar_ranking
-            if _verificar_ranking(user, 3):
+            resultado = _verificar_ranking(user, 3)
+            if resultado is True:
                 b      = item.value
                 motivo = "top 3 ✅"
+            elif resultado is None:
+                motivo = "sem snapshot de ranking ❌"
             else:
                 motivo = "fora do top 3 ❌"
 
-        elif effect == 'XP_OUTSIDE_TOP_10':
+        elif effect == 'XP_OUTSIDE_TOP_5':
             from apps.profiles.services import _verificar_ranking
-            if not _verificar_ranking(user, 10):
+            resultado = _verificar_ranking(user, 5)
+            if resultado is False:
                 b      = item.value
-                motivo = "fora do top 10 ✅"
+                motivo = "fora do top 5 ✅"
+            elif resultado is None:
+                motivo = "sem snapshot de ranking ❌"
             else:
-                motivo = "dentro do top 10 ❌"
+                motivo = "dentro do top 5 ❌"
 
         elif effect == 'XP_PER_LEVEL':
-            b      = min(player.level * item.value, item.max_bonus)
-            motivo = f"level {player.level} × {item.value}% (max {item.max_bonus}%)"
+            raw    = player.level * item.value
+            b      = raw if item.max_bonus == 0 else min(raw, item.max_bonus)
+            motivo = f"level {player.level} × {item.value}% = {b}%"
 
         elif effect == 'XP_CODE_CHALLENGE' and fonte == 'codigo':
             b      = item.value
@@ -788,6 +909,8 @@ def get_tempo_extra_passivo(user):
         player=user, effect='EXTRA_LIFE_TIME', expires_at__gt=agora
     )
     tempo_extra += sum(e.value for e in efeitos)
+    from apps.profiles.services import get_perk_valor
+    tempo_extra += get_perk_valor(user, 'add_time')
 
     return int(tempo_extra)
 
@@ -911,3 +1034,16 @@ def get_inventario_completo(user):
         'efeitos_ativos':  list(efeitos_ativos),
         'config':          config,
     }
+
+
+def get_fator_reducao_tempo(user):
+    passivo = PlayerItem.objects.filter(
+        player=user,
+        item__tipo='passive',
+        item__effect='TIME_REDUCTION_XP_BOOST',
+        slot_index__isnull=False,
+    ).select_related('item').first()
+    if not passivo:
+        return 1.0
+    reducao_pct = abs(passivo.item.value) 
+    return round(1.0 - (reducao_pct / 100), 4) 

@@ -59,7 +59,7 @@ class MissionService:
         coins_ganhas = config.reward_coins
         
         grant_xp(user, xp_ganho, fonte='missao', descricao='Bônus: Set de Missões Completo')
-        grant_coins(user, coins_ganhas, fonte='missao')
+        grant_coins(user, coins_ganhas, fonte='missao', registrar=False)
 
         active_set.is_claimed = True
         active_set.save()

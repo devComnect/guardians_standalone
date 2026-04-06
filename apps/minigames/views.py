@@ -6,11 +6,15 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.contrib import messages
 from django.http import JsonResponse
+from django.urls import reverse
 import json
-from apps.profiles.services import registrar_desafio_diario , grant_xp, grant_coins
-from .models import (Quiz, QuizAttempt, QuizQuestion, QuizOption, PatrolAttempt, PasswordGameConfig, 
+from apps.profiles.services import registrar_desafio_diario , grant_xp, grant_coins, revoke_xp, revoke_coins
+from apps.store.services import consumir_efeito_unico, tem_efeito_ativo, get_tempo_extra_passivo, get_fator_reducao_tempo, get_vidas_extras
+from .models import (Quiz, QuizAttempt, QuizQuestion, QuizOption, PatrolAttempt, PasswordGameConfig, PatrolConfig,
                         PasswordAttempt, DecriptarConfig, DecriptarAttempt, CodigoAttempt, CodigoConfig, WordBank)
 from .password_rules import generate_rules_sequence, get_rules_details, validate_password
+from datetime import timedelta
+
 
 
 ################
@@ -40,13 +44,21 @@ def start_quiz(request, quiz_id):
     ).first()
 
     if completed:
-        # TODO: verificar token de retake no inventário do player
-        # Por ora, bloqueia
         messages.info(request, 'Você já completou este quiz.')
         return redirect('challenges:index')
 
-    # Cria nova tentativa
-    QuizAttempt.objects.create(player=request.user, quiz=quiz)
+    bonus_time = get_tempo_extra_passivo(request.user)
+    if tem_efeito_ativo(request.user, 'EXTRA_LIFE_TIME'):
+        consumir_efeito_unico(request.user, 'EXTRA_LIFE_TIME')
+    fator   = get_fator_reducao_tempo(request.user)
+    penalty = int(quiz.time_limit_seconds * (1 - fator)) if quiz.time_limit_seconds else 0
+
+    QuizAttempt.objects.create(
+        player=request.user,
+        quiz=quiz,
+        bonus_seconds=bonus_time,
+        penalty_seconds=penalty,
+    )
     return redirect('minigames:take_quiz', quiz_id=quiz_id)
 
 
@@ -85,34 +97,32 @@ def take_quiz(request, quiz_id):
 @require_POST
 def submit_quiz(request, quiz_id):
     quiz    = get_object_or_404(Quiz, pk=quiz_id)
-    attempt = get_object_or_404(
-        QuizAttempt, player=request.user, quiz=quiz, completed_at__isnull=True
-    )
+    attempt = get_object_or_404(QuizAttempt, player=request.user, quiz=quiz, completed_at__isnull=True)
 
     timer_expired = request.POST.get('timer_expired') == 'true'
     abandoned     = request.POST.get('abandoned') == 'true'
 
-    # Timer expirou no servidor (fonte de verdade)
     if quiz.time_limit_seconds and attempt.remaining_seconds() == 0:
         timer_expired = True
 
     total_correct = 0
     xp_earned     = 0
 
-    if timer_expired:
-        # Tempo esgotado = zero
-        xp_earned = 0
-    else:
-        # Calcula pontuação
+    if not timer_expired:
         for question in quiz.questions.prefetch_related('options').all():
             correct_ids  = set(question.options.filter(is_correct=True).values_list('id', flat=True))
-            selected_ids = set(
-                int(v) for v in request.POST.getlist(f'question_{question.id}')
-                if v.isdigit()
-            )
+            selected_ids = set(int(v) for v in request.POST.getlist(f'question_{question.id}') if v.isdigit())
             if selected_ids == correct_ids:
                 total_correct += 1
                 xp_earned     += question.xp_points
+
+    coins_base = quiz.coin_reward if (not abandoned and not timer_expired and xp_earned > 0) else 0
+
+    if coins_base > 0:
+        coins_result = grant_coins(request.user, coins_base, 'quiz')
+        attempt.coins_earned = coins_result['final']
+    else:
+        attempt.coins_earned = 0
 
     attempt.completed_at  = timezone.now()
     attempt.xp_earned     = xp_earned
@@ -121,21 +131,20 @@ def submit_quiz(request, quiz_id):
     attempt.timer_expired = timer_expired
     attempt.save()
 
-    # Concede XP e coins ao player
-    if not abandoned and not timer_expired and xp_earned > 0:
+    if coins_base > 0:
         total_questions = quiz.questions.count()
-
-        xp_result = grant_xp(request.user, xp_earned, 'quiz', f'Quiz: {quiz.titulo}', contexto={
-        'segundos_restantes': attempt.remaining_seconds(),
-        'tentativas': total_questions,
-        'won': total_questions > 0 and (total_correct / total_questions) >= 0.7,
-    } )
+        xp_result = grant_xp(
+            request.user, xp_earned, 'quiz', f'Quiz: {quiz.titulo}', 
+            contexto={
+                'segundos_restantes': attempt.remaining_seconds(),
+                'tentativas': total_questions,
+                'won': total_questions > 0 and (total_correct / total_questions) >= 0.7,
+            }
+        )
         request.session['last_xp_result'] = xp_result
-        grant_coins(request.user, quiz.coin_reward, 'quiz')
         registrar_desafio_diario(request.user)
 
     return redirect('minigames:quiz_result', quiz_id=quiz_id)
-
 
 @login_required
 def quiz_result(request, quiz_id):
@@ -150,6 +159,7 @@ def quiz_result(request, quiz_id):
     total_questions  = quiz.questions.count()
     max_xp           = quiz.total_xp_possivel()
     is_perfect       = attempt.xp_earned >= max_xp and max_xp > 0
+    tem_token_retake = tem_efeito_ativo(request.user, 'TOKEN_RETAKE')
 
     xp_result = request.session.pop('last_xp_result', None)
     return render(request, 'minigames/quiz_result.html', {
@@ -159,18 +169,13 @@ def quiz_result(request, quiz_id):
         'max_xp':          max_xp,
         'is_perfect':      is_perfect,
         'xp_result': xp_result,
+        'tem_token_retake': tem_token_retake,
     })
 
 
 ################
 ###VIEW PATROL###
 ################
-MAX_PATROL_ATTEMPTS = 10
-PATROL_XP_BASE      = 100
-PATROL_COIN_MIN     = 10
-PATROL_COIN_MAX     = 20
-
-
 def _calc_feedback(secret, guess):
     """Retorna lista de 4 status para cada dígito do palpite."""
     feedback   = ['absent'] * 4
@@ -198,11 +203,27 @@ def _calc_feedback(secret, guess):
 @login_required
 def patrol_start(request):
     """Inicia ou retoma a patrulha do dia."""
-    today   = timezone.localdate()
-    attempt = PatrolAttempt.objects.filter(player=request.user, date=today).first()
+    today      = timezone.localdate()
+    week_start = today - timedelta(days=6)  # janela de 7 dias (hoje incluso)
+    attempt    = PatrolAttempt.objects.filter(player=request.user, date=today).first()
+    config = PatrolConfig.objects.first()
+    if not config:
+        config = PatrolConfig()  # usa os defaults sem salvar
 
     if attempt and attempt.completed:
         return JsonResponse({'status': 'error', 'message': 'Patrulha já realizada hoje.'}, status=400)
+
+    patrulhas_na_semana = PatrolAttempt.objects.filter(
+        player=request.user,
+        date__range=(week_start, today),
+        completed=True,
+    ).count()
+
+    if patrulhas_na_semana >= config.patrol_limit:
+        return JsonResponse({
+            'status':  'error',
+            'message': 'Limite semanal atingido. Você já realizou 5 patrulhas nos últimos 7 dias.',
+        }, status=400)
 
     if attempt:
         # Retoma sessão em andamento
@@ -226,6 +247,14 @@ def patrol_guess(request):
     import json
     body  = json.loads(request.body)
     guess = body.get('guess', '').strip()
+    config = PatrolConfig.objects.first()
+    if not config:
+        config = PatrolConfig()  # usa os defaults sem salvar
+
+    MAX_PATROL_ATTEMPTS = config.max_attempts
+    PATROL_XP_BASE      = config.xp_base
+    PATROL_COIN_MIN     = config.coin_min
+    PATROL_COIN_MAX     = config.coin_max
 
     if len(guess) != 4 or not guess.isdigit():
         return JsonResponse({'status': 'error', 'message': 'Digite 4 números.'}, status=400)
@@ -257,11 +286,12 @@ def patrol_guess(request):
     if is_win:
         xp    = max(10, int(PATROL_XP_BASE / attempt.attempts_count))
         coins = random.randint(PATROL_COIN_MIN, PATROL_COIN_MAX)
+        coins_result = grant_coins(request.user, coins, 'patrol')
 
         attempt.won          = True
         attempt.completed    = True
         attempt.xp_earned    = xp
-        attempt.coins_earned = coins
+        attempt.coins_earned = coins_result['final']
         attempt.completed_at = timezone.now()
         attempt.guesses      = attempt.guesses
         attempt.save()                                   
@@ -274,7 +304,6 @@ def patrol_guess(request):
                 'won': attempt.won,
             })
         request.session['last_xp_result'] = xp_result
-        grant_coins(request.user, coins, 'patrol')
         registrar_desafio_diario(request.user)
 
         response.update({
@@ -332,10 +361,18 @@ def password_game_play(request):
     ).order_by('-started_at').first()
 
     if not attempt:
+        bonus_time = get_tempo_extra_passivo(request.user)
+        if tem_efeito_ativo(request.user, 'EXTRA_LIFE_TIME'):
+            consumir_efeito_unico(request.user, 'EXTRA_LIFE_TIME')
+        fator   = get_fator_reducao_tempo(request.user)
+        penalty = int(config.time_limit_seconds * (1 - fator)) if config.time_limit_seconds else 0
+
         rules_ids = generate_rules_sequence(config)
-        attempt   = PasswordAttempt.objects.create(
+        attempt = PasswordAttempt.objects.create(
             player=request.user,
             rules_sequence=rules_ids,
+            bonus_seconds=bonus_time,
+            penalty_seconds=penalty,
         )
 
     rules_data     = get_rules_details(attempt.rules_sequence)
@@ -358,10 +395,10 @@ def password_game_submit(request, attempt_id):
     if attempt.completed_at:
         return JsonResponse({'status': 'error', 'message': 'Jogo já finalizado.'}, status=400)
 
-    # Timeout no servidor
     if attempt.remaining_seconds() == 0 and PasswordGameConfig.get().time_limit_seconds:
         attempt.completed_at = timezone.now()
         attempt.is_won       = False
+        attempt.timer_expired = True
         attempt.save()
         return JsonResponse({'status': 'timeout', 'redirect': f'/minigames/cofre/{attempt.pk}/resultado/'})
 
@@ -373,21 +410,22 @@ def password_game_submit(request, attempt_id):
 
     if is_valid:
         config = PasswordGameConfig.get()
-        attempt.is_won        = True
-        attempt.completed_at  = timezone.now()
-        attempt.input_password = password
-        attempt.xp_earned     = config.xp_reward
-        attempt.coins_earned  = config.coin_reward
-        attempt.save()
         
-        xp_result = grant_xp(request.user, config.xp_reward, 'password', 'Cofre de Senhas concluído', 
-                 contexto={
-                    'segundos_restantes': attempt.remaining_seconds(),
-                    'tentativas': 1,
-                    'won': attempt.is_won,
-                })
+        xp_result = grant_xp(
+            request.user, config.xp_reward, 'password', 'Cofre de Senhas concluído', 
+            contexto={'segundos_restantes': attempt.remaining_seconds(), 'tentativas': 1, 'won': True}
+        )
         request.session['last_xp_result'] = xp_result
-        grant_coins(request.user, config.coin_reward, 'password')
+        
+        coins_result = grant_coins(request.user, config.coin_reward, 'password')
+        
+        attempt.is_won         = True
+        attempt.completed_at   = timezone.now()
+        attempt.input_password = password
+        attempt.xp_earned      = config.xp_reward
+        attempt.coins_earned   = coins_result['final']
+        attempt.save()
+
         registrar_desafio_diario(request.user)
 
         return JsonResponse({'status': 'win', 'redirect': f'/minigames/cofre/{attempt.pk}/resultado/'})
@@ -402,6 +440,7 @@ def password_game_abandon(request, attempt_id):
     if not attempt.completed_at:
         attempt.completed_at = timezone.now()
         attempt.is_won       = False
+        attempt.abandoned    = True
         attempt.save()
     return JsonResponse({'status': 'abandoned', 'redirect': f'/minigames/cofre/{attempt.pk}/resultado/'})
 
@@ -410,6 +449,7 @@ def password_game_abandon(request, attempt_id):
 def password_result(request, attempt_id):
     attempt = get_object_or_404(PasswordAttempt, pk=attempt_id, player=request.user)
     duration = None
+    tem_token_retake = tem_efeito_ativo(request.user, 'TOKEN_RETAKE')
     if attempt.completed_at and attempt.started_at:
         duration = round((attempt.completed_at - attempt.started_at).total_seconds())
 
@@ -419,6 +459,7 @@ def password_result(request, attempt_id):
         'duration': duration,
         'config':   PasswordGameConfig.get(),
         'xp_result': xp_result,
+        'tem_token_retake': tem_token_retake,
     })
 
 # ─────────────────────────────────────────────
@@ -473,16 +514,86 @@ def start_decriptar(request):
         }
         for w in selected
     ]
+    bonus_time = get_tempo_extra_passivo(request.user)
+    if tem_efeito_ativo(request.user, 'EXTRA_LIFE_TIME'):
+        consumir_efeito_unico(request.user, 'EXTRA_LIFE_TIME')
+    bonus_life = get_vidas_extras(request.user)
+    fator      = get_fator_reducao_tempo(request.user)
+    penalty    = int(config.time_limit_seconds * (1 - fator)) if config.time_limit_seconds else 0
 
     DecriptarAttempt.objects.create(
-        player         = request.user,
-        config         = config,
-        date           = today,
-        words_sequence = words_sequence,
-        lives_remaining= config.max_lives,
+        player=request.user,
+        config=config,
+        date=today,
+        words_sequence=words_sequence,
+        lives_remaining=config.max_lives + bonus_life,
+        bonus_seconds=bonus_time,
+        penalty_seconds=penalty,
     )
     return redirect('minigames:play_decriptar')
 
+@login_required
+@require_POST
+def request_hint_decriptar(request):
+    try:
+        body = json.loads(request.body)
+        attempt_id = body.get('attempt_id')
+        word_index = int(body.get('word_index', -1))
+    except (ValueError, json.JSONDecodeError):
+        return JsonResponse({'error': 'Payload inválido.'}, status=400)
+
+    attempt = DecriptarAttempt.objects.filter(pk=attempt_id, player=request.user, completed_at__isnull=True).first()
+    if not attempt:
+        return JsonResponse({'error': 'Tentativa não encontrada.'}, status=404)
+
+    words = attempt.words_sequence
+    
+    if word_index < 0 or word_index >= len(words):
+        print(f"Erro: Índice {word_index} é inválido.")
+        return JsonResponse({'error': 'Índice inválido.'}, status=400)
+
+    word_data = words[word_index]
+    word_hint = word_data.get('dica', '')
+    
+
+    if not word_hint:
+        return JsonResponse({'error': 'Sem dica disponível.'}, status=400)
+
+    time_deducted = 0
+    penalty_applied = False
+
+    if not word_data.get('hint_used', False):
+        if attempt.free_hint_used:
+            words[word_index]['hint_used'] = True
+        elif tem_efeito_ativo(request.user, 'FREE_HINT'):
+            consumir_efeito_unico(request.user, 'FREE_HINT')
+            attempt.free_hint_used = True
+            words[word_index]['hint_used'] = True
+        else:
+            time_deducted = int((attempt.config.time_limit_seconds * attempt.config.hint_time_penalty_pct) / 100)
+            attempt.penalty_seconds += time_deducted
+            penalty_applied = True
+            words[word_index]['hint_used'] = True
+
+        attempt.words_sequence = words
+        attempt.save()
+
+    timer_expired = False
+    if attempt.config.time_limit_seconds and attempt.remaining_seconds() <= 0:
+        attempt.timer_expired = True
+        attempt.completed_at = timezone.now()
+        attempt.save()
+        timer_expired = True
+
+    print("--- FIM DEBUG DICA DECRIPTAR ---\n")
+    return JsonResponse({
+        'hint': word_hint,
+        'penalty_applied': penalty_applied,
+        'time_deducted': time_deducted,
+        'remaining_time': attempt.remaining_seconds(),
+        'timer_expired': timer_expired,
+        'redirect': f'/minigames/decriptar/resultado/{attempt.id}/' if timer_expired else None
+    })
 
 @login_required
 def play_decriptar(request):
@@ -509,9 +620,10 @@ def play_decriptar(request):
         {
             'index':    i,
             'shuffled': w['shuffled'],
-            'dica':     w['dica'],
             'length':   len(w['palavra']),
+            'hint_used': w.get('hint_used', False),
             'solved':   w['solved'],
+            'dica':      w.get('dica', '') if w.get('hint_used', False) else '',
         }
         for i, w in enumerate(attempt.words_sequence)
     ]
@@ -522,7 +634,7 @@ def play_decriptar(request):
         'words_payload':  json.dumps(words_payload),
         'remaining_time': attempt.remaining_seconds(),
         'total_words':    len(attempt.words_sequence),
-        'lives_range': range(config.max_lives),
+        'lives_range': range(attempt.lives_remaining + attempt.correct_count),
         'correct_count':  sum(1 for w in attempt.words_sequence if w['solved']),
     })
 
@@ -530,7 +642,6 @@ def play_decriptar(request):
 @login_required
 @require_POST
 def check_decriptar_word(request):
-    """AJAX — valida uma palavra. Nunca expõe a resposta ao cliente."""
     try:
         body       = json.loads(request.body)
         attempt_id = body.get('attempt_id')
@@ -546,7 +657,6 @@ def check_decriptar_word(request):
     if not attempt:
         return JsonResponse({'error': 'Tentativa não encontrada ou já encerrada.'}, status=404)
 
-    # Valida timer server-side
     if attempt.config.time_limit_seconds and attempt.remaining_seconds() == 0:
         attempt.timer_expired = True
         attempt.completed_at  = timezone.now()
@@ -574,10 +684,14 @@ def check_decriptar_word(request):
 
         if all_done:
             xp = attempt.correct_count * attempt.config.xp_per_word
+            moedas_base = attempt.config.coin_reward
+            coins_result = grant_coins(request.user, moedas_base, 'decriptar')
+            
             attempt.xp_earned    = xp
-            attempt.coins_earned = attempt.config.coin_reward
+            attempt.coins_earned = coins_result['final']
             attempt.completed_at = timezone.now()
             attempt.save()
+            
             contexto = {
                 'segundos_restantes': attempt.remaining_seconds(),
                 'erros': 3 - attempt.lives_remaining,
@@ -587,7 +701,6 @@ def check_decriptar_word(request):
             }
             xp_result = grant_xp(request.user, xp, 'decriptar', 'Decriptar concluído', contexto=contexto)
             request.session['last_xp_result'] = xp_result
-            grant_coins(request.user, attempt.config.coin_reward, 'decriptar')
             registrar_desafio_diario(request.user)
 
         return JsonResponse({
@@ -604,19 +717,28 @@ def check_decriptar_word(request):
         game_over = attempt.lives_remaining == 0
         if game_over:
             xp = attempt.correct_count * attempt.config.xp_per_word
+            moedas_base = attempt.config.coin_reward if attempt.correct_count > 0 else 0
+            
+            if moedas_base > 0:
+                coins_result = grant_coins(request.user, moedas_base, 'decriptar')
+                attempt.coins_earned = coins_result['final']
+            else:
+                attempt.coins_earned = 0
+
             attempt.xp_earned    = xp
-            attempt.coins_earned = attempt.config.coin_reward if attempt.correct_count > 0 else 0
             attempt.completed_at = timezone.now()
             attempt.save()
+            
             if xp > 0:
                 contexto={
                     'segundos_restantes': attempt.remaining_seconds(),
                     'tentativas': attempt.correct_count + (attempt.config.max_lives - attempt.lives_remaining),
                     'won': False,
                 }
-                grant_xp(request.user, xp, 'decriptar', 'Decriptar parcial', contexto=contexto)
-            if attempt.coins_earned > 0:
-                grant_coins(request.user, attempt.coins_earned, 'decriptar')
+                descricao_log = f'Decriptar parcial ({attempt.correct_count}/{len(attempt.words_sequence)})'
+                xp_result = grant_xp(request.user, xp, 'decriptar', descricao_log, contexto=contexto)
+                request.session['last_xp_result'] = xp_result
+                
             registrar_desafio_diario(request.user)
 
         return JsonResponse({
@@ -630,7 +752,6 @@ def check_decriptar_word(request):
 @login_required
 @require_POST
 def finish_decriptar(request):
-    """Abandonar ou timer expirado (POST via JS)."""
     try:
         body          = json.loads(request.body)
         attempt_id    = body.get('attempt_id')
@@ -647,25 +768,36 @@ def finish_decriptar(request):
         return JsonResponse({'error': 'Tentativa não encontrada.'}, status=404)
 
     xp = attempt.correct_count * attempt.config.xp_per_word
-    attempt.xp_earned     = xp if not timer_expired else 0
-    attempt.coins_earned  = attempt.config.coin_reward if (xp > 0 and not timer_expired) else 0
+    moedas_base = attempt.config.coin_reward if xp > 0 else 0
+    
+    if moedas_base > 0:
+        coins_result = grant_coins(request.user, moedas_base, 'decriptar')
+        attempt.coins_earned = coins_result['final']
+    else:
+        attempt.coins_earned = 0
+
+    attempt.xp_earned     = xp
     attempt.timer_expired = timer_expired
     attempt.abandoned     = abandoned
     attempt.completed_at  = timezone.now()
     attempt.save()
 
     if attempt.xp_earned > 0:
-        grant_xp(request.user, attempt.xp_earned, 'decriptar', 'Decriptar parcial', 
-                 contexto={
-                    'segundos_restantes': attempt.remaining_seconds(),
-                    'tentativas': attempt.correct_count + (attempt.config.max_lives - attempt.lives_remaining),
-                    'won': attempt.correct_count == len(attempt.words_sequence),
-                })
-    if attempt.coins_earned > 0:
-        grant_coins(request.user, attempt.coins_earned, 'decriptar')
+        descricao_log = f'Decriptar parcial ({attempt.correct_count}/{len(attempt.words_sequence)})'
+        xp_result = grant_xp(
+            request.user, 
+            attempt.xp_earned, 
+            'decriptar', 
+            descricao_log,
+            contexto={
+                'segundos_restantes': attempt.remaining_seconds(),
+                'tentativas': attempt.correct_count + (attempt.config.max_lives - attempt.lives_remaining),
+                'won': attempt.correct_count == len(attempt.words_sequence),
+            }
+        )
+        request.session['last_xp_result'] = xp_result
 
     return JsonResponse({'redirect': f'/minigames/decriptar/resultado/{attempt.id}/'})
-
 
 @login_required
 def decriptar_result(request, attempt_id):
@@ -673,6 +805,7 @@ def decriptar_result(request, attempt_id):
     total_words  = len(attempt.words_sequence)
     is_perfect   = attempt.correct_count == total_words and total_words > 0
     xp_result = request.session.pop('last_xp_result', None)
+    tem_token_retake = tem_efeito_ativo(request.user, 'TOKEN_RETAKE')
 
     return render(request, 'minigames/decriptar_result.html', {
         'attempt':     attempt,
@@ -680,6 +813,7 @@ def decriptar_result(request, attempt_id):
         'is_perfect':  is_perfect,
         'max_xp':      total_words * attempt.config.xp_per_word,
         'xp_result': xp_result,
+        'tem_token_retake': tem_token_retake,
     })
 # ─────────────────────────────────────────────
 # CÓDIGO (Termo)
@@ -712,18 +846,74 @@ def start_codigo(request):
     # Seleciona palavra — retorna objeto WordBank
     word_obj = config.select_word()
     if not word_obj:
-        messages.error(request, f'Nenhuma palavra de {config.word_length} letras no banco. Avise o administrador.')
+        messages.error(request, 'Nenhuma palavra disponível no banco. Avise o administrador.')
         return redirect('challenges:index')
 
+    max_attempts = CodigoConfig.attempts_for_length(len(word_obj.palavra))
+
+    bonus_time = get_tempo_extra_passivo(request.user)
+    fator      = get_fator_reducao_tempo(request.user)
+    penalty    = int(config.time_limit_seconds * (1 - fator)) if config.time_limit_seconds else 0
+
     CodigoAttempt.objects.create(
-        player      = request.user,
-        config      = config,
-        date        = today,
-        secret_word = word_obj.palavra, 
-        guesses     = [],
+        player=request.user,
+        config=config,
+        date=today,
+        secret_word=word_obj.palavra,
+        max_attempts=max_attempts,
+        guesses=[],
+        bonus_seconds=bonus_time,
+        penalty_seconds=penalty,
     )
     return redirect('minigames:play_codigo')
 
+@login_required
+@require_POST
+def request_hint_codigo(request):
+    try:
+        body = json.loads(request.body)
+        attempt_id = body.get('attempt_id')
+    except (ValueError, json.JSONDecodeError):
+        return JsonResponse({'error': 'Payload inválido.'}, status=400)
+
+    attempt = CodigoAttempt.objects.filter(pk=attempt_id, player=request.user, completed_at__isnull=True).first()
+    if not attempt:
+        return JsonResponse({'error': 'Tentativa não encontrada.'}, status=404)
+
+    word_hint = WordBank.objects.filter(palavra=attempt.secret_word, ativo=True).values_list('dica', flat=True).first()
+    
+    if not word_hint:
+        return JsonResponse({'error': 'Sem dica cadastrada no banco.'}, status=400)
+
+    time_deducted = 0
+    penalty_applied = False
+
+    if attempt.penalty_seconds == 0 and not attempt.free_hint_used:
+        if tem_efeito_ativo(request.user, 'FREE_HINT'):
+            consumir_efeito_unico(request.user, 'FREE_HINT')
+            attempt.free_hint_used = True
+        else:
+            time_deducted = int((attempt.config.time_limit_seconds * attempt.config.hint_time_penalty_pct) / 100)
+            attempt.penalty_seconds = time_deducted
+            penalty_applied = True
+        
+        attempt.save()
+
+    timer_expired = False
+    if attempt.config.time_limit_seconds and attempt.remaining_seconds() <= 0:
+        attempt.timer_expired = True
+        attempt.completed_at = timezone.now()
+        attempt.save()
+        timer_expired = True
+
+    return JsonResponse({
+        'hint': word_hint,
+        'penalty_applied': penalty_applied,
+        'time_deducted': time_deducted,
+        'remaining_time': attempt.remaining_seconds(),
+        'timer_expired': timer_expired,
+        'redirect': f'/minigames/codigo/resultado/{attempt.id}/' if timer_expired else None
+    })
 
 @login_required
 def play_codigo(request):
@@ -744,24 +934,25 @@ def play_codigo(request):
         attempt.save()
         return redirect('minigames:codigo_result', attempt_id=attempt.id)
 
+    hint_unlocked = attempt.penalty_seconds > 0 or attempt.free_hint_used
+    word_hint = ''
+    if hint_unlocked:
+        word_hint = WordBank.objects.filter(palavra=attempt.secret_word, ativo=True).values_list('dica', flat=True).first() or ''
+
     # Envia apenas os guesses já feitos (com feedback), nunca a palavra secreta
     guesses_payload = json.dumps(attempt.guesses)
-
-    # Busca a dica da palavra selecionada para exibir durante o jogo
-    word_hint = WordBank.objects.filter(
-        palavra=attempt.secret_word, ativo=True
-    ).values_list('dica', flat=True).first() or ''
 
     return render(request, 'minigames/codigo.html', {
         'attempt':        attempt,
         'config':         config,
         'word_length':    len(attempt.secret_word),
-        'max_attempts':   config.max_attempts,
+        'max_attempts':   attempt.max_attempts,
         'remaining_time': attempt.remaining_seconds(),
         'guesses_payload': guesses_payload,
         'xp_reward':      config.xp_reward,
-        'word_hint':       word_hint,
+        'word_hint':      word_hint,
     })
+
 
 
 @login_required
@@ -812,7 +1003,7 @@ def check_codigo_guess(request):
         return JsonResponse({'error': 'Apenas letras são permitidas.'}, status=400)
 
     # Verifica se já atingiu máximo de tentativas
-    if len(attempt.guesses) >= config.max_attempts:
+    if len(attempt.guesses) >= attempt.max_attempts:
         return JsonResponse({'error': 'Limite de tentativas atingido.'}, status=400)
 
     # Calcula feedback server-side
@@ -825,18 +1016,18 @@ def check_codigo_guess(request):
     attempt.guesses = guesses
 
     attempts_used = len(guesses)
-    game_over     = is_winner or attempts_used >= config.max_attempts
+    game_over     = is_winner or attempts_used >= attempt.max_attempts
 
     if game_over:
         attempt.won          = is_winner
         attempt.completed_at = timezone.now()
 
         if is_winner:
-            # XP cheio se acertou em até metade das tentativas, 50% depois
-            half = config.max_attempts // 2
+            half = attempt.max_attempts // 2
             xp   = config.xp_reward if attempts_used <= half else config.xp_reward // 2
+            coins_result = grant_coins(request.user, config.coin_reward, 'codigo')
             attempt.xp_earned    = xp
-            attempt.coins_earned = config.coin_reward
+            attempt.coins_earned = coins_result['final']
         else:
             attempt.xp_earned    = 0
             attempt.coins_earned = 0
@@ -851,8 +1042,6 @@ def check_codigo_guess(request):
                             'won': attempt.won,
                         })
             request.session['last_xp_result'] = xp_result
-            if attempt.coins_earned > 0:
-                grant_coins(request.user, attempt.coins_earned, 'codigo')
             registrar_desafio_diario(request.user)    
     else:
         attempt.save()
@@ -863,7 +1052,6 @@ def check_codigo_guess(request):
         'game_over':     game_over,
         'attempts_used': attempts_used,
         'redirect':      f'/minigames/codigo/resultado/{attempt.id}/' if game_over else None,
-        # Revela a palavra apenas quando o jogo termina
         'secret_word':   secret if game_over and not is_winner else None,
     })
 
@@ -871,8 +1059,9 @@ def check_codigo_guess(request):
 @login_required
 def codigo_result(request, attempt_id):
     attempt    = get_object_or_404(CodigoAttempt, pk=attempt_id, player=request.user)
-    is_perfect = attempt.won and len(attempt.guesses) <= attempt.config.max_attempts // 2
+    is_perfect = attempt.won and len(attempt.guesses) <= attempt.max_attempts // 2
     xp_result = request.session.pop('last_xp_result', None)
+    tem_token_retake = tem_efeito_ativo(request.user, 'TOKEN_RETAKE')
 
     return render(request, 'minigames/codigo_result.html', {
         'attempt':    attempt,
@@ -880,4 +1069,117 @@ def codigo_result(request, attempt_id):
         'is_perfect': is_perfect,
         'max_xp':     attempt.config.xp_reward,
         'xp_result': xp_result,
+        'tem_token_retake': tem_token_retake,
+    })
+
+
+@login_required
+@require_POST
+def retake_consumivel(request):
+    try:
+        body       = json.loads(request.body)
+        tipo       = body.get('tipo', '')
+        attempt_id = int(body.get('attempt_id', 0))
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return JsonResponse({'ok': False, 'mensagem': 'Dados inválidos.'}, status=400)
+
+    if tipo == 'patrol':
+        return JsonResponse({'ok': False, 'mensagem': 'Retake não disponível na Patrulha Diária.'}, status=400)
+
+    tipos_validos = ('quiz', 'decriptar', 'codigo', 'password')
+    if tipo not in tipos_validos:
+        return JsonResponse({'ok': False, 'mensagem': 'Tipo de desafio inválido.'}, status=400)
+
+    if not tem_efeito_ativo(request.user, 'TOKEN_RETAKE'):
+        return JsonResponse({'ok': False, 'mensagem': 'Nenhum Token de Retake ativo.'}, status=400)
+
+    attempt    = None
+    xp_estorno = 0
+    coins_estorno = 0
+    redirect_url  = ''
+
+    if tipo == 'quiz':
+        from apps.minigames.models import QuizAttempt
+        try:
+            attempt = QuizAttempt.objects.select_related('quiz').get(
+                pk=attempt_id, player=request.user, completed_at__isnull=False
+            )
+        except QuizAttempt.DoesNotExist:
+            return JsonResponse({'ok': False, 'mensagem': 'Tentativa não encontrada.'}, status=404)
+
+        max_xp = attempt.quiz.total_xp_possivel()
+        if max_xp > 0 and attempt.xp_earned >= max_xp:
+            return JsonResponse({'ok': False, 'mensagem': 'Você já obteve pontuação máxima.'}, status=400)
+
+        xp_estorno    = attempt.xp_earned
+        coins_estorno = attempt.quiz.coin_reward
+        quiz_id       = attempt.quiz.pk
+        attempt.delete()
+        redirect_url  = reverse('minigames:start_quiz', args=[quiz_id])
+
+    elif tipo == 'decriptar':
+        from apps.minigames.models import DecriptarAttempt
+        try:
+            attempt = DecriptarAttempt.objects.select_related('config').get(
+                pk=attempt_id, player=request.user, completed_at__isnull=False
+            )
+        except DecriptarAttempt.DoesNotExist:
+            return JsonResponse({'ok': False, 'mensagem': 'Tentativa não encontrada.'}, status=404)
+
+        total_words = len(attempt.words_sequence)
+        if attempt.correct_count == total_words and total_words > 0:
+            return JsonResponse({'ok': False, 'mensagem': 'Você já acertou todas as palavras.'}, status=400)
+
+        xp_estorno    = attempt.xp_earned
+        coins_estorno = attempt.coins_earned
+        attempt.delete()
+        redirect_url  = reverse('minigames:start_decriptar')
+
+    elif tipo == 'codigo':
+        from apps.minigames.models import CodigoAttempt
+        try:
+            attempt = CodigoAttempt.objects.select_related('config').get(
+                pk=attempt_id, player=request.user, completed_at__isnull=False
+            )
+        except CodigoAttempt.DoesNotExist:
+            return JsonResponse({'ok': False, 'mensagem': 'Tentativa não encontrada.'}, status=404)
+
+        if attempt.won:
+            return JsonResponse({'ok': False, 'mensagem': 'Você já venceu este desafio.'}, status=400)
+
+        xp_estorno    = attempt.xp_earned
+        coins_estorno = attempt.coins_earned
+        attempt.delete()
+        redirect_url  = reverse('minigames:start_codigo')
+
+    elif tipo == 'password':
+        from apps.minigames.models import PasswordAttempt
+        try:
+            attempt = PasswordAttempt.objects.select_related().get(
+                pk=attempt_id, player=request.user, completed_at__isnull=False
+            )
+        except PasswordAttempt.DoesNotExist:
+            return JsonResponse({'ok': False, 'mensagem': 'Tentativa não encontrada.'}, status=404)
+
+        if attempt.is_won:
+            return JsonResponse({'ok': False, 'mensagem': 'Você já venceu este desafio.'}, status=400)
+
+        xp_estorno    = attempt.xp_earned
+        coins_estorno = attempt.coins_earned
+        attempt.delete()
+        redirect_url  = reverse('minigames:password_play')
+
+    if xp_estorno > 0:
+        revoke_xp(request.user, xp_estorno, 'Retake: XP estornado')
+    if coins_estorno > 0:
+        revoke_coins(request.user, coins_estorno)
+
+    consumir_efeito_unico(request.user, 'TOKEN_RETAKE')
+
+    return JsonResponse({
+        'ok':          True,
+        'mensagem':    'Token usado! Boa sorte na nova tentativa.',
+        'redirect':    redirect_url,
+        'xp_estornado': xp_estorno,
+        'coins_estornado': coins_estorno,
     })

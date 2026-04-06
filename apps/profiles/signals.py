@@ -44,10 +44,14 @@ def log_xp_event(sender, instance, created, **kwargs):
     if not created:
         return
 
+    # Fontes com log resumo próprio — não gera log individual de XP
+    FONTES_COM_LOG_PROPRIO = {'missao'}
+    if instance.fonte in FONTES_COM_LOG_PROPRIO:
+        return
+
     from apps.profiles.log_service import registrar_log
 
     tipo = 'xp_gain' if instance.xp_total > 0 else 'xp_loss'
-
     registrar_log(
         user=instance.player,
         tipo=tipo,
@@ -55,11 +59,11 @@ def log_xp_event(sender, instance, created, **kwargs):
         descricao=instance.fonte,
         xp_delta=instance.xp_total,
         breakdown={
-            "xp_base":        instance.xp_base,
-            "bonus_breakdown": instance.breakdown,   # lista detalhada real
-            "xp_bonus_total": instance.xp_bonus,
-            "xp_final":       instance.xp_total,
-            "extra":          {"fonte": instance.fonte},
+            "xp_base":         instance.xp_base,
+            "bonus_breakdown": instance.breakdown,
+            "xp_bonus_total":  instance.xp_bonus,
+            "xp_final":        instance.xp_total,
+            "extra":           {"fonte": instance.fonte},
         }
     )
 
@@ -311,7 +315,7 @@ def _register_battle_pass_signals():
                     user=instance.player,
                     tipo='battle_pass',
                     titulo=f'Battle Pass — Tier {tier_num} Coletado',
-                    coin_delta=tier_obj.recompensa_coins,
+                    coin_delta=0,
                     breakdown={
                         "tier":                 tier_num,
                         "recompensa_tipo":      tier_obj.recompensa_tipo,
@@ -323,3 +327,82 @@ def _register_battle_pass_signals():
 
     except Exception:
         pass
+
+
+# ─────────────────────────────────────────────
+# SIGNALS — Derrota/Abandono em Minigames (xp_earned = 0)
+# ─────────────────────────────────────────────
+
+def _log_derrota_minigame(user, titulo, descricao):
+    from apps.profiles.log_service import registrar_log
+    registrar_log(
+        user=user,
+        tipo='xp_loss',
+        titulo=titulo, 
+        descricao=descricao,
+        xp_delta=0,
+    )
+
+
+def _is_derrota(instance):
+    """Retorna True se o attempt foi finalizado agora com 0 XP."""
+    return instance.completed_at is not None and instance.xp_earned == 0
+
+
+@receiver(post_save, sender='minigames.QuizAttempt')
+def log_quiz_derrota(sender, instance, **kwargs):
+    if not _is_derrota(instance):
+        return
+    motivo = 'Tempo esgotado' if instance.timer_expired else ('Abandonado' if instance.abandoned else 'Sem pontuação')
+    _log_derrota_minigame(
+        user=instance.player,
+        titulo=f'"{instance.quiz.titulo}" — {motivo}',
+        descricao='',
+    )
+
+
+@receiver(post_save, sender='minigames.PatrolAttempt')
+def log_patrol_derrota(sender, instance, **kwargs):
+    if not instance.completed or instance.won or instance.xp_earned != 0:
+        return
+    _log_derrota_minigame(
+        user=instance.player,
+        titulo='Patrulha — Tentativas esgotadas',
+        descricao='',
+    )
+
+
+@receiver(post_save, sender='minigames.PasswordAttempt')
+def log_password_derrota(sender, instance, **kwargs):
+    if not _is_derrota(instance):
+        return
+    motivo = 'Tempo esgotado' if instance.timer_expired else ('Abandonado' if instance.abandoned else 'Derrota')
+    _log_derrota_minigame(
+        user=instance.player,
+        titulo=f'Cofre de Senhas — {motivo}',
+        descricao='',
+    )
+
+
+@receiver(post_save, sender='minigames.DecriptarAttempt')
+def log_decriptar_derrota(sender, instance, **kwargs):
+    if not _is_derrota(instance):
+        return
+    motivo = 'Tempo esgotado' if instance.timer_expired else ('Abandonado' if instance.abandoned else 'Derrota')
+    _log_derrota_minigame(
+        user=instance.player,
+        titulo=f'Decriptar — {motivo}',
+        descricao='',
+    )
+
+
+@receiver(post_save, sender='minigames.CodigoAttempt')
+def log_codigo_derrota(sender, instance, **kwargs):
+    if not _is_derrota(instance):
+        return
+    motivo = 'Tempo esgotado' if instance.timer_expired else ('Abandonado' if instance.abandoned else 'Tentativas esgotadas')
+    _log_derrota_minigame(
+        user=instance.player,
+        titulo=f'Código "********" — {motivo}',
+        descricao='',
+    )

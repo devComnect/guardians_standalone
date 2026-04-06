@@ -14,24 +14,42 @@
     {# ── HERO SECTION ── #}
     <section class="profile-hero text-center">
         <div class="container position-relative">
-            
+                        
             <div class="hero-actions">
-                <div> 
-                    <a href="{% url 'profiles:editar' %}" class="btn-cyber-store font-tech" style="font-size:0.8rem; padding: 12px 28px; text-decoration: none;">
+                <div class="d-flex flex-column align-items-start gap-2">
+                    <a href="{% url 'profiles:editar' %}" class="btn-cyber-store font-tech" style="font-size:0.8rem; padding: 10px 22px; text-decoration: none;">
                         <i class="bi bi-pencil-square"></i> EDITAR
                     </a>
-                    <a href="{% url 'profiles:selecao_classe' %}" class="btn-cyber-store font-tech ms-2 {% if not player.classe or player.classe == 'none' %}btn-pulse-anim{% endif %}" style="font-size:0.8rem; padding: 12px 28px; text-decoration: none;">
-                        <i class="bi bi-diagram-3-fill"></i> CLASSE
-                    </a>
-                    <a href="#" class="btn-cyber-store font-tech ms-2 {% if bp_disponíveis and bp_disponíveis > 0 %}btn-pulse-anim{% endif %}"
-                    style="font-size:0.8rem; padding: 12px 28px; text-decoration: none;"
-                    data-bs-toggle="modal" data-bs-target="#modalBattlePass">
-                        <i class="bi bi-stars"></i> BATTLE PASS
-                        {% if bp_disponíveis and bp_disponíveis > 0 %}
-                            <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">{{ bp_disponíveis }}</span>
+                    <a href="{% url 'profiles:selecao_classe' %}" 
+                    class="btn-hero-classe font-tech {% if not player.classe or player.classe == 'none' %}btn-classe-urgente{% endif %}"
+                    style="text-decoration: none;">
+                        <i class="bi bi-diagram-3-fill"></i>
+                        {% if not player.classe or player.classe == 'none' %}
+                            ⚠ ESCOLHER CLASSE
+                        {% else %}
+                            CLASSE: {{ player.get_classe_display|upper }}
                         {% endif %}
                     </a>
                 </div>
+
+                <a href="#" class="btn-hero-bp font-tech"
+                data-bs-toggle="modal" data-bs-target="#modalBattlePass"
+                style="text-decoration: none;">
+                    <div class="bp-btn-inner">
+                        <i class="bi bi-stars bp-btn-icon"></i>
+                        <div class="bp-btn-text">
+                            <span class="bp-btn-label">BATTLE PASS</span>
+                            {% if bp_disponíveis and bp_disponíveis > 0 %}
+                                <span class="bp-btn-sub">{{ bp_disponíveis }} RECOMPENSA{{ bp_disponíveis|pluralize:"S" }} DISPONÍVE{{ bp_disponíveis|pluralize:"L,IS" }}</span>
+                            {% else %}
+                                <span class="bp-btn-sub">VER PROGRESSO</span>
+                            {% endif %}
+                        </div>
+                        {% if bp_disponíveis and bp_disponíveis > 0 %}
+                            <span class="bp-btn-badge">{{ bp_disponíveis }}</span>
+                        {% endif %}
+                    </div>
+                </a>
             </div>
 
             <div class="avatar-frame {% if frame_ativo %}has-cosmetic{% endif %}">
@@ -89,8 +107,8 @@
                     <div class="tech-progress-bar" style="width: {% widthratio player.xp_no_nivel_atual player.xp_necessario_nivel_atual 100 %}%;"></div>
                 </div>
                 <div class="xp-numbers font-tech">
-                    <span>XP ATUAL: {{ player.xp_no_nivel_atual }}</span>
-                    <span>PRÓX: {{ player.xp_necessario_nivel_atual }}</span>
+                    <span>XP TOTAL: {{ player.xp_total }}</span>
+                    <span>PRÓX LVL: {{ player.xp_no_nivel_atual }}/{{ player.xp_necessario_nivel_atual }}</span>
                 </div>
             </div>
 
@@ -249,7 +267,9 @@
                         </button>
                     </div>
                     <div class="p-3">
-                        <div class="destaque-slots d-flex gap-3" id="preview-build-atual" data-max="{{ max_destaques }}">
+                        <div class="destaque-slots d-flex gap-3" id="preview-build-atual" data-max="{{ max_destaques }}" 
+                            data-bs-toggle="modal" data-bs-target="#modalConquistas" 
+                            style="cursor: pointer;" title="Abrir Galeria de Conquistas">
                             {% for pa in conquistas_em_destaque %}
                                 <div class="achievement-item em-destaque rarity-{{ pa.achievement.raridade }}" 
                                     title="{{ pa.achievement.nome }} | {{ pa.achievement.get_bonus_type_display }}: +{{ pa.achievement.bonus_value }}">
@@ -268,17 +288,46 @@
                 <div class="cyber-card mb-4">
                     <div class="cyber-header d-flex justify-content-between align-items-center">
                         <div class="cyber-title"><i class="bi bi-wallet2 text-theme me-2"></i> CARTEIRA & MOCHILA</div>
-                        <button class="btn btn-outline-info font-tech btn-sm border-theme text-theme" data-bs-toggle="modal" data-bs-target="#modalInventario">
+                        <button class="btn btn-outline-info font-tech btn-sm border-theme text-theme {% if itens_novos_count > 0 %}btn-pulse-anim{% endif %}" 
+                                data-bs-toggle="modal" data-bs-target="#modalInventario" id="btn-abrir-mochila">
                             <i class="bi bi-backpack2"></i> ABRIR MOCHILA
+                            {% if itens_novos_count and itens_novos_count > 0 %}
+                                <span class="badge bg-warning text-dark ms-1 badge-notificacao" style="font-size:0.6rem;">{{ itens_novos_count }}</span>
+                            {% endif %}
                         </button>
                     </div>
                     <div class="p-3">
-                        <div class="wallet-display mb-0" style="clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);">
+                        <div class="wallet-display mb-3" style="clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);">
                             <div class="wallet-info">
                                 <span class="wallet-label font-tech text-uppercase" style="color: rgba(252,238,10,0.6); letter-spacing: 2px;">SALDO ATUAL</span>
                                 <span class="wallet-value font-tech" style="font-size: 1.5rem; color: var(--neon-gold); text-shadow: 0 0 12px rgba(252,238,10,0.6);">{{ player.coins }} <small>⬡</small></span>
                             </div>
                             <i class="bi bi-safe wallet-icon"></i>
+                        </div>
+
+                        {# ── PREVIEW PASSIVOS ── #}
+                        <div class="font-tech mb-2" style="font-size: 0.6rem; letter-spacing: 2px; color: rgba(255,255,255,0.3);">
+                            MÓDULOS PASSIVOS ATIVOS
+                        </div>
+                        <div class="d-flex gap-3 justify-content-start flex-wrap">
+                            {% for slot in slots_grade %}
+                                <div class="hud-module-slot-preview {% if slot.player_item %}occupied rarity-{{ slot.player_item.item.raridade|lower }}{% else %}empty{% endif %}">
+                                    {% if slot.player_item %}
+                                        <div class="card-inner">
+                                            <div class="card-front">
+                                                <i class="bi {{ slot.player_item.item.icon|default:'bi-cpu' }} hud-slot-icon-preview"></i>
+                                                <span class="hud-slot-name-preview font-tech">{{ slot.player_item.item.name }}</span>
+                                            </div>
+                                            <div class="card-back">
+                                                <p class="card-back-desc-preview font-tech">{{ slot.player_item.item.description }}</p>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <i class="bi bi-dash-square-dotted" style="font-size: 1.2rem; color: rgba(255,255,255,0.1);"></i>
+                                        <span class="font-tech mt-1" style="font-size: 0.45rem; letter-spacing: 1px; color: rgba(255,255,255,0.15);">VAZIO</span>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
@@ -373,7 +422,8 @@
         equiparPassivo:   "{% url 'profiles:equipar_passivo' %}",
         toggleConquista:  "{% url 'profiles:conquista_destaque' %}",
         usarConsumivel:   "{% url 'profiles:usar_consumivel' %}",
-        usarRetake:       "{% url 'profiles:usar_retake' %}"
+        usarRetake:       "{% url 'profiles:usar_retake' %}",
+        marcarVisto:      "{% url 'profiles:inventario_visto' %}"
     };
     window.RETAKE_TOKENS = parseInt("{{ retake_token.usos_restantes|default:'0' }}");
 </script>
@@ -386,6 +436,7 @@
         codigo: Number("{{ bonus.matriz_radar.codigo_xp }}".replace(',', '.')) || 0,
         decriptar: Number("{{ bonus.matriz_radar.decriptar_xp }}".replace(',', '.')) || 0,
         patrulha: Number("{{ bonus.matriz_radar.patrulha_xp }}".replace(',', '.')) || 0,
+        cofre: Number("{{ bonus.matriz_radar.cofre_xp }}".replace(',', '.')) || 0,
         //moedas: Number("{{ bonus.matriz_radar.moedas }}".replace(',', '.')) || 0
     };
 </script>
@@ -420,7 +471,7 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(ctxRadar, {
             type: 'radar',
             data: {
-                labels: ['CÓDIGO', 'DECRIPTAR', 'PATRULHA', 'QUIZ'],
+                labels: ['CÓDIGO', 'DECRIPTAR', 'PATRULHA', 'COFRE', 'QUIZ'],
                 datasets: [
                     {
                         label: 'Fundo',
@@ -437,6 +488,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             window.RADAR_DATA.codigo, 
                             window.RADAR_DATA.decriptar, 
                             window.RADAR_DATA.patrulha, 
+                            window.RADAR_DATA.cofre,
                             //window.RADAR_DATA.moedas, 
                             window.RADAR_DATA.quiz
                         ],

@@ -160,6 +160,10 @@ class QuizAttempt(models.Model):
     abandoned       = models.BooleanField(default=False)
     timer_expired   = models.BooleanField(default=False)
     used_retake_token = models.BooleanField(default=False)
+    bonus_seconds = models.PositiveIntegerField(default=0)
+    penalty_seconds = models.PositiveIntegerField(default=0)
+    coins_earned    = models.PositiveSmallIntegerField(default=0)
+
 
     class Meta:
         verbose_name = 'Tentativa de Quiz'
@@ -175,14 +179,10 @@ class QuizAttempt(models.Model):
         return self.completed_at is not None
 
     def remaining_seconds(self):
-        """Calcula tempo restante com base no servidor — anti-cheat."""
         if not self.quiz.time_limit_seconds:
             return 0
-        from datetime import timezone as dt_tz
         elapsed = (timezone.now() - self.started_at).total_seconds()
-        remaining = self.quiz.time_limit_seconds - elapsed
-        return max(0, int(remaining))
-    
+        return max(0, int(self.quiz.time_limit_seconds - elapsed - self.penalty_seconds + self.bonus_seconds))
 
 # ─────────────────────────────────────────────
 # PATRULHA DIÁRIA (Codebreaker)
@@ -212,6 +212,23 @@ class PatrolAttempt(models.Model):
         status = 'Venceu' if self.won else ('Completa' if self.completed else 'Em andamento')
         return f'{self.player.username} — Patrulha {self.date} [{status}]'
     
+class PatrolConfig(models.Model):
+    max_attempts  = models.PositiveSmallIntegerField(default=10, verbose_name='Máx. tentativas por rodada')
+    xp_base       = models.PositiveSmallIntegerField(default=100, verbose_name='XP base')
+    coin_min      = models.PositiveSmallIntegerField(default=10,  verbose_name='Coins mínimo')
+    coin_max      = models.PositiveSmallIntegerField(default=20,  verbose_name='Coins máximo')
+    patrol_limit  = models.PositiveSmallIntegerField(default=5,   verbose_name='Limite de patrulhas (janela 7 dias)')
+
+    class Meta:
+        verbose_name        = 'Configuração da Patrulha'
+        verbose_name_plural = 'Configuração da Patrulha'
+
+    def __str__(self):
+        return 'Configuração da Patrulha'
+
+    def has_add_permission(self, request):
+        return not PatrolConfig.objects.exists()
+    
 
 # ─────────────────────────────────────────────
 # COFRE DE SENHAS (Password Game)
@@ -225,6 +242,8 @@ class PasswordGameConfig(models.Model):
     rules_count_easy    = models.PositiveSmallIntegerField(default=2)
     rules_count_medium  = models.PositiveSmallIntegerField(default=2)
     rules_count_hard    = models.PositiveSmallIntegerField(default=1)
+    rules_count_insane    = models.PositiveSmallIntegerField(default=1)
+    rules_count_math    = models.PositiveSmallIntegerField(default=1)
     active_days         = models.CharField(
         max_length=20, default='0,1,2,3,4,5,6',
         help_text='Dias da semana separados por vírgula (0=Seg, 6=Dom)'
@@ -263,6 +282,11 @@ class PasswordAttempt(models.Model):
     xp_earned       = models.PositiveSmallIntegerField(default=0)
     coins_earned    = models.PositiveSmallIntegerField(default=0)
     input_password  = models.CharField(max_length=500, blank=True)
+    abandoned     = models.BooleanField(default=False)
+    timer_expired = models.BooleanField(default=False)
+    bonus_seconds = models.PositiveIntegerField(default=0)
+    penalty_seconds = models.PositiveIntegerField(default=0)
+
 
     class Meta:
         verbose_name = 'Tentativa: Cofre de Senhas'
@@ -278,7 +302,7 @@ class PasswordAttempt(models.Model):
         if not config.time_limit_seconds:
             return 0
         elapsed = (timezone.now() - self.started_at).total_seconds()
-        return max(0, int(config.time_limit_seconds - elapsed))
+        return max(0, int(config.time_limit_seconds - elapsed - self.penalty_seconds + self.bonus_seconds))
     
 # ─────────────────────────────────────────────
 # DECRIPTAR (Anagrama)
@@ -294,6 +318,7 @@ class DecriptarConfig(models.Model):
     words_count_hard   = models.PositiveSmallIntegerField(default=1, verbose_name='Palavras difíceis / sessão')
     max_lives          = models.PositiveSmallIntegerField(default=3)
     ativo              = models.BooleanField(default=True)
+    hint_time_penalty_pct = models.PositiveSmallIntegerField(default=15, help_text='Penalidade de tempo (%) ao usar dica')
 
     # Dias da semana (booleanos — mais amigável no admin)
     day_seg = models.BooleanField(default=True,  verbose_name='Segunda-feira')
@@ -346,6 +371,9 @@ class DecriptarAttempt(models.Model):
     timer_expired   = models.BooleanField(default=False)
     started_at      = models.DateTimeField(auto_now_add=True)
     completed_at    = models.DateTimeField(null=True, blank=True)
+    penalty_seconds = models.PositiveIntegerField(default=0)
+    free_hint_used  = models.BooleanField(default=False) 
+    bonus_seconds = models.PositiveIntegerField(default=0)
 
     class Meta:
         unique_together = ('player', 'date')
@@ -360,7 +388,7 @@ class DecriptarAttempt(models.Model):
         if not self.config.time_limit_seconds:
             return 0
         elapsed = (timezone.now() - self.started_at).total_seconds()
-        return max(0, int(self.config.time_limit_seconds - elapsed))
+        return max(0, int(self.config.time_limit_seconds - elapsed - self.penalty_seconds + self.bonus_seconds))
 
     @property
     def is_completed(self):
@@ -373,21 +401,12 @@ class DecriptarAttempt(models.Model):
 
 class CodigoConfig(models.Model):
     """Configuração singleton do jogo Código."""
-    DIFICULDADE_CHOICES = [
-        ('facil',   'Fácil'),
-        ('medio',   'Médio'),
-        ('dificil', 'Difícil'),
-    ]
 
-    time_limit_seconds = models.PositiveIntegerField(default=0,  help_text='0 = sem limite')
+    time_limit_seconds = models.PositiveIntegerField(default=0, help_text='0 = sem limite')
     xp_reward          = models.PositiveSmallIntegerField(default=200)
     coin_reward        = models.PositiveSmallIntegerField(default=20)
-    word_length        = models.PositiveSmallIntegerField(default=5,
-                            help_text='Comprimento da palavra (filtra banco automaticamente)')
-    max_attempts       = models.PositiveSmallIntegerField(default=6)
-    dificuldade        = models.CharField(max_length=10, choices=DIFICULDADE_CHOICES, default='medio')
     ativo              = models.BooleanField(default=True)
-
+    hint_time_penalty_pct = models.PositiveSmallIntegerField(default=15, help_text='Penalidade de tempo (%) ao usar dica')
     day_seg = models.BooleanField(default=False, verbose_name='Segunda-feira')
     day_ter = models.BooleanField(default=True,  verbose_name='Terça-feira')
     day_qua = models.BooleanField(default=False, verbose_name='Quarta-feira')
@@ -401,7 +420,7 @@ class CodigoConfig(models.Model):
         verbose_name_plural = 'Config — Código'
 
     def __str__(self):
-        return f'Configuração Código ({self.word_length} letras / {self.get_dificuldade_display()})'
+        return 'Configuração Código'
 
     def is_active_today(self):
         today = timezone.localdate().weekday()
@@ -409,41 +428,56 @@ class CodigoConfig(models.Model):
                  self.day_qui, self.day_sex, self.day_sab, self.day_dom]
         return self.ativo and days[today]
 
+    @staticmethod
+    def attempts_for_length(length: int) -> int:
+        if length <= 5:
+            return 6
+        if length == 6:
+            return 7
+        return 8
+
     def select_word(self):
         """
-        Escolhe uma palavra do banco.
-        - Filtra pelo comprimento configurado
-        - Dificuldade rotaciona automaticamente para garantir variedade
-        - Retorna o objeto WordBank diretamente
+        Sorteia comprimento (5 até máximo disponível) e dificuldade aleatoriamente.
+        Retorna objeto WordBank ou None.
         """
-        from apps.minigames.models import WordBank
         import random
+        from apps.minigames.models import WordBank
 
-        # Tenta na ordem: medio → facil → dificil (fallback completo)
-        dificuldades = ['medio', 'facil', 'dificil']
-        
-        for dif in dificuldades:
-            pool = list(
-                WordBank.objects.filter(
-                    ativo=True,
-                    comprimento=self.word_length,
-                    dificuldade=dif,
+        # Comprimentos disponíveis no banco (mínimo 5)
+        comprimentos = list(
+            WordBank.objects.filter(ativo=True, comprimento__gte=5)
+            .values_list('comprimento', flat=True)
+            .distinct()
+        )
+        if not comprimentos:
+            return None
+
+        random.shuffle(comprimentos)
+
+        dificuldades = ['facil', 'medio', 'dificil']
+
+        for comprimento in comprimentos:
+            random.shuffle(dificuldades)
+            for dif in dificuldades:
+                pool = list(
+                    WordBank.objects.filter(
+                        ativo=True,
+                        comprimento=comprimento,
+                        dificuldade=dif,
+                    )
                 )
-            )
-            if pool:
-                return random.choice(pool)
+                if pool:
+                    return random.choice(pool)
 
-        # Último recurso: qualquer palavra com o comprimento certo
-        pool = list(WordBank.objects.filter(ativo=True, comprimento=self.word_length))
-        return random.choice(pool) if pool else None
+        return None
 
 
 class CodigoAttempt(models.Model):
     player       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='codigo_attempts')
     config       = models.ForeignKey(CodigoConfig, on_delete=models.CASCADE)
     date         = models.DateField()
-    secret_word  = models.CharField(max_length=20)  # Armazenada no servidor — nunca enviada ao cliente
-    # Formato: [{'guess': 'SENHA', 'feedback': ['correct','absent',...]}, ...]
+    secret_word  = models.CharField(max_length=20) 
     guesses      = models.JSONField(default=list)
     won          = models.BooleanField(default=False)
     xp_earned    = models.PositiveSmallIntegerField(default=0)
@@ -452,6 +486,10 @@ class CodigoAttempt(models.Model):
     timer_expired= models.BooleanField(default=False)
     started_at   = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    max_attempts = models.PositiveSmallIntegerField(default=6)
+    penalty_seconds = models.PositiveIntegerField(default=0)
+    free_hint_used  = models.BooleanField(default=False)
+    bonus_seconds = models.PositiveIntegerField(default=0)
 
     class Meta:
         unique_together = ('player', 'date', 'config')
@@ -466,7 +504,8 @@ class CodigoAttempt(models.Model):
         if not self.config.time_limit_seconds:
             return 0
         elapsed = (timezone.now() - self.started_at).total_seconds()
-        return max(0, int(self.config.time_limit_seconds - elapsed))
+        # Soma o bônus e desconta as penalidades de dicas
+        return max(0, int(self.config.time_limit_seconds - elapsed - self.penalty_seconds + self.bonus_seconds))
 
     @property
     def is_completed(self):

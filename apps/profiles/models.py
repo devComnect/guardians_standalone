@@ -15,30 +15,25 @@ class Player(models.Model):
         ('hacker',    'Hacker'),
     ]
 
-    user          = models.OneToOneField(User, on_delete=models.CASCADE, related_name='player')
-    display_name  = models.CharField(max_length=60, blank=True)
-    avatar        = models.ImageField(upload_to='avatars/', blank=True, null=True)
-    classe        = models.CharField(max_length=20, choices=CLASSE_CHOICES, default='guardian')
-    bio           = models.TextField(blank=True)
+    user           = models.OneToOneField(User, on_delete=models.CASCADE, related_name='player')
+    display_name   = models.CharField(max_length=60, blank=True)
+    avatar         = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    classe         = models.CharField(max_length=20, choices=CLASSE_CHOICES, default='guardian')
+    bio            = models.TextField(blank=True)
 
-    # Progressão
-    xp_total      = models.PositiveIntegerField(default=0)
-    level         = models.PositiveSmallIntegerField(default=1)
-    coins         = models.PositiveIntegerField(default=0)
-    streak_days   = models.PositiveSmallIntegerField(default=0)
+    xp_total       = models.PositiveIntegerField(default=0)
+    level          = models.PositiveSmallIntegerField(default=1)
+    coins          = models.PositiveIntegerField(default=0)
+    streak_days    = models.PositiveSmallIntegerField(default=0)
     last_play_date = models.DateField(null=True, blank=True)
 
-    # Troca de classe
     classe_trocada_em = models.DateTimeField(null=True, blank=True)
 
     created_at    = models.DateTimeField(auto_now_add=True)
     updated_at    = models.DateTimeField(auto_now=True)
 
-    #Ofensiva
-    ofensiva        = models.PositiveIntegerField(default=0,
-        help_text='Total acumulado de ofensiva (sem teto)')
-    last_challenge_date = models.DateField(null=True, blank=True,
-        help_text='Último dia em que completou pelo menos um desafio')
+    ofensiva      = models.PositiveIntegerField(default=0)
+    last_challenge_date = models.DateField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'Player'
@@ -49,8 +44,9 @@ class Player(models.Model):
 
     @staticmethod
     def xp_para_nivel(nivel):
-        """Curva agressiva: começa fácil, cresce rapidamente."""
-        return int(50 * (nivel ** 2.5))
+        if nivel <= 10:
+            return 160 * nivel
+        return int(16 * (nivel ** 2))
 
     @property
     def xp_proximo_nivel(self):
@@ -64,12 +60,10 @@ class Player(models.Model):
 
     @property
     def xp_no_nivel_atual(self):
-        """XP acumulado dentro do nível corrente."""
         return self.xp_total - self.xp_nivel_anterior
 
     @property
     def xp_necessario_nivel_atual(self):
-        """Quanto XP é necessário para completar o nível atual."""
         return self.xp_proximo_nivel - self.xp_nivel_anterior
 
     @property
@@ -82,7 +76,6 @@ class Player(models.Model):
     @property
     def xp_para_proximo_nivel(self):
         return self.xp_proximo_nivel
-
 
 # ─────────────────────────────────────────────
 # PERKS
@@ -473,22 +466,15 @@ class PlayerBattlePass(models.Model):
 
 class SystemLog(models.Model):
     TIPO_CHOICES = [
-        ('xp_gain',       'Ganho de XP'),
-        ('xp_loss',       'Perda de XP'),
-        ('level_up',      'Level Up'),
-        ('coin_gain',     'Ganho de Moedas'),
-        ('coin_loss',     'Perda de Moedas'),
-        ('item_purchase', 'Compra de Item'),
-        ('item_sell',     'Venda de Item'),
-        ('item_activate', 'Ativação de Consumível'),
-        ('store_reroll',  'Reroll da Loja'),
-        ('achievement',   'Conquista Desbloqueada'),
-        ('mission_claim', 'Missão Resgatada'),
-        ('battle_pass',   'Recompensa Battle Pass'),
-        ('classe_change', 'Troca de Classe'),
-        ('system',        'Sistema'),
+    ('xp_global',    'Bônus XP Global (%)'),
+    ('xp_quiz',      'Bônus XP em Quiz (%)'),
+    ('xp_decriptar', 'Bônus XP em Decriptar (%)'),
+    ('xp_codigo',    'Bônus XP em Código (%)'),
+    ('xp_password',  'Bônus XP em Cofre de Senhas (%)'),
+    ('coin_bonus',   'Bônus de Moedas (%)'),
+    ('add_time',     'Tempo Extra em Desafios (segundos)'),
     ]
-
+    
     player     = models.ForeignKey(User, on_delete=models.CASCADE, related_name='system_logs')
     tipo       = models.CharField(max_length=20, choices=TIPO_CHOICES)
     titulo     = models.CharField(max_length=200)
@@ -506,3 +492,57 @@ class SystemLog(models.Model):
 
     def __str__(self):
         return f'{self.player.username} [{self.tipo}] {self.titulo}'
+    
+
+# ─────────────────────────────────────────────
+# RECONHECIMETO E INFRAÇÃO
+# ─────────────────────────────────────────────    
+
+class EventoPontos(models.Model):
+    TIPO_CHOICES = [
+        ('recognition', '⭐ Reconhecimento'),
+        ('infraction',  '⚠️ Infração'),
+    ]
+
+    player    = models.ForeignKey(User, on_delete=models.CASCADE, related_name='eventos_pontos')
+    tipo      = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    xp_valor  = models.PositiveIntegerField(help_text='Valor absoluto de XP (nunca negativo)')
+    descricao = models.CharField(max_length=300)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    criado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, 
+                                   related_name='eventos_criados')
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+        if not is_new:
+            return  # só aplica na criação
+
+        from apps.profiles.models import SystemLog  # ajuste o import
+        player = getattr(self.player, 'player', None)
+        if not player:
+            return
+
+        if self.tipo == 'infraction':
+            delta = -self.xp_valor
+            player.xp_total = max(0, player.xp_total + delta)
+            tipo_log = 'xp_loss'
+        else:
+            delta = self.xp_valor
+            player.xp_total += delta
+            tipo_log = 'xp_gain'
+
+        player.save()
+
+        SystemLog.objects.create(
+            player    = self.player,
+            tipo      = tipo_log,
+            titulo    = f'{"Infração" if self.tipo == "infraction" else "Reconhecimento"} — {self.descricao[:60]}',
+            descricao = self.descricao,
+            xp_delta  = delta,
+        )
+
+    class Meta:
+        verbose_name = 'Evento de Pontos'
+        verbose_name_plural = 'Eventos de Pontos'
+        ordering = ['-criado_em']

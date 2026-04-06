@@ -116,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const pNome = document.getElementById('ach-preview-nome');
     const pDesc = document.getElementById('ach-preview-desc');
+    const pReq  = document.getElementById('ach-preview-req');
     const pBonus = document.getElementById('ach-preview-bonus');
 
     // Função segura para montar os sockets sem perder os itens
@@ -143,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updatePreview(item) {
         pNome.textContent = item.dataset.nome || '???';
         pDesc.textContent = item.dataset.desc || '';
+        pReq.textContent  = item.dataset.req || '-';
         pBonus.textContent = item.dataset.bonus || '-';
         
         const previewImgContainer = document.querySelector('#ach-preview-img .achievement-item');
@@ -238,8 +240,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Delegação para o Hover (Preview)
     document.addEventListener('mouseover', (e) => {
         const item = e.target.closest('.achievement-item');
+        
         if (item && (areaDestaque?.contains(item) || areaInventario?.contains(item))) {
             updatePreview(item);
+            
+            if (!item.classList.contains('spin-active')) {
+                item.classList.add('spin-active');
+                item.addEventListener('animationend', () => {
+                    item.classList.remove('spin-active');
+                }, { once: true });
+            }
         }
     });
 
@@ -262,22 +272,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Equipar Cosmético
     document.querySelectorAll('.btn-cosmetico').forEach(btn => {
         btn.addEventListener('click', async function() {
-            SFX.click();
+            // Validação de segurança
+            if (this.classList.contains('is-equipped') || this.dataset.equipado === 'true') {
+                if (typeof SFX !== 'undefined') SFX.error();
+                showToast('Este cosmético já está ativo no seu perfil.', 'error');
+                return;
+            }
+
+            if (typeof SFX !== 'undefined') SFX.click();
             const { ok, data } = await cyberFetch(window.PROFILE_URLS.equiparCosmetico, { 
                 player_item_id: this.dataset.piId 
             });
 
             if (ok && data.ok) {
-                SFX.equip();
+                if (typeof SFX !== 'undefined') SFX.equip();
                 showToast('Cosmético atualizado.', 'ok');
                 setTimeout(() => location.reload(), 600);
             } else {
-                SFX.error();
+                if (typeof SFX !== 'undefined') SFX.error();
                 showToast(data.error || 'Erro ao equipar.', 'error');
             }
         });
     });
-
     // ── Equipar Passivo no Slot
     document.querySelectorAll('.inv-slot-select').forEach(sel => {
         sel.addEventListener('change', async function() {
@@ -418,7 +434,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (typeof SFX !== 'undefined') SFX.click();
         
-        // Trava a UI em estado de injeção
         injectorContainer.className = 'injector-firing';
         injectorThumb.style.transform = `translateX(${maxDrag}px)`;
         injectorText.innerHTML = '<i class="bi bi-cpu me-2"></i> INJETANDO CÓDIGO...';
@@ -429,18 +444,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (ok && data.ok) {
             if (typeof SFX !== 'undefined') SFX.equip();
-            if (typeof showToast !== 'undefined') showToast(data.mensagem || 'Carga tática injetada.', 'ok');
+            if (typeof showToast !== 'undefined') showToast(' Carga tática injetada.', 'ok');
             injectorText.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> SUCESSO';
             setTimeout(() => location.reload(), 1000);
         } else {
             if (typeof SFX !== 'undefined') SFX.error();
-            if (typeof showToast !== 'undefined') showToast(data.mensagem || 'Falha ao injetar carga.', 'error');
             
-            // Falhou? Reseta o slider para o estado 'ready'
             injectorContainer.className = 'injector-ready';
-            injectorText.innerHTML = 'FALHA. TENTE NOVAMENTE <i class="bi bi-chevron-double-right ms-2"></i>';
+            injectorText.innerHTML = `${('ITEM JÁ ATIVO NO PERFIL').toUpperCase()} <i class="bi bi-exclamation-triangle-fill ms-2"></i>`;
             injectorThumb.style.transform = 'translateX(0px)';
             injectorFill.style.width = '0px';
+
+            setTimeout(() => {
+                if (consumivelSelecionadoId) {
+                    injectorText.innerHTML = 'DESLIZE PARA INJETAR <i class="bi bi-chevron-double-right ms-2"></i>';
+                }
+            }, 3500);
         }
     }
 
@@ -513,6 +532,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 SFX.error();
                 showToast(data.error || 'Erro ao aplicar token.', 'error');
             }
+        });
+    });
+
+    // ── Remover notificação visual da mochila ao abrir
+    const btnMochila = document.getElementById('btn-abrir-mochila');
+    if (btnMochila) {
+        btnMochila.addEventListener('click', async function() {
+            this.classList.remove('btn-pulse-anim');
+            
+            document.querySelectorAll('.badge-notificacao, .tab-badge').forEach(badge => badge.remove());
+            
+            if (window.PROFILE_URLS && window.PROFILE_URLS.marcarVisto) {
+                await cyberFetch(window.PROFILE_URLS.marcarVisto, {});
+            }
+        });
+    }
+
+    document.querySelectorAll('.cyber-tabs .nav-link').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const badge = this.querySelector('.tab-badge');
+            if (badge) badge.remove();
         });
     });
 

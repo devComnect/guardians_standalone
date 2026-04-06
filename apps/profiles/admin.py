@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 from django.utils.html import format_html
-from .models import (Player, Perk, XPEvent, PlayerNotification, ClasseConfig, OfensivaConfig, Achievement, PlayerAchievement, AchievementConfig, SystemLog,
+from .models import (Player, Perk, XPEvent, PlayerNotification, ClasseConfig, OfensivaConfig, Achievement, PlayerAchievement, AchievementConfig, SystemLog, EventoPontos,
 BattlePassConfig, BattlePassTier, PlayerBattlePass)
 from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse
@@ -245,14 +245,12 @@ class PlayerAdmin(admin.ModelAdmin):
             PatrolAttempt, PasswordAttempt,
         )
         from apps.profiles.models import (
-            XPEvent, PlayerNotification, PlayerAchievement,
+            XPEvent, PlayerNotification, PlayerAchievement, PlayerBattlePass, EventoPontos
         )
         from apps.rankings.models import RankingSnapshot
         from apps.missions.models import UserMissionSet
         from apps.missions.services import MissionService
         from apps.store.models import PlayerItem, ActiveEffect, DailyStore, StoreTransaction
-        from apps.profiles.models import PlayerBattlePass
-
 
 
         count = queryset.count()
@@ -297,6 +295,8 @@ class PlayerAdmin(admin.ModelAdmin):
             DailyStore.objects.filter(player=user).delete()
             StoreTransaction.objects.filter(player=user).delete()  # ⚠️ ambiente de teste apenas
             bp_count = PlayerBattlePass.objects.filter(player=user).count()
+            eventos_count = EventoPontos.objects.filter(player=user).count()
+
             PlayerBattlePass.objects.filter(player=user).delete()
             
             # ── 1º PASSO: Zera o perfil do player e SALVA
@@ -317,7 +317,9 @@ class PlayerAdmin(admin.ModelAdmin):
             PlayerNotification.objects.filter(player=user).delete()
             PlayerAchievement.objects.filter(player=user).delete()
             RankingSnapshot.objects.filter(player=user).delete()
-            SystemLog.objects.filter(player=user).delete() # <-- APAGA O LOG "FANTASMA" AQUI
+            SystemLog.objects.filter(player=user).delete()
+            EventoPontos.objects.filter(player=user).delete()
+
 
             print(f"[RESET DEBUG] Usuário: {user.username}")
             print(f"  ├─ Itens removidos:           {itens_count}")
@@ -326,6 +328,7 @@ class PlayerAdmin(admin.ModelAdmin):
             print(f"  ├─ Transações removidas:      {transacoes_count}")
             print(f"  ├─ System logs removidos:     {system_logs_count}")
             print(f"  ├─ Battle Passes removidos:   {bp_count}")
+            print(f"  ├─ Eventos de pontos removidos: {eventos_count}")
             print(f"  └─ Perfil zerado ✅")
 
         self.message_user(
@@ -547,3 +550,19 @@ class SystemLogAdmin(admin.ModelAdmin):
     list_filter   = ('tipo', 'criado_em')
     search_fields = ('player__username', 'titulo')
     readonly_fields = ('player', 'tipo', 'titulo', 'descricao', 'xp_delta', 'coin_delta', 'breakdown', 'criado_em')
+
+
+
+@admin.register(EventoPontos)
+class EventoPontosAdmin(admin.ModelAdmin):
+    list_display  = ('player', 'tipo', 'xp_valor', 'descricao', 'criado_por', 'criado_em')
+    list_filter   = ('tipo',)
+    search_fields = ('player__username', 'descricao')
+    readonly_fields = ('criado_em',)
+
+    def save_model(self, request, obj, form, change):
+        obj.criado_por = request.user
+        super().save_model(request, obj, form, change)
+
+    def has_change_permission(self, request, obj=None):
+        return False  # imutável após criação

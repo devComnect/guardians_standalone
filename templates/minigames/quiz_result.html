@@ -99,8 +99,8 @@
             </div>
             <div class="result-stat-cell">
                 <span class="stat-icon"><i class="bi bi-lightning-charge-fill"></i></span>
-                <span class="stat-value">{{ max_xp }}</span>
-                <span class="stat-label">XP MÁXIMO</span>
+                <span class="stat-value">{{ attempt.coins_earned }}</span>
+                <span class="stat-label"> COINS</span>
             </div>
         </div>
 
@@ -192,7 +192,19 @@
         </div>
         {% endif %}
 
+
         <div class="result-actions">
+            {% if tem_token_retake and not is_perfect %}
+            <button
+                class="btn-result btn-retake"
+                id="btnRetake"
+                data-tipo="quiz"
+                data-attempt-id="{{ attempt.pk }}"
+                data-is-perfect="{{ is_perfect|yesno:'true,false' }}">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                <span>USAR TOKEN DE RETAKE</span>
+            </button>
+            {% endif %}
             <a href="{% url 'challenges:index' %}" class="btn-result">
                 <i class="bi bi-arrow-left"></i> <span>VOLTAR AOS DESAFIOS</span>
             </a>
@@ -203,6 +215,47 @@
 
     </div>{# /result-panel #}
 </div>{# /result-wrapper #}
+
+<script>
+(function () {
+    const btn = document.getElementById('btnRetake');
+    if (!btn) return;
+ 
+    btn.addEventListener('click', function () {
+        if (!confirm('Usar Token de Retake? Seu XP e coins desta tentativa serão estornados e você poderá refazer o desafio.')) return;
+ 
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> <span>PROCESSANDO...</span>';
+ 
+        fetch("{% url 'minigames:retake_consumivel' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({
+                tipo:       btn.dataset.tipo,
+                attempt_id: parseInt(btn.dataset.attemptId),
+            }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                window.location.href = data.redirect;
+            } else {
+                alert(data.mensagem);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i> <span>USAR TOKEN DE RETAKE</span>';
+            }
+        })
+        .catch(() => {
+            alert('Erro de conexão. Tente novamente.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i> <span>USAR TOKEN DE RETAKE</span>';
+        });
+    });
+})();
+</script>
 
 
 <script>

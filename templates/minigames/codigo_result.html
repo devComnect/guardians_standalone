@@ -77,7 +77,7 @@
             </div>
             <div class="result-stat-cell">
                 <span class="stat-icon"><i class="bi bi-grid-3x3-gap-fill"></i></span>
-                <span class="stat-value">{{ attempt.guesses|length }}/{{ config.max_attempts }}</span>
+                <span class="stat-value">{{ attempt.guesses|length }}/{{ attempt.max_attempts }}</span>
                 <span class="stat-label">TENTATIVAS</span>
             </div>
             <div class="result-stat-cell">
@@ -154,6 +154,17 @@
         {% endif %}
 
         <div class="result-actions">
+            {% if tem_token_retake and not is_perfect %}
+            <button
+                class="btn-result btn-retake"
+                id="btnRetake"
+                data-tipo="codigo"
+                data-attempt-id="{{ attempt.pk }}"
+                data-is-perfect="{{ attempt.won|yesno:'true,false' }}">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                <span>USAR TOKEN DE RETAKE</span>
+            </button>
+            {% endif %}
             <a href="{% url 'challenges:index' %}" class="btn-result">
                 <i class="bi bi-arrow-left"></i> <span>DESAFIOS</span>
             </a>
@@ -167,9 +178,50 @@
 
 <script>
 (function () {
+    const btn = document.getElementById('btnRetake');
+    if (!btn) return;
+ 
+    btn.addEventListener('click', function () {
+        if (!confirm('Usar Token de Retake? Seu XP e coins desta tentativa serão estornados e você poderá refazer o desafio.')) return;
+ 
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> <span>PROCESSANDO...</span>';
+ 
+        fetch("{% url 'minigames:retake_consumivel' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({
+                tipo:       btn.dataset.tipo,
+                attempt_id: parseInt(btn.dataset.attemptId),
+            }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                window.location.href = data.redirect;
+            } else {
+                alert(data.mensagem);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i> <span>USAR TOKEN DE RETAKE</span>';
+            }
+        })
+        .catch(() => {
+            alert('Erro de conexão. Tente novamente.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i> <span>USAR TOKEN DE RETAKE</span>';
+        });
+    });
+})();
+</script>
+
+<script>
+(function () {
     const STORAGE_KEY   = 'xp_result_{{ request.user.pk }}_{{ attempt.pk }}';
-    const XP_FROM_DJ    = {{ xp_result.xp_final|default:0 }};
-    const XP_FINAL      = XP_FROM_DJ > 0
+    const XP_FROM_DJ = {{ xp_result.xp_final|default:0 }};
+    const XP_FINAL   = XP_FROM_DJ;
         ? (localStorage.setItem(STORAGE_KEY, XP_FROM_DJ), XP_FROM_DJ)
         : (Number(localStorage.getItem(STORAGE_KEY)) || 0);
     const XP_PCT_BEFORE = {{ request.user.player.xp_percentual }};

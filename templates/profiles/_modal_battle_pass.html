@@ -113,7 +113,7 @@
                        style="font-size:0.65rem; letter-spacing:1px;
                               color:{% if t.coletado %}rgba(255,255,255,0.2){% elif t.disponivel %}rgba(0,255,159,0.6){% else %}rgba(255,255,255,0.2){% endif %};">
                     {% if t.coletado %}
-                      <i class="bi bi-check-circle-fill me-1"></i>COLETADO
+                    <i class="bi bi-check-circle-fill me-1" style="color: var(--neon-green);"></i>COLETADO
                     {% elif t.disponivel %}
                       <i class="bi bi-unlock-fill me-1"></i>DISPONÍVEL
                     {% else %}
@@ -162,8 +162,13 @@
     border-left: 2px solid var(--neon-green);
 }
 .bp-tier-coletado {
-    background: rgba(255,255,255,0.02);
-    border-left: 2px solid rgba(255,255,255,0.08);
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 2px solid rgba(255, 255, 255, 0.08);
+    opacity: 0.4;
+}
+.bp-tier-coletado .bi-check-circle-fill {
+    color: var(--neon-green) !important;
+    font-size: 1rem;
 }
 .bp-tier-bloqueado {
     background: transparent;

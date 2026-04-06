@@ -88,16 +88,50 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ── Carrega uma palavra ────────────────────────────────
+    // ── Animação de Penalidade (-Xs) ──────────────────────────
+    function showTimePenalty(seconds) {
+        const timerContainer = timerEl.parentElement;
+        timerContainer.style.position = 'relative';
+
+        const animEl = document.createElement('span');
+        animEl.textContent = `-${seconds}s`;
+        animEl.className = 'font-tech';
+        animEl.style.cssText = `
+            position: absolute; right: -40px; top: 0px;
+            color: #ff4d4d; font-weight: bold; font-size: 1.2rem;
+            pointer-events: none; transition: all 1.2s ease-out;
+            opacity: 1; transform: translateY(0); z-index: 100;
+        `;
+        
+        timerContainer.appendChild(animEl);
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                animEl.style.opacity = '0';
+                animEl.style.transform = 'translateY(-25px)';
+            });
+        });
+
+        setTimeout(() => animEl.remove(), 1200);
+    }
+
+    // ── Carrega uma palavra (ATUALIZADO) ─────────────────────
     function loadWord(index) {
         if (isGameOver) return;
         if (index < 0) index = WORDS.length - 1;
         if (index >= WORDS.length) index = 0;
         currentIndex = index;
 
-        const w      = WORDS[currentIndex];
-        hintZone.style.display = 'none';
-        hintUsed = false;
+        const w = WORDS[currentIndex];
+        
+        // Verifica se a dica desta palavra já foi usada
+        if (w.hint_used && w.dica && w.dica.trim() !== '') {
+            hintText.textContent = w.dica;
+            hintZone.style.display = 'flex';
+        } else {
+            hintZone.style.display = 'none';
+            hintText.textContent = '';
+        }
 
         // Embaralhado
         shuffledEl.innerHTML = '';
@@ -278,12 +312,62 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function setConsole(html) { consoleEl.innerHTML = html; }
 
-    // ── Dica ───────────────────────────────────────────────
-    hintBtn.addEventListener('click', () => {
-        const dica = WORDS[currentIndex].dica;
-        if (!dica) { setConsole('<span class="txt-warn">Sem dica disponível para esta palavra.</span>'); return; }
-        hintText.textContent = dica;
-        hintZone.style.display = 'flex';
+// ── Dica ───────────────────────────────────────────────
+    hintBtn.addEventListener('click', async () => {
+        if (isGameOver || WORDS[currentIndex].solved) return;
+        
+        const w = WORDS[currentIndex];
+
+        // Se a dica já está destravada E o texto está no JS, só mostra na tela e para
+        if (w.hint_used && w.dica && w.dica.trim() !== '') {
+            hintText.textContent = w.dica;
+            hintZone.style.display = 'flex';
+            return;
+        }
+        
+        hintBtn.disabled = true;
+        const originalHtml = hintBtn.innerHTML;
+        hintBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        try {
+            const res = await fetch('/minigames/decriptar/hint/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ attempt_id: ATTEMPT_ID, word_index: currentIndex })
+            });
+            const data = await res.json();
+
+            if (data.error) {
+                setConsole(`<span class="txt-error">${data.error}</span>`);
+            } else {
+                // Atualiza o estado da palavra localmente
+                WORDS[currentIndex].hint_used = true;
+                WORDS[currentIndex].dica = data.hint;
+                
+                // Exibe a dica na tela
+                hintText.textContent = data.hint;
+                hintZone.style.display = 'flex';
+
+                // Aplica penalidade se houver
+                if (data.penalty_applied) {
+                    timeRemaining = data.remaining_time;
+                    showTimePenalty(data.time_deducted);
+                }
+
+                if (data.timer_expired) {
+                    formSubmitted = true;
+                    window.location.href = data.redirect;
+                    return;
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            setConsole('<span class="txt-error">Erro ao obter dica. Tente novamente.</span>');
+        } finally {
+            hintBtn.disabled = false;
+            hintBtn.innerHTML = originalHtml;
+            input.focus();
+        }
     });
 
     // ── Navegação ──────────────────────────────────────────

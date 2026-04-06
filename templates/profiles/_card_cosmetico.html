@@ -12,6 +12,7 @@
         </div>
     </div>
     <button class="btn-sell-hud font-tech btn-cosmetico" data-pi-id="{{ pi.id }}" 
+            {% if pi.equipado %}data-equipado="true"{% endif %}
             style="bottom: -25px; width: 90%; {% if pi.equipado %}border-color: var(--neon-red); color: var(--neon-red);{% else %}border-color: var(--neon-green); color: var(--neon-green);{% endif %}">
         {% if pi.equipado %}REMOVER{% else %}EQUIPAR{% endif %}
     </button>

@@ -26,6 +26,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const consoleEl  = document.getElementById('console-msg');
     const timerEl    = document.getElementById('timer-display');
     const xpEl       = document.getElementById('xp-display');
+    const hintZone = document.getElementById('hint-zone');
+    const hintText = document.getElementById('hint-text');
+
+    if (window.WORD_HINT) {
+        hintText.textContent = window.WORD_HINT;
+        hintZone.style.display = 'block';
+    }
 
     // ── Segurança ──────────────────────────────────────────
     document.addEventListener('copy',        e => e.preventDefault());
@@ -247,15 +254,81 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function setConsole(html) { consoleEl.innerHTML = html; }
 
+    // ── Animação de Penalidade (-Xs) ──────────────────────────
+    function showTimePenalty(seconds) {
+        const timerContainer = timerEl.parentElement;
+        timerContainer.style.position = 'relative';
+
+        const animEl = document.createElement('span');
+        animEl.textContent = `-${seconds}s`;
+        animEl.className = 'font-tech';
+        animEl.style.cssText = `
+            position: absolute; right: -40px; top: 0px;
+            color: #ff4d4d; font-weight: bold; font-size: 1.2rem;
+            pointer-events: none; transition: all 1.2s ease-out;
+            opacity: 1; transform: translateY(0); z-index: 100;
+        `;
+        
+        timerContainer.appendChild(animEl);
+
+        // Dispara a animação (sobe e some)
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                animEl.style.opacity = '0';
+                animEl.style.transform = 'translateY(-25px)';
+            });
+        });
+
+        setTimeout(() => animEl.remove(), 1200);
+    }
+
     // ── Dica ─────────────────────────────────────────────
-    hintBtn.addEventListener('click', () => {
-        const hint = window.WORD_HINT;
-        if (hint) {
-            setConsole(`<span class="txt-warn">// DICA: ${hint}</span>`);
-        } else {
-            setConsole('<span class="txt-warn">// Sem dica disponível para esta palavra.</span>');
+    hintBtn.addEventListener('click', async () => {
+        if (isGameOver) return;
+        
+        // Se a dica já está visível, não precisa ir no banco de novo
+        if (window.WORD_HINT) return; 
+
+        hintBtn.disabled = true;
+        const originalHtml = hintBtn.innerHTML;
+        hintBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        try {
+            const res = await fetch('/minigames/codigo/hint/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ attempt_id: ATTEMPT_ID })
+            });
+            const data = await res.json();
+
+            if (data.error) {
+                setConsole(`<span class="txt-error">// ${data.error}</span>`);
+            } else {
+                // Atualiza o relógio e mostra a animação se perdeu tempo
+                if (data.penalty_applied) {
+                    timeRemaining = data.remaining_time;
+                    showTimePenalty(data.time_deducted);
+                }
+                
+                // Exibe a dica permanentemente na tela
+                window.WORD_HINT = data.hint;
+                hintText.textContent = data.hint;
+                hintZone.style.display = 'block';
+
+                if (data.timer_expired) {
+                    formSubmitted = true;
+                    window.location.href = data.redirect;
+                    return;
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            setConsole('<span class="txt-error">// Falha na comunicação ao solicitar dica.</span>');
+        } finally {
+            hintBtn.disabled = false;
+            hintBtn.innerHTML = originalHtml;
+            input.focus();
         }
-        input.focus();
     });
 
     // ── Abandonar ─────────────────────────────────────────

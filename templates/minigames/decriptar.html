@@ -10,7 +10,7 @@
 {% block content %}
 <div id="decriptar-container"
      data-attempt-id="{{ attempt.id }}"
-     data-max-lives="{{ config.max_lives }}"
+     data-max-lives="{{ attempt.lives_remaining }}"
      data-timer="{{ remaining_time }}"
      data-total="{{ total_words }}"
      data-correct="{{ correct_count }}">
@@ -90,7 +90,7 @@
                     <i class="bi bi-caret-left-fill"></i>
                 </button>
                 <button id="hint-btn" class="btn-dcr btn-hint">
-                    <i class="bi bi-lightbulb"></i> DICA
+                    <i class="bi bi-lightbulb"></i> DICA (-10% TEMPO)
                 </button>
                 <button id="submit-btn" class="btn-dcr btn-submit">
                     <i class="bi bi-terminal"></i> DECRIPTAR

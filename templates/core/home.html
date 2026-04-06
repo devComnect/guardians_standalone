@@ -113,7 +113,19 @@
             <div class="patrol-section-label font-tech text-info">// PROTOCOLO DIÁRIO</div>
 
             {% if patrol_done %}
-                {% if patrol_won %}
+                {% if patrol_limite and not patrol_attempt %}
+                <div class="patrol-hero patrol-hero--failed">
+                    <div class="patrol-hero-bg"></div>
+                    <div class="patrol-hero-content">
+                        <div class="patrol-hero-icon"><i class="bi bi-shield-lock"></i></div>
+                        <div class="patrol-hero-text">
+                            <span class="patrol-hero-title font-tech">LIMITE SEMANAL</span>
+                            <span class="patrol-hero-sub font-tech">{{ patrol_semanal_info.realizadas }}/5 patrulhas realizadas nos últimos 7 dias</span>
+                        </div>
+                        <div class="patrol-hero-status font-tech">—</div>
+                    </div>
+                </div>
+                {% elif patrol_won %}
                 <div class="patrol-hero patrol-hero--done">
                     <div class="patrol-hero-bg"></div>
                     <div class="patrol-hero-content">

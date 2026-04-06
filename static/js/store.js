@@ -487,8 +487,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 card.style.boxShadow  = '0 0 0 2px var(--neon-green), 0 0 32px rgba(5,217,232,0.4)';
                 card.style.transform  = 'translateY(-18px) scale(1.05)';
             }
-            showToast('Upgrade instalado com sucesso.', 'ok');
-            setTimeout(() => window.location.reload(), 750);
+            showToast('Upgrade instalado com sucesso. Visite o inventário.', 'ok');
+            setTimeout(() => window.location.reload(), 900);
         } else {
             SFX.error();
             showToast(data.mensagem || 'Transação recusada.', 'error');

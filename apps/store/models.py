@@ -110,6 +110,7 @@ class Item(models.Model):
         ('EXTRA_LIFE_TIME',     '+Tempo e +Vida no próximo desafio'),
         ('CONVERT_GOLD_XP',     'Converte Coins em XP'),
         ('CONVERT_XP_GOLD',     'Converte XP em Coins'),
+        ('LOOT_PACK',           'Pacote de Cargas — drop aleatório de consumível'),
         # Passivos
         ('XP_PER_COIN',             '+XP% por coin em saldo'),
         ('SHOP_DISCOUNT',           'Desconto na loja'),
@@ -126,7 +127,7 @@ class Item(models.Model):
         ('XP_PER_COSMETIC',         '+XP% por cosmético equipado'),
         ('XP_PER_FEATURED_ACHIEVEMENT', '+XP% por conquista em destaque'),
         ('XP_TOP_3',                '+XP% se Top 3'),
-        ('XP_OUTSIDE_TOP_10',       '+XP% se fora do Top 10'),
+        ('XP_OUTSIDE_TOP_5',       '+XP% se fora do Top 5'),
         ('XP_PER_LEVEL',            '+XP% por nível'),
         ('XP_CODE_CHALLENGE',       '+XP% em desafios de Código'),
         ('XP_PATROL_CHALLENGE',     '+XP% em desafios de Patrulha'),
@@ -237,6 +238,7 @@ class PlayerItem(models.Model):
 
     adquirido_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
+    is_new = models.BooleanField(default=True)
 
     class Meta:
         verbose_name        = 'Item do Player'
