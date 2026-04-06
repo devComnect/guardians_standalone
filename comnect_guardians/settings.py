@@ -42,7 +42,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    #'whitenoise.middleware.WhiteNoiseMiddleware',   #pausado para perfomance
+    'whitenoise.middleware.WhiteNoiseMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -75,16 +75,12 @@ WSGI_APPLICATION = 'comnect_guardians.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME':     config('DB_NAME',     default='comnect_guardians'),
         'USER':     config('DB_USER',     default='cg_user'),
         'PASSWORD': config('DB_PASSWORD', default=''),
         'HOST':     config('DB_HOST',     default='127.0.0.1'),
-        'PORT':     config('DB_PORT',     default='3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+        'PORT':     config('DB_PORT',     default='5432'),
     }
 }
 
