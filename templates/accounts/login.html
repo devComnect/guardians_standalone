@@ -41,8 +41,6 @@
             <span class="status-ver font-tech">v2.0.0</span>
         </div>
 
-        {% include 'partials/messages.html' %}
-
         <!-- Form -->
         <form method="POST" action="{% url 'accounts:login' %}" class="login-form" autocomplete="off">
             {% csrf_token %}
