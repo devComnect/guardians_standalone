@@ -10,9 +10,12 @@ PASSWORD_RULES_DB = {
     105: {"id": 105, "diff": "easy",   "desc": "Pelo menos duas letras minúsculas.",                   "regex": r"(?:[a-z].*){2}"},
     106: {"id": 106, "diff": "easy",   "desc": "Deve começar com uma letra.",                          "regex": r"^[a-zA-Z]"},
     107: {"id": 107, "diff": "easy",   "desc": "Deve conter um hífen (-) ou underline (_).",           "regex": r"[-_]"},
+    108: {"id": 108, "diff": "easy",   "desc": "Pelo menos uma letra minúscula.",                      "regex": r"[a-z]"},
     109: {"id": 109, "diff": "easy",   "desc": "Pelo menos dois números.",                             "regex": r"(?:\d.*){2}"},
+    110: {"id": 110, "diff": "easy",   "desc": "Deve terminar com um número.",                         "regex": r"\d$"},
+    111: {"id": 111, "diff": "easy",   "desc": "Deve conter a letra Z.",                               "regex": r"[Zz]"},
     # MÉDIO
-    201: {"id": 201, "diff": "medium", "desc": "Deve conter o ano atual (2025).",                      "regex": r"2025"},
+    201: {"id": 201, "diff": "medium", "desc": "Deve conter o ano atual (2026).",                      "regex": r"2026"},
     202: {"id": 202, "diff": "medium", "desc": "Deve começar com 'CMD' ou 'ROOT'.",                    "regex": r"^(CMD|ROOT)"},
     203: {"id": 203, "diff": "medium", "desc": "Deve terminar com três números.",                      "regex": r"\d{3}$"},
     204: {"id": 204, "diff": "medium", "desc": "Não pode conter espaços.",                             "regex": r"^[^ ]*$"},
@@ -21,6 +24,9 @@ PASSWORD_RULES_DB = {
     207: {"id": 207, "diff": "medium", "desc": "Deve conter o operador matemático '+' ou '='.",        "regex": r"[+=]"},
     209: {"id": 209, "diff": "medium", "desc": "Deve conter três caracteres repetidos em sequência.",  "regex": r"(.)\1\1"},
     210: {"id": 210, "diff": "medium", "desc": "Deve conter exatamente 22 caracteres.",                "regex": r"^.{22}$"},
+    211: {"id": 211, "diff": "medium", "desc": "Deve conter 'HACK' ou 'CODE'.",                        "regex": r"(HACK|CODE)"},
+    212: {"id": 212, "diff": "medium", "desc": "Deve conter pelo menos um colchete [ ou ].",           "regex": r"[\[\]]"},
+    213: {"id": 213, "diff": "medium", "desc": "Deve conter 'BUG' ou 'FIX'.",                          "regex": r"(BUG|FIX)"},
     # DIFÍCIL
     301: {"id": 301, "diff": "hard",   "desc": "Deve conter um protocolo (HTTP, FTP, SSH, TELNET).",   "regex": r"(HTTP|FTP|SSH|TELNET)"},
     302: {"id": 302, "diff": "hard",   "desc": "Deve conter 'SUDO' em maiúsculas.",                    "regex": r"SUDO"},
@@ -30,44 +36,82 @@ PASSWORD_RULES_DB = {
     306: {"id": 306, "diff": "hard",   "desc": "Deve conter um formato de email básico (@dominio).",   "regex": r"@\w+\."},
     307: {"id": 307, "diff": "hard",   "desc": "Deve conter 'TRUE' ou 'FALSE'.",                       "regex": r"(TRUE|FALSE)"},
     308: {"id": 308, "diff": "hard",   "desc": "Deve conter um comando Linux (LS, CD, MKDIR, RM).",    "regex": r"(LS|CD|MKDIR|RM)"},
+    309: {"id": 309, "diff": "hard",   "desc": "Deve conter 'NULL' ou 'VOID'.",                        "regex": r"(NULL|VOID)"},
+    310: {"id": 310, "diff": "hard",   "desc": "Deve conter uma extensão de arquivo (.EXE ou .DLL).",  "regex": r"\.(EXE|DLL)"},
+    311: {"id": 311, "diff": "hard",   "desc": "Deve conter 'BUG' ou 'FIX' seguido de um número.",     "regex": r"(BUG|FIX)\d"},
     # INSANO
     401: {"id": 401, "diff": "insane", "desc": "Formato de IP (Ex: 192.168.1.1).",                     "regex": r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"},
     402: {"id": 402, "diff": "insane", "desc": "Código Hexadecimal de cor (Ex: #FFFFFF).",             "regex": r"#[0-9A-Fa-f]{6}"},
+    403: {"id": 403, "diff": "insane", "desc": "Endereço MAC parcial (Ex: FF:FF:FF).",                 "regex": r"[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}"},
     404: {"id": 404, "diff": "insane", "desc": "Deve conter uma tag HTML (Ex: <DIV>, <BR>).",          "regex": r"<[A-Z]+>"},
     405: {"id": 405, "diff": "insane", "desc": "Deve conter formato de versão (vX.X.X).",              "regex": r"v\d+\.\d+\.\d+"},
-    406: {"id": 406, "diff": "insane", "desc": "Porta lógica (AND, OR, XOR, NOT).",                   "regex": r"\b(AND|OR|XOR|NOT)\b"},
-    407: {"id": 407, "diff": "insane", "desc": "Formato de moeda ($99.99).",                           "regex": r"\$\d+\.\d{2}"},
-    408: {"id": 408, "diff": "insane", "desc": "NÃO pode conter as vogais A ou I.",                 "regex": r"^[^AIai]*$"},
+    407: {"id": 407, "diff": "insane", "desc": "Formato de moeda (R$99,99).",                           "regex": r"\R$\d+\,\d{2}"},
+    408: {"id": 408, "diff": "insane", "desc": "NÃO pode conter as vogais A ou I.",                    "regex": r"^[^AIai]*$"},
+    409: {"id": 409, "diff": "insane", "desc": "NÃO pode conter os números (0,4,6,8).",                 "regex": r"^[^0468]*$"},
     # DINÂMICAS (math)
-    500: {"id": 500, "diff": "medium", "template": "A soma de todos os números deve ser {}.", "js_type": "sum"},
-    501: {"id": 501, "diff": "hard",   "template": "O primeiro número menos o último deve ser {}.", "js_type": "sub_first_last"},
-    502: {"id": 502, "diff": "hard",   "template": "O último número menos o primeiro deve ser {}.", "js_type": "sub_last_first"},
+    500: {"id": 500, "diff": "medium", "template": "A soma de todos os números deve ser {}.",          "js_type": "sum"},
+    501: {"id": 501, "diff": "hard",   "template": "O primeiro número menos o último deve ser {}.",    "js_type": "sub_first_last"},
+    502: {"id": 502, "diff": "hard",   "template": "O último número menos o primeiro deve ser {}.",    "js_type": "sub_last_first"},
 }
+
+# Pares de regras que não podem ser sorteadas juntas
+INCOMPATIBLE_RULES = [
+    (408, 206),  # sem A/I vs ADMIN (tem A e I)
+    (408, 305),  # sem A/I vs INSERT (tem I)
+    (408, 308),  # sem A/I vs MKDIR (tem I)
+    (408, 213),  # sem A/I vs BUG/FIX — FIX ok, BUG ok, mas seguro manter
+    (408, 311),  # sem A/I vs BUG/FIX+num — mesmo caso
+]
+
+
+def _are_compatible(selected_ids):
+    """Retorna False se algum par incompatível estiver nos ids selecionados."""
+    id_set = set(selected_ids)
+    for a, b in INCOMPATIBLE_RULES:
+        if a in id_set and b in id_set:
+            return False
+    return True
 
 
 def generate_rules_sequence(config):
+    max_attempts = 100
+
+    for _ in range(max_attempts):
+        selected = []
+
+        math_ids = [k for k in PASSWORD_RULES_DB if k >= 500]
+        if math_ids and config.rules_count_math > 0:
+            for _ in range(config.rules_count_math):
+                mid = random.choice(math_ids)
+                val = random.randint(15, 50) if mid == 500 else random.randint(1, 8)
+                selected.append(f"{mid}:{val}")
+
+        by_diff = {'easy': [], 'medium': [], 'hard': [], 'insane': []}
+        for k, v in PASSWORD_RULES_DB.items():
+            if k < 500:
+                by_diff[v['diff']].append(k)
+
+        def sample(pool, n):
+            return random.sample(pool, min(len(pool), n))
+
+        static_ids = (
+            sample(by_diff['easy'],   config.rules_count_easy) +
+            sample(by_diff['medium'], config.rules_count_medium) +
+            sample(by_diff['hard'],   config.rules_count_hard) +
+            sample(by_diff['insane'], config.rules_count_insane)
+        )
+
+        if _are_compatible(static_ids):
+            selected += [str(i) for i in static_ids]
+            random.shuffle(selected)
+            return selected
+
+    # fallback: retorna sem insane para garantir compatibilidade
     selected = []
-
-    math_ids = [k for k in PASSWORD_RULES_DB if k >= 500]
-    if math_ids and config.rules_count_math > 0:
-        for _ in range(config.rules_count_math):
-            mid = random.choice(math_ids)
-            val = random.randint(15, 50) if mid == 500 else random.randint(1, 8)
-            selected.append(f"{mid}:{val}")
-
-    by_diff = {'easy': [], 'medium': [], 'hard': [], 'insane': []}
-    for k, v in PASSWORD_RULES_DB.items():
-        if k < 500:
-            by_diff[v['diff']].append(str(k))
-
-    def sample(pool, n):
-        return random.sample(pool, min(len(pool), n))
-
-    selected += sample(by_diff['easy'],   config.rules_count_easy)
-    selected += sample(by_diff['medium'], config.rules_count_medium)
-    selected += sample(by_diff['hard'],   config.rules_count_hard)
-    selected += sample(by_diff['insane'], config.rules_count_insane)
-
+    for diff in ['easy', 'medium', 'hard']:
+        pool = [k for k, v in PASSWORD_RULES_DB.items() if k < 500 and v['diff'] == diff]
+        n = getattr(config, f'rules_count_{diff}')
+        selected += [str(i) for i in random.sample(pool, min(len(pool), n))]
     random.shuffle(selected)
     return selected
 
