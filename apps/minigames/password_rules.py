@@ -14,6 +14,7 @@ PASSWORD_RULES_DB = {
     109: {"id": 109, "diff": "easy",   "desc": "Pelo menos dois números.",                             "regex": r"(?:\d.*){2}"},
     110: {"id": 110, "diff": "easy",   "desc": "Deve terminar com um número.",                         "regex": r"\d$"},
     111: {"id": 111, "diff": "easy",   "desc": "Deve conter a letra Z.",                               "regex": r"[Zz]"},
+    112: {"id": 112, "diff": "easy",   "desc": "Um tipo de arquivo de imagem conhecido (PNG, JPG, GIF).",     "regex": r"(PNG|JPG|GIF)"},
     # MÉDIO
     201: {"id": 201, "diff": "medium", "desc": "Deve conter o ano atual (2026).",                      "regex": r"2026"},
     202: {"id": 202, "diff": "medium", "desc": "Deve começar com 'CMD' ou 'ROOT'.",                    "regex": r"^(CMD|ROOT)"},
@@ -27,6 +28,7 @@ PASSWORD_RULES_DB = {
     211: {"id": 211, "diff": "medium", "desc": "Deve conter 'HACK' ou 'CODE'.",                        "regex": r"(HACK|CODE)"},
     212: {"id": 212, "diff": "medium", "desc": "Deve conter pelo menos um colchete [ ou ].",           "regex": r"[\[\]]"},
     213: {"id": 213, "diff": "medium", "desc": "Deve conter 'BUG' ou 'FIX'.",                          "regex": r"(BUG|FIX)"},
+    214: {"id": 214, "diff": "medium", "desc": "Um navegador WEB famoso.",                             "regex": r"(EXPLORER|EDGE|CHROME|FIREFOX|SAFARI)"},
     # DIFÍCIL
     301: {"id": 301, "diff": "hard",   "desc": "Deve conter um protocolo (HTTP, FTP, SSH, TELNET).",   "regex": r"(HTTP|FTP|SSH|TELNET)"},
     302: {"id": 302, "diff": "hard",   "desc": "Deve conter 'SUDO' em maiúsculas.",                    "regex": r"SUDO"},
@@ -39,15 +41,17 @@ PASSWORD_RULES_DB = {
     309: {"id": 309, "diff": "hard",   "desc": "Deve conter 'NULL' ou 'VOID'.",                        "regex": r"(NULL|VOID)"},
     310: {"id": 310, "diff": "hard",   "desc": "Deve conter uma extensão de arquivo (.EXE ou .DLL).",  "regex": r"\.(EXE|DLL)"},
     311: {"id": 311, "diff": "hard",   "desc": "Deve conter 'BUG' ou 'FIX' seguido de um número.",     "regex": r"(BUG|FIX)\d"},
+    312: {"id": 312, "diff": "hard",   "desc": "Uma linguagem de programação (PYTHON, JAVA, RUBY).",    "regex": r"(PYTHON|JAVA|RUBY)"},
     # INSANO
     401: {"id": 401, "diff": "insane", "desc": "Formato de IP (Ex: 192.168.1.1).",                     "regex": r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"},
     402: {"id": 402, "diff": "insane", "desc": "Código Hexadecimal de cor (Ex: #FFFFFF).",             "regex": r"#[0-9A-Fa-f]{6}"},
     403: {"id": 403, "diff": "insane", "desc": "Endereço MAC parcial (Ex: FF:FF:FF).",                 "regex": r"[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}"},
     404: {"id": 404, "diff": "insane", "desc": "Deve conter uma tag HTML (Ex: <DIV>, <BR>).",          "regex": r"<[A-Z]+>"},
     405: {"id": 405, "diff": "insane", "desc": "Deve conter formato de versão (vX.X.X).",              "regex": r"v\d+\.\d+\.\d+"},
-    407: {"id": 407, "diff": "insane", "desc": "Formato de moeda (R$99,99).",                           "regex": r"\R$\d+\,\d{2}"},
+    407: {"id": 407, "diff": "insane", "desc": "Valor em formato de dólar ($99,99).",                  "regex": r"\$\d+\,\d{2}"},
     408: {"id": 408, "diff": "insane", "desc": "NÃO pode conter as vogais A ou I.",                    "regex": r"^[^AIai]*$"},
     409: {"id": 409, "diff": "insane", "desc": "NÃO pode conter os números (0,4,6,8).",                 "regex": r"^[^0468]*$"},
+    410: {"id": 410, "diff": "insane", "desc": "Um sistema operacional amplamente conhecido.",          "regex": r"(WINDOWS|LINUX|KALI)"},
     # DINÂMICAS (math)
     500: {"id": 500, "diff": "medium", "template": "A soma de todos os números deve ser {}.",          "js_type": "sum"},
     501: {"id": 501, "diff": "hard",   "template": "O primeiro número menos o último deve ser {}.",    "js_type": "sub_first_last"},
@@ -56,9 +60,6 @@ PASSWORD_RULES_DB = {
 
 # Pares de regras que não podem ser sorteadas juntas
 INCOMPATIBLE_RULES = [
-    (408, 206),  # sem A/I vs ADMIN (tem A e I)
-    (408, 305),  # sem A/I vs INSERT (tem I)
-    (408, 308),  # sem A/I vs MKDIR (tem I)
     (408, 213),  # sem A/I vs BUG/FIX — FIX ok, BUG ok, mas seguro manter
     (408, 311),  # sem A/I vs BUG/FIX+num — mesmo caso
 ]
@@ -79,13 +80,6 @@ def generate_rules_sequence(config):
     for _ in range(max_attempts):
         selected = []
 
-        math_ids = [k for k in PASSWORD_RULES_DB if k >= 500]
-        if math_ids and config.rules_count_math > 0:
-            for _ in range(config.rules_count_math):
-                mid = random.choice(math_ids)
-                val = random.randint(15, 50) if mid == 500 else random.randint(1, 8)
-                selected.append(f"{mid}:{val}")
-
         by_diff = {'easy': [], 'medium': [], 'hard': [], 'insane': []}
         for k, v in PASSWORD_RULES_DB.items():
             if k < 500:
@@ -101,10 +95,28 @@ def generate_rules_sequence(config):
             sample(by_diff['insane'], config.rules_count_insane)
         )
 
-        if _are_compatible(static_ids):
-            selected += [str(i) for i in static_ids]
-            random.shuffle(selected)
-            return selected
+        if not _are_compatible(static_ids):
+            continue
+
+        # Dígitos disponíveis considerando restrições ativas
+        # 409: não pode conter 0,4,6,8 → dígitos válidos: {1,2,3,5,7,9}
+        restricted_digits = 409 in static_ids
+
+        math_ids = [k for k in PASSWORD_RULES_DB if k >= 500]
+        if math_ids and config.rules_count_math > 0:
+            for _ in range(config.rules_count_math):
+                mid = random.choice(math_ids)
+                if mid == 500:
+                    # soma: com restrição, usar range menor e alcançável
+                    val = random.randint(3, 18) if restricted_digits else random.randint(15, 50)
+                else:
+                    # diferença: resultado não precisa ser dígito da senha, range normal
+                    val = random.randint(1, 8)
+                selected.append(f"{mid}:{val}")
+
+        selected += [str(i) for i in static_ids]
+        random.shuffle(selected)
+        return selected
 
     # fallback: retorna sem insane para garantir compatibilidade
     selected = []
