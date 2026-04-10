@@ -863,7 +863,7 @@ def marcar_inventario_visto(request):
 
 # ─────────────────────────────────────────────
 # PERFIL PÚBLICO (Visão de Terceiros)
-# ─────────────────────────────────────────────
+# ───────────────────────────────────────────── 
 
 @login_required
 def public_profile(request, player_id):
@@ -907,12 +907,26 @@ def public_profile(request, player_id):
         player=target_user, em_destaque=True
     ).select_related('achievement')
 
-    # 4. Busca os logs recentes (limite de 15 para não poluir a tela)
-    logs_recentes = SystemLog.objects.filter(
+    # 4. Busca os logs recentes e mascara a palavra do minigame CÓDIGO
+    logs_raw = SystemLog.objects.filter(
         player=target_user
     ).filter(
         Q(xp_delta__gt=0) | Q(coin_delta__gt=0)
     ).order_by('-criado_em')[:15]
+
+    logs_recentes = []
+    for log in logs_raw:
+        titulo = log.titulo or "SISTEMA"
+        # Mascara a palavra revelada no minigame de código
+        if titulo.upper().startswith("CÓDIGO:"):
+            titulo = "CÓDIGO"
+        logs_recentes.append({
+            'criado_em': log.criado_em,
+            'titulo': titulo,
+            'descricao': log.descricao,
+            'xp_delta': log.xp_delta,
+            'coin_delta': log.coin_delta,
+        })
 
     # 5. Calcula o bônus de ofensiva (respeitando o teto)
     try:
