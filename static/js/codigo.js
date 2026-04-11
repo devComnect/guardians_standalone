@@ -37,6 +37,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
+    // ── Segurança ──────────────────────────────────────────
+    document.addEventListener('copy',        e => e.preventDefault());
+    document.addEventListener('cut',         e => e.preventDefault());
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('keydown', e => {
+        const blocked = (e.ctrlKey && ['c','x','a','u','s','p'].includes(e.key.toLowerCase()))
+                      || e.key === 'F12' || e.key === 'PrintScreen';
+        if (blocked) e.preventDefault();
+    });
+    window.addEventListener('beforeunload', e => {
+        if (!formSubmitted) { e.preventDefault(); e.returnValue = ''; }
+    });
 
     // ── Timer ──────────────────────────────────────────────
     let timeRemaining = parseFloat(container.dataset.timer);
