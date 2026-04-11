@@ -145,9 +145,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ── AJAX ──────────────────────────────────────────────
+    let isSending = false;
+
     async function sendGuess(guess, abandoned, timedOut) {
-        if (isGameOver && !abandoned && !timedOut) return;
-        isGameOver     = true;
+        if ((isGameOver || isSending) && !abandoned && !timedOut) return;
+        isSending      = true;
         input.disabled = true;
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner"></span>';
@@ -174,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 input.disabled    = false;
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="bi bi-terminal"></i> EXECUTAR';
-                isGameOver = false;
+                isSending = false;
                 return;
             }
 
@@ -193,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function () {
             input.disabled     = false;
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="bi bi-terminal"></i> EXECUTAR';
-            isGameOver = false;
+            isSending = false;
         }
     }
 
@@ -233,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 input.disabled    = false;
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="bi bi-terminal"></i> EXECUTAR';
-                isGameOver = false;
+                isSending = false;
                 input.focus();
             }
         }, feedback.length * delay + 400);
