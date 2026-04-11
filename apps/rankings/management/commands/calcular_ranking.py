@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from django.db.models import Sum, Count
 from apps.rankings.models import Season, RankingSnapshot
-from apps.minigames.models import QuizAttempt, DecriptarAttempt, CodigoAttempt
+from apps.minigames.models import QuizAttempt, DecriptarAttempt, CodigoAttempt, PatrolAttempt, PasswordAttempt
 
 
 class Command(BaseCommand):
@@ -28,11 +28,8 @@ class Command(BaseCommand):
                     valor = p.xp_total
                 elif categoria == 'moedas':
                     valor = p.coins
-                else:  # ofensiva — total de desafios concluídos
-                    quiz   = QuizAttempt.objects.filter(player=player, completed_at__isnull=False).count()
-                    dcr    = DecriptarAttempt.objects.filter(player=player, completed_at__isnull=False).count()
-                    cod    = CodigoAttempt.objects.filter(player=player, completed_at__isnull=False).count()
-                    valor  = quiz + dcr + cod
+                else:  # ofensiva
+                    valor = p.ofensiva
 
                 dados.append((player, valor))
 

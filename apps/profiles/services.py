@@ -202,6 +202,12 @@ def grant_xp(user, xp_base, fonte, descricao='', contexto=None):
     except Exception:
         pass
 
+    try:
+        from apps.rankings.services import recalcular_ranking_player
+        recalcular_ranking_player(user)
+    except Exception:
+        pass
+
     return {
         'xp_base':        xp_base,
         'xp_bonus':       xp_bonus,
@@ -273,6 +279,12 @@ def grant_coins(user, coins_base, fonte='bonus', aplicar_bonus=True, registrar=T
                 'fonte':     fonte,
             }
         )
+
+    try:
+        from apps.rankings.services import recalcular_ranking_player
+        recalcular_ranking_player(user)
+    except Exception:
+        pass
 
     return {
         'base':      coins_base,
