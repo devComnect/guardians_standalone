@@ -182,6 +182,46 @@ body.theme-none     { --theme-color: #ffffff; }
     100% { background-position: 200% 0; }
 }
 
+.hud-avatar-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.avatar-dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    background: #0B0C10;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    min-width: 180px;
+    z-index: 9999;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.avatar-dd-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.8rem;
+    transition: background 0.15s;
+}
+
+.avatar-dd-item:hover {
+    background: var(--bg-hover);
+    color: var(--accent);
+}
+
+.avatar-dd-divider {
+    border-top: 1px solid var(--border-color);
+    margin: 4px 0;
+}
+
 /* ── ALERTS ──────────────────────────────────── */
 .messages-wrapper {
     position: fixed;

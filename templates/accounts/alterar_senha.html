@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/alterar_senha.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="senha-wrapper">
+    <div class="senha-panel">
+        <div class="panel-label font-tech">
+            <i class="bi bi-key-fill"></i> ALTERAR SENHA
+        </div>
+
+        {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags }} font-tech py-2 mb-3" style="font-size:0.72rem;letter-spacing:2px;">{{ msg }}</div>
+        {% endfor %}
+
+        <form method="post" class="senha-form">
+            {% csrf_token %}
+            <div class="senha-field">
+                <label class="senha-label font-tech">SENHA ATUAL</label>
+                <input type="password" name="senha_atual" class="senha-input font-tech" required>
+            </div>
+            <div class="senha-field">
+                <label class="senha-label font-tech">NOVA SENHA</label>
+                <input type="password" name="nova_senha" class="senha-input font-tech" required>
+            </div>
+            <div class="senha-field">
+                <label class="senha-label font-tech">CONFIRMAR NOVA SENHA</label>
+                <input type="password" name="confirma_senha" class="senha-input font-tech" required>
+            </div>
+            <div class="senha-actions">
+                <button type="submit" class="btn-submit-senha font-tech">
+                    <div class="btn-glow"></div>
+                    <i class="bi bi-shield-lock-fill"></i>
+                    <span>CONFIRMAR</span>
+                </button>
+                <a href="{% url 'profiles:index' %}" class="btn-cancel-senha font-tech">CANCELAR</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

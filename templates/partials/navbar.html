@@ -72,19 +72,45 @@
                     </div>
                 </div>
             </div>
-            <a href="{% url 'profiles:index' %}" class="hud-avatar" title="{{ user.username }}">
-                {% if user.player.avatar %}
-                    <img src="{{ user.player.avatar.url }}" alt="avatar">
-                {% else %}
-                    <i class="bi bi-person-fill"></i>
-                {% endif %}
-            </a>
-            <a href="{% url 'accounts:logout' %}" class="hud-logout" title="Sair">
-                <i class="bi bi-box-arrow-right"></i>
-            </a>
+            <div class="hud-avatar-wrapper" style="position:relative;">
+                <button class="hud-avatar hud-avatar-btn" id="avatar-btn" title="{{ user.username }}">
+                    {% if user.player.avatar %}
+                        <img src="{{ user.player.avatar.url }}" alt="avatar">
+                    {% else %}
+                        <i class="bi bi-person-fill"></i>
+                    {% endif %}
+                </button>
+                <div class="avatar-dropdown" id="avatar-dropdown" style="display:none;">
+                    <a href="{% url 'profiles:index' %}" class="avatar-dd-item font-tech">
+                        <i class="bi bi-person-badge"></i> PERFIL
+                    </a>
+                    <a href="{% url 'accounts:alterar_senha' %}" class="avatar-dd-item font-tech">
+                        <i class="bi bi-key-fill"></i> ALTERAR SENHA
+                    </a>
+                    <div class="avatar-dd-divider"></div>
+                    <a href="{% url 'accounts:logout' %}" class="avatar-dd-item font-tech text-danger">
+                        <i class="bi bi-box-arrow-right"></i> SAIR
+                    </a>
+                </div>
+            </div>
         </div>
 
     </div>
     <!-- Scanline decorativa -->
     <div class="navbar-scanline"></div>
 </nav>
+
+<script>
+(function () {
+    const btn = document.getElementById('avatar-btn');
+    const dd  = document.getElementById('avatar-dropdown');
+    if (!btn) return;
+    btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+    });
+    document.addEventListener('click', function () {
+        dd.style.display = 'none';
+    });
+})();
+</script>
