@@ -263,14 +263,17 @@
     // Dados vindos do Django
     const STORAGE_KEY   = 'xp_result_{{ request.user.pk }}_{{ attempt.pk }}';
     const XP_FROM_DJ    = {{ xp_result.xp_final|default:0 }};
-    const XP_FINAL      = XP_FROM_DJ > 0
-        ? (localStorage.setItem(STORAGE_KEY, XP_FROM_DJ), XP_FROM_DJ)
-        : (Number(localStorage.getItem(STORAGE_KEY)) || 0);
+    const IS_PERFECT    = {{ is_perfect|yesno:"true,false" }};
+    const IS_WIN        = {{ attempt.xp_earned|default:0 }} > 0;
+    const XP_FINAL      = !IS_WIN
+        ? (localStorage.removeItem(STORAGE_KEY), 0)
+        : XP_FROM_DJ > 0
+            ? (localStorage.setItem(STORAGE_KEY, XP_FROM_DJ), XP_FROM_DJ)
+            : (Number(localStorage.getItem(STORAGE_KEY)) || 0);
     const XP_PCT_BEFORE = {{ request.user.player.xp_percentual }};
     const XP_NO_NIVEL   = {{ request.user.player.xp_no_nivel_atual }};
     const XP_NECESSARIO = {{ request.user.player.xp_necessario_nivel_atual }};
-    const IS_PERFECT    = {{ is_perfect|yesno:"true,false" }};
-
+    
     // ── 1. Contador de XP ──────────────────────────
     const counterEl = document.getElementById('xpCounter');
 

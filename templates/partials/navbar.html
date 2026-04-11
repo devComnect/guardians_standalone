@@ -39,12 +39,7 @@
 
             {% endif %}
 
-            <!-- Botão admin -->
-            {% if user.is_staff or user.is_superuser %}
-            <a href="{% url 'admin:index' %}" class="hud-admin-btn font-tech text-warning" title="Painel Admin" target="_blank">
-                <i class="bi bi-terminal-fill"></i>
-            </a>
-            {% endif %}
+
 
             <!-- Notificações -->
             <div class="notif-wrapper" id="notif-wrapper">
@@ -101,6 +96,13 @@
                     </a>
                 </div>
             </div>
+            
+                <!-- Botão admin -->
+                {% if user.is_staff or user.is_superuser %}
+                <a href="{% url 'admin:index' %}" class="hud-admin-btn font-tech text-warning" title="Painel Admin" target="_blank">
+                    <i class="bi bi-terminal-fill"></i>
+                </a>
+                {% endif %}
         </div>
 
     </div>

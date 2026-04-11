@@ -131,7 +131,7 @@ def submit_quiz(request, quiz_id):
     attempt.timer_expired = timer_expired
     attempt.save()
 
-    if coins_base > 0:
+    if xp_earned > 0:
         total_questions = quiz.questions.count()
         xp_result = grant_xp(
             request.user, xp_earned, 'quiz', f'Quiz: {quiz.titulo}', 

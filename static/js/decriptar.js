@@ -162,7 +162,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // Input
         input.value       = '';
         input.maxLength   = w.length;
-        input.disabled    = w.solved;
+        input.disabled     = w.solved;
+        submitBtn.disabled = w.solved;
 
         if (w.solved) {
             consoleEl.innerHTML = `<span class="txt-success">Arquivo ${currentIndex + 1} recuperado.</span>`;
@@ -400,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ── Init ───────────────────────────────────────────────
-    lives = MAX_LIVES - (WORDS.filter(w => !w.solved).length === WORDS.length ? 0 : 0);
+    lives = parseInt(container.dataset.maxLives);
     // Restaura lives do servidor via data attribute se necessário
     renderLives();
 
