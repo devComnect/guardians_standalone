@@ -585,7 +585,6 @@ def request_hint_decriptar(request):
         attempt.save()
         timer_expired = True
 
-    print("--- FIM DEBUG DICA DECRIPTAR ---\n")
     return JsonResponse({
         'hint': word_hint,
         'penalty_applied': penalty_applied,
