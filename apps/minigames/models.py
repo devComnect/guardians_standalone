@@ -388,7 +388,8 @@ class DecriptarAttempt(models.Model):
         if not self.config.time_limit_seconds:
             return 0
         elapsed = (timezone.now() - self.started_at).total_seconds()
-        return max(0, int(self.config.time_limit_seconds - elapsed - self.penalty_seconds + self.bonus_seconds))
+        tempo_total = self.config.time_limit_seconds + self.bonus_seconds - self.penalty_seconds
+        return max(0, int(tempo_total - elapsed))
 
     @property
     def is_completed(self):
@@ -504,8 +505,9 @@ class CodigoAttempt(models.Model):
         if not self.config.time_limit_seconds:
             return 0
         elapsed = (timezone.now() - self.started_at).total_seconds()
-        # Soma o bônus e desconta as penalidades de dicas
-        return max(0, int(self.config.time_limit_seconds - elapsed - self.penalty_seconds + self.bonus_seconds))
+        tempo_total = self.config.time_limit_seconds + self.bonus_seconds - self.penalty_seconds
+
+        return max(0, int(tempo_total - elapsed))
 
     @property
     def is_completed(self):

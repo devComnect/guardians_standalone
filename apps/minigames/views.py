@@ -887,13 +887,14 @@ def request_hint_codigo(request):
     time_deducted = 0
     penalty_applied = False
 
-    if attempt.penalty_seconds == 0 and not attempt.free_hint_used:
+    if not attempt.free_hint_used:
         if tem_efeito_ativo(request.user, 'FREE_HINT'):
             consumir_efeito_unico(request.user, 'FREE_HINT')
             attempt.free_hint_used = True
         else:
             time_deducted = int((attempt.config.time_limit_seconds * attempt.config.hint_time_penalty_pct) / 100)
-            attempt.penalty_seconds = time_deducted
+            attempt.penalty_seconds += time_deducted
+            attempt.free_hint_used = True
             penalty_applied = True
         
         attempt.save()
@@ -933,7 +934,7 @@ def play_codigo(request):
         attempt.save()
         return redirect('minigames:codigo_result', attempt_id=attempt.id)
 
-    hint_unlocked = attempt.penalty_seconds > 0 or attempt.free_hint_used
+    hint_unlocked = attempt.free_hint_used
     word_hint = ''
     if hint_unlocked:
         word_hint = WordBank.objects.filter(palavra=attempt.secret_word, ativo=True).values_list('dica', flat=True).first() or ''

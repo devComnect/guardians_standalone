@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const MAX_XP      = parseInt(container.dataset.xp);
     const CSRF        = window.CSRF_TOKEN || '';
 
+
+
     // Guesses salvos no banco — restaura estado após refresh
     const SAVED_GUESSES = JSON.parse(
         document.getElementById('guesses-data').textContent
@@ -34,18 +36,7 @@ document.addEventListener('DOMContentLoaded', function () {
         hintZone.style.display = 'block';
     }
 
-    // ── Segurança ──────────────────────────────────────────
-    document.addEventListener('copy',        e => e.preventDefault());
-    document.addEventListener('cut',         e => e.preventDefault());
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.addEventListener('keydown', e => {
-        const blocked = (e.ctrlKey && ['c','x','a','u','s','p'].includes(e.key.toLowerCase()))
-                      || e.key === 'F12' || e.key === 'PrintScreen';
-        if (blocked) e.preventDefault();
-    });
-    window.addEventListener('beforeunload', e => {
-        if (!formSubmitted) { e.preventDefault(); e.returnValue = ''; }
-    });
+
 
     // ── Timer ──────────────────────────────────────────────
     let timeRemaining = parseFloat(container.dataset.timer);
@@ -287,9 +278,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Dica ─────────────────────────────────────────────
     hintBtn.addEventListener('click', async () => {
         if (isGameOver) return;
-        
-        // Se a dica já está visível, não precisa ir no banco de novo
-        if (window.WORD_HINT) return; 
+        if (window.WORD_HINT) return;
 
         hintBtn.disabled = true;
         const originalHtml = hintBtn.innerHTML;
@@ -301,18 +290,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
                 body: JSON.stringify({ attempt_id: ATTEMPT_ID })
             });
+            
+            
             const data = await res.json();
+
 
             if (data.error) {
                 setConsole(`<span class="txt-error">// ${data.error}</span>`);
             } else {
-                // Atualiza o relógio e mostra a animação se perdeu tempo
                 if (data.penalty_applied) {
                     timeRemaining = data.remaining_time;
+                    timerEl.textContent = formatTime(timeRemaining);
                     showTimePenalty(data.time_deducted);
                 }
-                
-                // Exibe a dica permanentemente na tela
+
                 window.WORD_HINT = data.hint;
                 hintText.textContent = data.hint;
                 hintZone.style.display = 'block';
@@ -324,7 +315,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         } catch (e) {
-            console.error(e);
+            console.error('[HINT] Erro de fetch:', e);
             setConsole('<span class="txt-error">// Falha na comunicação ao solicitar dica.</span>');
         } finally {
             hintBtn.disabled = false;
