@@ -182,6 +182,9 @@ body.theme-none     { --theme-color: #ffffff; }
     100% { background-position: 200% 0; }
 }
 
+/* ── HUD AVATAR NAVBAR ──────────────────────────────────── */
+
+
 .hud-avatar-btn {
     background: none;
     border: none;
@@ -220,6 +223,26 @@ body.theme-none     { --theme-color: #ffffff; }
 .avatar-dd-divider {
     border-top: 1px solid var(--border-color);
     margin: 4px 0;
+}
+
+/* ── BTN ADMIN NAVBAR ──────────────────────────────────── */
+
+.hud-admin-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    color: var(--neon-red);
+    border-radius: 2px;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.hud-admin-btn:hover {
+    background: rgba(255, 42, 109, 0.1);
+    box-shadow: 0 0 12px rgba(255, 42, 109, 0.3);
+    color: var(--neon-red);
 }
 
 /* ── ALERTS ──────────────────────────────────── */
