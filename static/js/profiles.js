@@ -253,15 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Lógica do botão VER MAIS
-    const btnVerMais = document.getElementById('btn-ver-mais-mods');
-    if (btnVerMais) {
-        btnVerMais.addEventListener('click', (e) => {
-            document.querySelectorAll('.tranca-extra').forEach(el => el.classList.remove('d-none'));
-            e.target.parentElement.remove(); 
-        });
-    }
-
     // Atualiza os bônus da tela principal ao fechar
     const modalEl = document.getElementById('modalConquistas');
     if (modalEl) {
