@@ -593,19 +593,14 @@ def editar_perfil(request):
             player.display_name = display_name[:60]
         if bio:
             player.bio = bio[:300]
-            
+
         if avatar_choice:
             avatares_permitidos = [
-                'avatar echo.png', 'avatar node 7.png', 
+                'avatar echo.png', 'avatar node 7.png',
                 'avatar setx.png', 'avatar steve.png', 'avatar troia.png'
             ]
-            
             if avatar_choice in avatares_permitidos:
-                caminho_imagem = os.path.join(settings.BASE_DIR, 'static', 'img', 'avatares', avatar_choice)
-                
-                if os.path.exists(caminho_imagem):
-                    with open(caminho_imagem, 'rb') as f:
-                        player.avatar.save(avatar_choice, File(f), save=False)
+                player.avatar.name = f'img/avatares/{avatar_choice}'
 
         player.save()
         messages.success(request, 'Perfil atualizado.')

@@ -99,7 +99,7 @@
                 <div class="avatar-bg-layer {% if snap_c.bg %}cosmetic-bg cosmetic-bg-{{ snap_c.bg.item.item_id }}{% endif %}"></div>
                 
                 {% if snap.player.player.avatar %}
-                    <img src="{{ snap.player.player.avatar.url }}" alt="avatar" class="avatar-img">
+                    <img src="{% static snap.player.player.avatar.name %}" alt="avatar" class="avatar-img">
                 {% else %}
                     <div class="avatar-img d-flex align-items-center justify-content-center" style="color: var(--text-dim);">
                         <i class="bi bi-person-fill"></i>
@@ -164,7 +164,7 @@
                     <div class="avatar-bg-layer {% if snap_c.bg %}cosmetic-bg cosmetic-bg-{{ snap_c.bg.item.item_id }}{% endif %}"></div>
                     
                     {% if snap.player.player.avatar %}
-                        <img src="{{ snap.player.player.avatar.url }}" alt="avatar" class="avatar-img">
+                        <img src="{% static snap.player.player.avatar.name %}" alt="avatar" class="avatar-img">
                     {% else %}
                         <div class="avatar-img d-flex align-items-center justify-content-center" style="color: var(--text-dim);">
                             <i class="bi bi-person-fill"></i>

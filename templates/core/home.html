@@ -25,7 +25,7 @@
                     <div class="avatar-bg-layer {% if bg_ativo %}cosmetic-bg cosmetic-bg-{{ bg_ativo.item.item_id }} rarity-bg-{{ bg_ativo.item.raridade|lower }}{% endif %}"></div>
                     
                     {% if player.avatar %}
-                        <img src="{{ player.avatar.url }}" alt="avatar" class="avatar-img">
+                        <img src="{% static player.avatar.name %}" alt="avatar" class="avatar-img">
                     {% else %}
                         <div class="avatar-img d-flex align-items-center justify-content-center">
                             <i class="bi bi-person-fill" style="font-size: 2.5rem; color: var(--text-dim);"></i>

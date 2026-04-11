@@ -57,7 +57,7 @@
                     {% if bg_ativo %}title="{{ bg_ativo.item.name }}"{% endif %}></div>
                 
                 {% if player.avatar %}
-                    <img src="{{ player.avatar.url }}" alt="Avatar" class="avatar-img">
+                    <img src="{% static player.avatar.name %}" alt="Avatar" class="avatar-img">
                 {% else %}
                     <div class="avatar-img d-flex align-items-center justify-content-center">
                         <i class="bi bi-person-bounding-box text-theme" style="font-size: 3rem;"></i>

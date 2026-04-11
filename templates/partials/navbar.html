@@ -83,7 +83,7 @@
             <div class="hud-avatar-wrapper" style="position:relative;">
                 <button class="hud-avatar hud-avatar-btn" id="avatar-btn" title="{{ user.username }}">
                     {% if user.player.avatar %}
-                        <img src="{{ user.player.avatar.url }}" alt="avatar">
+                        <img src="{% static user.player.avatar.name %}" alt="avatar">
                     {% else %}
                         <i class="bi bi-person-fill"></i>
                     {% endif %}
