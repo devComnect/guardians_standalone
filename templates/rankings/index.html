@@ -78,6 +78,12 @@
         </a>
     </div>
 
+    <div class="past-seasons-bar">
+        <a href="{% url 'rankings:temporadas_anteriores' %}" class="rank-tab btn-past-seasons">
+            <i class="bi bi-clock-history"></i> TEMPORADAS ANTERIORES
+        </a>
+    </div>
+
     {% if podio or tabela %}
     {% load rankings_extras %}
 
@@ -131,6 +137,11 @@
             <div class="podium-valor font-tech">
                 {{ snap.valor }}
                 {% if categoria == 'xp' %}XP{% elif categoria == 'moedas' %}⬡{% else %}✓{% endif %}
+                <span class="tendencia tendencia-{{ snap.tendencia }}">
+                    {% if snap.tendencia == 'subiu' %}▲
+                    {% elif snap.tendencia == 'caiu' %}▼
+                    {% else %}—{% endif %}
+                </span>
             </div>
 
             <div class="podium-base">
@@ -195,6 +206,11 @@
             <span class="rank-valor font-tech">
                 {{ snap.valor }}
                 {% if categoria == 'xp' %}XP{% elif categoria == 'moedas' %}⬡{% else %}✓{% endif %}
+                <span class="tendencia tendencia-{{ snap.tendencia }}">
+                    {% if snap.tendencia == 'subiu' %}▲
+                    {% elif snap.tendencia == 'caiu' %}▼
+                    {% else %}—{% endif %}
+                </span>
             </span>
 
         </a>

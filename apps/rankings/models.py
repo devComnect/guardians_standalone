@@ -69,6 +69,18 @@ class RankingSnapshot(models.Model):
     posicao   = models.PositiveSmallIntegerField()
     valor     = models.PositiveIntegerField(default=0)   # XP, coins ou qtd desafios
     atualizado_em = models.DateTimeField(auto_now=True)
+    posicao_anterior = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    @property
+    def tendencia(self):
+        if self.posicao_anterior is None:
+            return 'nova'
+        if self.posicao < self.posicao_anterior:
+            return 'subiu'
+        if self.posicao > self.posicao_anterior:
+            return 'caiu'
+        return 'igual'
+
 
     class Meta:
         verbose_name = 'Snapshot de Ranking'

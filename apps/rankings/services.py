@@ -19,11 +19,14 @@ def recalcular_ranking_player(user):
     }
 
     for categoria, valor in valores.items():
+        snap = RankingSnapshot.objects.filter(season=season, player=user, categoria=categoria).first()
+        posicao_atual = snap.posicao if snap else 9999
+
         RankingSnapshot.objects.update_or_create(
             season=season,
             player=user,
             categoria=categoria,
-            defaults={'valor': valor, 'posicao': 9999},
+            defaults={'valor': valor, 'posicao': posicao_atual, 'posicao_anterior': posicao_atual},
         )
 
     _reordenar_posicoes(season)

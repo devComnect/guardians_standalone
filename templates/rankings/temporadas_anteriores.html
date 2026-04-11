@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Temporadas Anteriores — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/rankings.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="rankings-wrapper">
+<div class="rankings-container">
+
+    <div class="past-seasons-header">
+        <a href="{% url 'rankings:index' %}" class="btn-past-seasons">
+            <i class="bi bi-arrow-left"></i>
+            <span>VOLTAR</span>
+        </a>
+    </div>
+
+
+    <div class="seasons-carousel">
+
+
+        <div class="carousel-nav">
+            <button class="carousel-nav-btn" id="btnPrev" disabled>
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <span class="carousel-indicator" id="carouselIndicator">SEASON 1</span>
+            <button class="carousel-nav-btn" id="btnNext">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+
+        <!-- SEASON 1 -->
+        <div class="seasons-slide active" data-season="SEASON 1">
+            <div class="season-countdown-bar" style="margin-bottom:1.5rem;">
+                <p class="season-label">TEMPORADA ENCERRADA</p>
+                <p class="season-name">SEASON CLAUSURA 2025</p>
+            </div>
+
+            <div class="podium-section">
+                <div class="podium-card pos-2" style="pointer-events:none;">
+                    <div class="podium-crown"><i class="bi bi-award-fill"></i></div>
+                    <div class="podium-info"><span class="podium-name">Chrysthyanne Rodrigues</span></div>
+                    <div class="podium-valor font-tech">1075 pts</div>
+                    <div class="podium-base"><span class="podium-number font-tech">#2</span></div>
+                </div>
+                <div class="podium-card pos-1" style="pointer-events:none;">
+                    <div class="podium-crown"><i class="bi bi-trophy-fill"></i></div>
+                    <div class="podium-info"><span class="podium-name">Fernando Zanella</span></div>
+                    <div class="podium-valor font-tech">1107 pts</div>
+                    <div class="podium-base"><span class="podium-number font-tech">#1</span></div>
+                </div>
+                <div class="podium-card pos-3" style="pointer-events:none;">
+                    <div class="podium-crown"><i class="bi bi-patch-check-fill"></i></div>
+                    <div class="podium-info"><span class="podium-name">Eduardo Pinheiro</span></div>
+                    <div class="podium-valor font-tech">1012 pts</div>
+                    <div class="podium-base"><span class="podium-number font-tech">#3</span></div>
+                </div>
+            </div>
+
+            <div class="rank-table">
+                <div class="rank-table-header font-tech"><span>#</span><span>PLAYER</span><span></span><span>PONTOS</span></div>
+                {% for entry in s1_tabela %}
+                <div class="rank-row">
+                    <span class="rank-pos font-tech">{{ entry.pos }}</span>
+                    <div class="rank-player"><div class="rank-player-info"><span class="rank-name">{{ entry.nome }}</span></div></div>
+                    <span class="rank-classe font-tech"></span>
+                    <span class="rank-valor font-tech">{{ entry.valor }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- SEASON 2 -->
+        <div class="seasons-slide" data-season="SEASON 2">
+            <div class="season-countdown-bar" style="margin-bottom:1.5rem;">
+                <p class="season-label">TEMPORADA ENCERRADA</p>
+                <p class="season-name">SEASON APERTURA 1 - 2026</p>
+            </div>
+
+            <div class="podium-section">
+                <div class="podium-card pos-2" style="pointer-events:none;">
+                    <div class="podium-crown"><i class="bi bi-award-fill"></i></div>
+                    <div class="podium-info"><span class="podium-name">Fernando Zanella</span></div>
+                    <div class="podium-valor font-tech">5809 XP</div>
+                    <div class="podium-base"><span class="podium-number font-tech">#2</span></div>
+                </div>
+                <div class="podium-card pos-1" style="pointer-events:none;">
+                    <div class="podium-crown"><i class="bi bi-trophy-fill"></i></div>
+                    <div class="podium-info"><span class="podium-name">Lucas Kaizer</span></div>
+                    <div class="podium-valor font-tech">6297 XP</div>
+                    <div class="podium-base"><span class="podium-number font-tech">#1</span></div>
+                </div>
+                <div class="podium-card pos-3" style="pointer-events:none;">
+                    <div class="podium-crown"><i class="bi bi-patch-check-fill"></i></div>
+                    <div class="podium-info"><span class="podium-name">Raysa Melo</span></div>
+                    <div class="podium-valor font-tech">5385 XP</div>
+                    <div class="podium-base"><span class="podium-number font-tech">#3</span></div>
+                </div>
+            </div>
+
+            <div class="rank-table">
+                <div class="rank-table-header font-tech"><span>#</span><span>PLAYER</span><span></span><span>XP</span></div>
+                {% for entry in s2_tabela %}
+                <div class="rank-row">
+                    <span class="rank-pos font-tech">{{ entry.pos }}</span>
+                    <div class="rank-player"><div class="rank-player-info"><span class="rank-name">{{ entry.nome }}</span></div></div>
+                    <span class="rank-classe font-tech"></span>
+                    <span class="rank-valor font-tech">{{ entry.valor }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>{# /seasons-carousel #}
+
+</div>
+</div>
+
+<script>
+(function () {
+    const slides    = document.querySelectorAll('.seasons-slide');
+    const btnPrev   = document.getElementById('btnPrev');
+    const btnNext   = document.getElementById('btnNext');
+    const indicator = document.getElementById('carouselIndicator');
+    let current = 0;
+
+    function goTo(index) {
+        slides[current].classList.remove('active');
+        current = index;
+        slides[current].classList.add('active');
+        indicator.textContent = slides[current].dataset.season;
+        btnPrev.disabled = current === 0;
+        btnNext.disabled = current === slides.length - 1;
+    }
+
+    btnPrev.addEventListener('click', () => { if (current > 0) goTo(current - 1); });
+    btnNext.addEventListener('click', () => { if (current < slides.length - 1) goTo(current + 1); });
+})();
+</script>
+{% endblock %}
