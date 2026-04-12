@@ -286,17 +286,15 @@ def _register_mission_signals():
 def _register_battle_pass_signals():
     print('[BP SIGNAL] iniciando registro')
     try:
-        from apps.profiles.models import PlayerBattlePass
-
-        @receiver(post_save, sender=PlayerBattlePass)
+        @receiver(post_save, sender='profiles.PlayerBattlePass')
         def log_battle_pass_tier(sender, instance, created, **kwargs):
             if created:
                 return
 
+            print(f'[BP SIGNAL] post_save disparado — player={instance.player} tiers_coletados={instance.tiers_coletados}')
+
             from apps.profiles.log_service import registrar_log
             from apps.profiles.models import SystemLog
-
-            print(f'[BP SIGNAL] post_save disparado — player={instance.player} tiers_coletados={instance.tiers_coletados}')
 
             for tier_num in instance.tiers_coletados:
                 ja_existe = SystemLog.objects.filter(
@@ -311,8 +309,6 @@ def _register_battle_pass_signals():
                     continue
 
                 tier_obj = instance.battle_pass.tiers.filter(tier=tier_num).first()
-                print(f'[BP SIGNAL] tier_obj={tier_obj}')
-
                 if not tier_obj:
                     continue
 
@@ -330,6 +326,8 @@ def _register_battle_pass_signals():
                     }
                 )
                 print(f'[BP SIGNAL] log criado para tier={tier_num}')
+
+        print('[BP SIGNAL] signal registrado com sucesso')
 
     except Exception as e:
         import traceback
