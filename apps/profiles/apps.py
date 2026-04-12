@@ -14,4 +14,6 @@ class ProfilesConfig(AppConfig):
         )
         _register_store_signals()
         _register_mission_signals()
+        print('[APPS] chamando _register_battle_pass_signals')
         _register_battle_pass_signals()
+        print('[APPS] _register_battle_pass_signals concluído')

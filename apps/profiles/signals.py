@@ -284,6 +284,7 @@ def _register_mission_signals():
 # ─────────────────────────────────────────────
 
 def _register_battle_pass_signals():
+    print('[BP SIGNAL] iniciando registro')
     try:
         from apps.profiles.models import PlayerBattlePass
 
