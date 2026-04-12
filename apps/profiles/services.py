@@ -794,19 +794,5 @@ def coletar_recompensa_bp(user, tier_number):
     pbp.save()
 
     descricao = tier.recompensa_descricao or f'Tier {tier_number}'
-
-    from .log_service import registrar_log
-    registrar_log(
-        user      = user,
-        tipo      = 'battle_pass',
-        titulo    = f'Battle Pass — Tier {tier_number} Coletado',
-        breakdown = {
-            'tier'                : tier_number,
-            'recompensa_tipo'     : tier.recompensa_tipo,
-            'recompensa_descricao': descricao,
-            'item'                : str(tier.recompensa_item) if tier.recompensa_item else None,
-            'coins'               : tier.recompensa_coins if tier.recompensa_tipo == 'coins' else 0,
-        },
-    )
-
+    
     return True, f'Recompensa coletada: {descricao}!', descricao

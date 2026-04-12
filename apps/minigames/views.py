@@ -547,11 +547,6 @@ def request_hint_decriptar(request):
         return JsonResponse({'error': 'Tentativa não encontrada.'}, status=404)
 
     words = attempt.words_sequence
-    
-    if word_index < 0 or word_index >= len(words):
-        print(f"Erro: Índice {word_index} é inválido.")
-        return JsonResponse({'error': 'Índice inválido.'}, status=400)
-
     word_data = words[word_index]
     word_hint = word_data.get('dica', '')
     

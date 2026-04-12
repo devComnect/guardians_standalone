@@ -15,4 +15,3 @@ class ProfilesConfig(AppConfig):
         _register_store_signals()
         _register_mission_signals()
         _register_battle_pass_signals()
-        print('[BATTLE PASS SIGNAL] _register_battle_pass_signals executado')

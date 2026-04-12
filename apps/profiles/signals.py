@@ -325,10 +325,8 @@ def _register_battle_pass_signals():
                     }
                 )
 
-    except Exception as e:
-        import traceback
-        print(f'[BATTLE PASS SIGNAL ERROR] {e}')
-        print(traceback.format_exc())
+    except Exception:
+        pass
 
 
 # ─────────────────────────────────────────────
