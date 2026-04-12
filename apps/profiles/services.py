@@ -361,21 +361,15 @@ def trocar_classe(user, nova_classe):
     return True, f'Bem-vindo aos {player.get_classe_display()}!'
 
 @transaction.atomic
-def revoke_xp(user, xp_amount, descricao=''):
-    """
-    Remove XP do player e recalcula o level.
-    Chamado automaticamente ao resetar tentativas.
-    """
+def revoke_xp(user, xp_amount, descricao='', fonte='estorno'):
     from .models import XPEvent, PlayerNotification
 
     player = getattr(user, 'player', None)
     if not player or xp_amount <= 0:
         return
 
-    # Remove o XP (nunca fica negativo)
     player.xp_total = max(0, player.xp_total - xp_amount)
 
-    # Recalcula o level de baixo para cima
     novo_level = 1
     while novo_level < 100 and player.xp_total >= xp_para_nivel(novo_level):
         novo_level += 1
@@ -384,17 +378,38 @@ def revoke_xp(user, xp_amount, descricao=''):
     player.level  = novo_level
     player.save()
 
-    # Registra o estorno no histórico
+    try:
+        from apps.rankings.services import recalcular_ranking_player
+        recalcular_ranking_player(user)
+    except Exception:
+        pass
+
     XPEvent.objects.create(
         player    = user,
         fonte     = 'bonus',
         xp_base   = -xp_amount,
         xp_bonus  = 0,
         xp_total  = -xp_amount,
-        descricao = descricao or f'Estorno: -{xp_amount} XP (tentativa resetada)',
+        descricao = descricao or f'Estorno: -{xp_amount} XP',
     )
 
-    if level_perdido:
+    if fonte == 'infracao':
+        PlayerNotification.objects.create(
+            player   = user,
+            tipo     = 'sistema',
+            titulo   = 'Infração aplicada',
+            mensagem = descricao or f'Uma infração de {xp_amount} XP foi aplicada pelo administrador.',
+            icone    = 'bi-exclamation-triangle-fill',
+        )
+        if level_perdido:
+            PlayerNotification.objects.create(
+                player   = user,
+                tipo     = 'sistema',
+                titulo   = f'Nível ajustado para {novo_level}',
+                mensagem = 'Sua infração resultou em perda de nível.',
+                icone    = 'bi-arrow-down-circle-fill',
+            )
+    elif level_perdido:
         PlayerNotification.objects.create(
             player   = user,
             tipo     = 'sistema',

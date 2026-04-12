@@ -514,34 +514,7 @@ class EventoPontos(models.Model):
                                    related_name='eventos_criados')
 
     def save(self, *args, **kwargs):
-        is_new = self._state.adding
         super().save(*args, **kwargs)
-        if not is_new:
-            return  # só aplica na criação
-
-        from apps.profiles.models import SystemLog  # ajuste o import
-        player = getattr(self.player, 'player', None)
-        if not player:
-            return
-
-        if self.tipo == 'infraction':
-            delta = -self.xp_valor
-            player.xp_total = max(0, player.xp_total + delta)
-            tipo_log = 'xp_loss'
-        else:
-            delta = self.xp_valor
-            player.xp_total += delta
-            tipo_log = 'xp_gain'
-
-        player.save()
-
-        SystemLog.objects.create(
-            player    = self.player,
-            tipo      = tipo_log,
-            titulo    = f'{"Infração" if self.tipo == "infraction" else "Reconhecimento"} — {self.descricao[:60]}',
-            descricao = self.descricao,
-            xp_delta  = delta,
-        )
 
     class Meta:
         verbose_name = 'Evento de Pontos'

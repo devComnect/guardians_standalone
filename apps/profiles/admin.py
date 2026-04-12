@@ -28,9 +28,11 @@ class LevelProgressionAdminView:
     """View extra no admin para visualizar a tabela de progressão de níveis."""
     pass
 
+
+
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ('user', 'classe_badge', 'level', 'xp_total', 'xp_barra',
+    list_display = ('user', 'nome_completo', 'classe_badge', 'level', 'xp_total', 'xp_barra',
                 'coins', 'streak_days', 'ofensiva', 'link_conquistas', 'created_at')
     list_filter   = ('classe', 'level')
     search_fields = ('user__username', 'display_name')
@@ -46,6 +48,11 @@ class PlayerAdmin(admin.ModelAdmin):
            'ofensiva', 'last_challenge_date')}),
         ('Datas', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )
+
+    def nome_completo(self, obj):
+        nome = f'{obj.user.first_name} {obj.user.last_name}'.strip()
+        return nome or '—'
+    nome_completo.short_description = 'Nome'
 
     def link_conquistas(self, obj):
         from django.urls import reverse
@@ -231,14 +238,7 @@ class PlayerAdmin(admin.ModelAdmin):
 
     actions = ['conceder_xp_bonus', 'reset_total_player']
 
-    @admin.action(description='⭐ Conceder 500 XP de bônus')
-    def conceder_xp_bonus(self, request, queryset):
-        from apps.profiles.services import grant_xp
-        for player in queryset:
-            grant_xp(player.user, 500, 'bonus', 'Bônus concedido pelo administrador')
-        self.message_user(request, f'500 XP concedidos a {queryset.count()} player(s).')
-
-    @admin.action(description='🗑️ RESET TOTAL — zera tudo do player')
+    @admin.action(description='🗑️ RESET TOTAL — zera tudo do player (CUIDADO)')
     def reset_total_player(self, request, queryset):
         from apps.minigames.models import (
             QuizAttempt, DecriptarAttempt, CodigoAttempt,
@@ -555,14 +555,54 @@ class SystemLogAdmin(admin.ModelAdmin):
 
 @admin.register(EventoPontos)
 class EventoPontosAdmin(admin.ModelAdmin):
-    list_display  = ('player', 'tipo', 'xp_valor', 'descricao', 'criado_por', 'criado_em')
-    list_filter   = ('tipo',)
-    search_fields = ('player__username', 'descricao')
-    readonly_fields = ('criado_em',)
+    list_display    = ('criado_em', 'player', 'tipo_badge', 'xp_valor', 'descricao', 'criado_por')
+    list_filter     = ('tipo', 'criado_em')
+    search_fields   = ('player__username', 'descricao')
+    readonly_fields = ('criado_em', 'criado_por')
+    ordering        = ('-criado_em',)
 
-    def save_model(self, request, obj, form, change):
-        obj.criado_por = request.user
-        super().save_model(request, obj, form, change)
+    fieldsets = (
+        ('Evento', {
+            'description': (
+                '⭐ Reconhecimento soma XP ao player (sem bônus de itens). '
+                '⚠️ Infração deduz XP e rebaixa o nível se necessário. '
+                'O XP nunca fica negativo.'
+            ),
+            'fields': ('player', 'tipo', 'xp_valor', 'descricao'),
+        }),
+        ('Auditoria', {
+            'fields': ('criado_por', 'criado_em'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def tipo_badge(self, obj):
+        cor   = '#ffc107' if obj.tipo == 'infraction' else '#0dcaf0'
+        label = obj.get_tipo_display()
+        return format_html('<span style="color:{};font-weight:bold;">{}</span>', cor, label)
+    tipo_badge.short_description = 'Tipo'
 
     def has_change_permission(self, request, obj=None):
-        return False  # imutável após criação
+        return False
+
+    def save_model(self, request, obj, form, change):
+        from apps.profiles.services import grant_xp, revoke_xp
+
+        obj.criado_por = request.user
+        # Salva sem disparar a lógica do model.save() (que foi esvaziada)
+        super().save_model(request, obj, form, change)
+
+        if obj.tipo == 'infraction':
+            revoke_xp(
+                obj.player,
+                obj.xp_valor,
+                descricao=f'Infração — {obj.descricao}',
+                fonte='infracao',
+            )
+        else:
+            grant_xp(
+                obj.player,
+                obj.xp_valor,
+                fonte='bonus',
+                descricao=f'Reconhecimento — {obj.descricao}',
+            )

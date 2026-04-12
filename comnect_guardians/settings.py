@@ -9,6 +9,7 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
 
 DJANGO_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -138,5 +139,91 @@ LOGGING = {
             'level': 'WARNING',
             'propagate': False,
         },
+    },
+}
+
+JAZZMIN_SETTINGS = {
+    "site_title": "Portal Admin",
+    "site_header": "Portal Admin",
+    "site_brand": "⚡ Portal",
+    "welcome_sign": "Bem-vindo ao painel de administração",
+    "search_model": ["profiles.Player", "auth.User"],
+    "topmenu_links": [
+        {"name": "Portal", "url": "/", "new_window": True},
+    ],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "icons": {
+        "auth.User":                        "fas fa-users",
+        "profiles.Player":                  "fas fa-user-circle",
+        "profiles.EventoPontos":            "fas fa-gavel",
+        "profiles.Achievement":             "fas fa-trophy",
+        "profiles.PlayerAchievement":       "fas fa-medal",
+        "profiles.BattlePassConfig":        "fas fa-scroll",
+        "profiles.SystemLog":               "fas fa-history",
+        "minigames.Quiz":                   "fas fa-question-circle",
+        "minigames.QuizAttempt":            "fas fa-redo",
+        "minigames.DecriptarAttempt":       "fas fa-redo",
+        "minigames.CodigoAttempt":          "fas fa-redo",
+        "minigames.PatrolAttempt":          "fas fa-redo",
+        "minigames.PasswordAttempt":        "fas fa-redo",
+        "core.AdminPost":                   "fas fa-bullhorn",
+        "feedback.Feedback":                "fas fa-comment-alt",
+        "rankings.Season":                  "fas fa-calendar-alt",
+        "store.Item":                       "fas fa-store",
+        "missions.MissionTemplate":         "fas fa-tasks",
+    },
+    "order_with_respect_to": [
+        "profiles.Player",
+        "profiles.EventoPontos",
+        "profiles",
+        "core",
+        "minigames",
+        "feedback",
+        "rankings",
+        "missions",
+        "store",
+        "auth",
+    ],
+    "custom_links": {
+        "profiles": [
+            {
+                "name": "Tabela de Níveis",
+                "url": "admin:profiles_player_level_progression",
+                "icon": "fas fa-chart-line",
+            }
+        ]
+    },
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": True,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-dark",
+    "accent": "accent-info",
+    "navbar": "navbar-dark",
+    "no_navbar_border": True,
+    "navbar_fixed": True,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-info",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": True,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "darkly",
+    "default_theme_mode": "dark",
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success",
     },
 }
