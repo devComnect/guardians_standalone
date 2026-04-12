@@ -287,15 +287,15 @@ def _register_battle_pass_signals():
     try:
         from apps.profiles.models import PlayerBattlePass
 
-        _bp_tiers_cache = {}
-
         @receiver(pre_save, sender=PlayerBattlePass)
         def cache_bp_tiers(sender, instance, **kwargs):
-            if instance.pk:
-                anterior = instance.__class__.objects.filter(
-                    pk=instance.pk
-                ).values_list('tiers_coletados', flat=True).first()
-                _bp_tiers_cache[instance.pk] = list(anterior or [])
+            if not instance.pk:
+                instance._tiers_anteriores = []
+                return
+            anterior = instance.__class__.objects.filter(
+                pk=instance.pk
+            ).values_list('tiers_coletados', flat=True).first()
+            instance._tiers_anteriores = list(anterior or [])
 
         @receiver(post_save, sender=PlayerBattlePass)
         def log_battle_pass_tier(sender, instance, created, **kwargs):
@@ -304,7 +304,7 @@ def _register_battle_pass_signals():
 
             from apps.profiles.log_service import registrar_log
 
-            tiers_anteriores = set(_bp_tiers_cache.pop(instance.pk, []))
+            tiers_anteriores = set(getattr(instance, '_tiers_anteriores', []))
             tiers_novos      = set(instance.tiers_coletados) - tiers_anteriores
 
             for tier_num in tiers_novos:
