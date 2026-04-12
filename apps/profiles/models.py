@@ -473,6 +473,7 @@ class SystemLog(models.Model):
     ('xp_password',  'Bônus XP em Cofre de Senhas (%)'),
     ('coin_bonus',   'Bônus de Moedas (%)'),
     ('add_time',     'Tempo Extra em Desafios (segundos)'),
+    ('battle_pass', 'Battle Pass'),
     ]
     
     player     = models.ForeignKey(User, on_delete=models.CASCADE, related_name='system_logs')
