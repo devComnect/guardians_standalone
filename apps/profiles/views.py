@@ -845,8 +845,10 @@ def coletar_tier_bp(request):
     except (ValueError, TypeError):
         return JsonResponse({'error': 'Dados inválidos.'}, status=400)
 
+    print(f'[COLETAR TIER] user={request.user} tier={tier_n}')
     from .services import coletar_recompensa_bp
     sucesso, mensagem, descricao = coletar_recompensa_bp(request.user, tier_n)
+    print(f'[COLETAR TIER] resultado: sucesso={sucesso} mensagem={mensagem}')
     return JsonResponse({'ok': sucesso, 'mensagem': mensagem, 'recompensa': descricao})
 
 @login_required

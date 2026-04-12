@@ -816,7 +816,9 @@ def coletar_recompensa_bp(user, tier_number):
     coletados = pbp.tiers_coletados
     coletados.append(tier_number)
     pbp.tiers_coletados = coletados
+    print(f'[COLETAR TIER SERVICE] salvando pbp pk={pbp.pk} tiers_coletados={pbp.tiers_coletados}')
     pbp.save()
+    print(f'[COLETAR TIER SERVICE] pbp salvo')
 
     descricao = tier.recompensa_descricao or f'Tier {tier_number}'
     

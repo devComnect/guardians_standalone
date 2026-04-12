@@ -284,34 +284,33 @@ def _register_mission_signals():
 # ─────────────────────────────────────────────
 
 def _register_battle_pass_signals():
-    print('[BP SIGNAL] iniciando registro')
     try:
-        @receiver(post_save, sender='profiles.PlayerBattlePass')
+        from apps.profiles.models import PlayerBattlePass
+
+        _bp_tiers_cache = {}
+
+        @receiver(pre_save, sender=PlayerBattlePass)
+        def cache_bp_tiers(sender, instance, **kwargs):
+            if instance.pk:
+                anterior = instance.__class__.objects.filter(
+                    pk=instance.pk
+                ).values_list('tiers_coletados', flat=True).first()
+                _bp_tiers_cache[instance.pk] = list(anterior or [])
+
+        @receiver(post_save, sender=PlayerBattlePass)
         def log_battle_pass_tier(sender, instance, created, **kwargs):
             if created:
                 return
 
-            print(f'[BP SIGNAL] post_save disparado — player={instance.player} tiers_coletados={instance.tiers_coletados}')
-
             from apps.profiles.log_service import registrar_log
-            from apps.profiles.models import SystemLog
 
-            for tier_num in instance.tiers_coletados:
-                ja_existe = SystemLog.objects.filter(
-                    player=instance.player,
-                    tipo='battle_pass',
-                    breakdown__tier=tier_num,
-                ).exists()
+            tiers_anteriores = set(_bp_tiers_cache.pop(instance.pk, []))
+            tiers_novos      = set(instance.tiers_coletados) - tiers_anteriores
 
-                print(f'[BP SIGNAL] tier={tier_num} ja_existe={ja_existe}')
-
-                if ja_existe:
-                    continue
-
+            for tier_num in tiers_novos:
                 tier_obj = instance.battle_pass.tiers.filter(tier=tier_num).first()
                 if not tier_obj:
                     continue
-
                 registrar_log(
                     user=instance.player,
                     tipo='battle_pass',
@@ -325,15 +324,11 @@ def _register_battle_pass_signals():
                         "item": str(tier_obj.recompensa_item) if tier_obj.recompensa_item else None,
                     }
                 )
-                print(f'[BP SIGNAL] log criado para tier={tier_num}')
-
-        print('[BP SIGNAL] signal registrado com sucesso')
 
     except Exception as e:
         import traceback
-        print(f'[BP SIGNAL ERROR] {e}')
+        print(f'[BATTLE PASS SIGNAL ERROR] {e}')
         print(traceback.format_exc())
-
 
 # ─────────────────────────────────────────────
 # SIGNALS — Derrota/Abandono em Minigames (xp_earned = 0)
