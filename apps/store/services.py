@@ -34,11 +34,11 @@ _EFEITOS_NAO_STACKAVEIS = {
 _LOOT_PACK_POOL = [
     # (item_id, raridade)      peso
     (1,  'COMMON'),   # Backup de Memória
-    (2,  'COMMON'),   # Injetor de Overclock
+    (2,  'RARE'),   # Injetor de Overclock
     (5,  'COMMON'),   # Sniffer de Metadados
-    (3,  'RARE'),     # Expansor de Cache
+    (6,  'COMMON'),     # Buffer de Contingência
+    #(3,  'RARE'),     # Expansor de Cache
     (4,  'RARE'),     # Protocolo Persistência
-    (6,  'RARE'),     # Buffer de Contingência
     (7,  'EPIC'),     # Script de Arbitragem
     (8,  'EPIC'),     # Monetizador de Expertise
 ]
@@ -587,7 +587,7 @@ def _aplicar_efeito_consumivel(user, player, item):
 
         from apps.profiles.services import revoke_xp, grant_coins
 
-        revoke_xp(user, xp_custo, f'Monetizador de Expertise: -{xp_custo} XP → Coins')
+        revoke_xp(user, xp_custo, f'Monetizador de Expertise: -{xp_custo} XP → Coins', fonte='item')
         player.refresh_from_db()
 
         coin_result  = grant_coins(user, coins_ganho_base, 'consumivel')  # bonus aplicado

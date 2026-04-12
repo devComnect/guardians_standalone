@@ -418,6 +418,16 @@ def revoke_xp(user, xp_amount, descricao='', fonte='estorno'):
             icone    = 'bi-arrow-down-circle-fill',
         )
 
+    elif fonte == 'item':
+        if level_perdido:
+            PlayerNotification.objects.create(
+                player   = user,
+                tipo     = 'sistema',
+                titulo   = f'Nível ajustado para {novo_level}',
+                mensagem = 'O uso de um item resultou em perda de nível.',
+                icone    = 'bi-arrow-down-circle-fill',
+            )
+
 
 @transaction.atomic
 def revoke_coins(user, coins_amount):
