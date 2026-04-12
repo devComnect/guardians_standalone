@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'base.html' %} 
 {% load static %}
 
 {% block title %}Perfil — {{ player_obj.display_name|default:player_obj.user.username }} | Comnect Guardians{% endblock %}
@@ -41,6 +41,11 @@
             </div>
 
             <h1 class="profile-name">{{ player_obj.display_name|default:player_obj.user.username }}</h1>
+            {% if target_user.first_name or target_user.last_name %}
+            <p class="profile-realname font-tech" style="opacity: 0.5; font-size: 0.8rem; letter-spacing: 0.1em; margin-top: -0.5rem;">
+                {{ target_user.first_name }} {{ target_user.last_name }}
+            </p>
+            {% endif %}
             
             <div class="profile-titles-container d-flex flex-column align-items-center">
                 <div class="profile-class-title class-widget font-tech">

@@ -935,6 +935,7 @@ def public_profile(request, player_id):
     config = AchievementConfig.get()
 
     context = {
+        'target_user': target_user,
         'player_obj': player_obj,
         'frame_ativo': frame_ativo,
         'bg_ativo': bg_ativo,
@@ -946,4 +947,4 @@ def public_profile(request, player_id):
         'config': config,
     }
 
-    return render(request, 'profiles/public_profile.html', context)
+    return render(request, 'profiles/public_profile.html', context) 
