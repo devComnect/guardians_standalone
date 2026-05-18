@@ -50,7 +50,7 @@ PASSWORD_RULES_DB = {
     405: {"id": 405, "diff": "insane", "desc": "Deve conter formato de versão (vX.X.X).",              "regex": r"v\d+\.\d+\.\d+"},
     407: {"id": 407, "diff": "insane", "desc": "Valor em formato de dólar ($99,99).",                  "regex": r"\$\d+\,\d{2}"},
     408: {"id": 408, "diff": "insane", "desc": "NÃO pode conter as vogais A ou I.",                    "regex": r"^[^AIai]*$"},
-    409: {"id": 409, "diff": "insane", "desc": "NÃO pode conter os números (0,4,6,8).",                 "regex": r"^[^0468]*$"},
+    409: {"id": 409, "diff": "insane", "desc": "NÃO pode conter os números (0,4,8).",                 "regex": r"^[^048]*$"},
     410: {"id": 410, "diff": "insane", "desc": "Um sistema operacional amplamente conhecido.",          "regex": r"(WINDOWS|LINUX|KALI)"},
     # DINÂMICAS (math)
     500: {"id": 500, "diff": "medium", "template": "A soma de todos os números deve ser {}.",          "js_type": "sum"},
