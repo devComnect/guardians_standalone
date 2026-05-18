@@ -560,7 +560,7 @@ def request_hint_decriptar(request):
             attempt.free_hint_used = True
             words[word_index]['hint_used'] = True
         else:
-            time_deducted = int((attempt.config.time_limit_seconds * attempt.config.hint_time_penalty_pct) / 100)
+            time_deducted = int((attempt.remaining_seconds() * attempt.config.hint_time_penalty_pct) / 100)
             attempt.penalty_seconds += time_deducted
             penalty_applied = True
             words[word_index]['hint_used'] = True
@@ -882,7 +882,7 @@ def request_hint_codigo(request):
             consumir_efeito_unico(request.user, 'FREE_HINT')
             attempt.free_hint_used = True
         else:
-            time_deducted = int((attempt.config.time_limit_seconds * attempt.config.hint_time_penalty_pct) / 100)
+            time_deducted = int((attempt.remaining_seconds() * attempt.config.hint_time_penalty_pct) / 100)
             attempt.penalty_seconds += time_deducted
             attempt.free_hint_used = True
             penalty_applied = True
