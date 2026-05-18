@@ -27,7 +27,8 @@ def home(request):
     # Pegamos as missões vinculadas a esse set
     active_missions = mission_data.missions.all() if mission_data else []
 
-    week_start = timezone.localdate() - timedelta(days=6)
+    today      = timezone.localdate()
+    week_start = today - timedelta(days=today.weekday()) 
     patrulhas_na_semana = PatrolAttempt.objects.filter(
         player=request.user,
         date__range=(week_start, timezone.localdate()),
@@ -78,7 +79,7 @@ def home(request):
         'titulo_ativo': titulo_ativo,
         'patrol_semanal_info': patrol_semanal_info,
         'patrol_limite': patrol_limite,
-        'patrol_semanal_info': patrol_semanal_info,
+        'patrol_attempt': patrol_attempt,
     }
 
     return render(request, 'core/home.html', context)

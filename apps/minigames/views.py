@@ -199,16 +199,14 @@ def _calc_feedback(secret, guess):
 
     return feedback
 
-
 @login_required
 def patrol_start(request):
-    """Inicia ou retoma a patrulha do dia."""
     today      = timezone.localdate()
-    week_start = today - timedelta(days=6)  # janela de 7 dias (hoje incluso)
+    week_start = today - timedelta(days=today.weekday())  # segunda-feira da semana atual
     attempt    = PatrolAttempt.objects.filter(player=request.user, date=today).first()
     config = PatrolConfig.objects.first()
     if not config:
-        config = PatrolConfig()  # usa os defaults sem salvar
+        config = PatrolConfig()
 
     if attempt and attempt.completed:
         return JsonResponse({'status': 'error', 'message': 'Patrulha já realizada hoje.'}, status=400)
@@ -226,17 +224,14 @@ def patrol_start(request):
         }, status=400)
 
     if attempt:
-        # Retoma sessão em andamento
         return JsonResponse({
             'status':   'resume',
             'history':  attempt.guesses,
             'attempts': attempt.attempts_count,
         })
 
-    # Novo jogo
     secret  = ''.join([str(random.randint(0, 9)) for _ in range(4)])
     attempt = PatrolAttempt.objects.create(player=request.user, date=today, secret=secret)
-
     return JsonResponse({'status': 'success'})
 
 
