@@ -591,8 +591,7 @@ def editar_perfil(request):
 
         if display_name:
             player.display_name = display_name[:60]
-        if bio:
-            player.bio = bio[:300]
+        player.bio = bio[:300]
 
         if avatar_choice:
             avatares_permitidos = [
