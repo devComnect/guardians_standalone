@@ -758,7 +758,7 @@ def finish_decriptar(request):
 
     xp = attempt.correct_count * attempt.config.xp_per_word
     moedas_base = attempt.config.coin_reward if xp > 0 else 0
-    
+
     if moedas_base > 0:
         coins_result = grant_coins(request.user, moedas_base, 'decriptar')
         attempt.coins_earned = coins_result['final']
@@ -774,17 +774,19 @@ def finish_decriptar(request):
     if attempt.xp_earned > 0:
         descricao_log = f'Decriptar parcial ({attempt.correct_count}/{len(attempt.words_sequence)})'
         xp_result = grant_xp(
-            request.user, 
-            attempt.xp_earned, 
-            'decriptar', 
+            request.user,
+            attempt.xp_earned,
+            'decriptar',
             descricao_log,
             contexto={
                 'segundos_restantes': attempt.remaining_seconds(),
                 'tentativas': attempt.correct_count + (attempt.config.max_lives - attempt.lives_remaining),
-                'won': attempt.correct_count == len(attempt.words_sequence),
+                'won': False,
             }
         )
         request.session['last_xp_result'] = xp_result
+
+    registrar_desafio_diario(request.user)
 
     return JsonResponse({'redirect': f'/minigames/decriptar/resultado/{attempt.id}/'})
 
