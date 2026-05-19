@@ -260,6 +260,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 4px;
     transition: all 0.3s ease;
+    position: relative;
 }
 
 .day-slot.active {
@@ -280,6 +281,31 @@
     box-shadow: 0 0 8px rgba(0, 255, 159, 0.4), inset 0 0 6px rgba(0, 255, 159, 0.1);
     color: #00ff9f;
     animation: glow-hoje 2s ease-in-out infinite alternate;
+}
+
+.day-slot[data-tooltip]::after {
+    content: attr(data-tooltip);
+    white-space: pre;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-card, #1a1a2e);
+    color: var(--neon-cyan, #00f5ff);
+    border: 1px solid var(--neon-cyan, #00f5ff);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    line-height: 1.6;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 100;
+    min-width: max-content;
+}
+
+.day-slot[data-tooltip]:hover::after {
+    opacity: 1;
 }
 
 @keyframes glow-hoje {

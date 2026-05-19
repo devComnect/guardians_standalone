@@ -114,7 +114,12 @@
 
             <div class="week-tracker mt-3 d-flex justify-content-center gap-2" title="Atividade Semanal">
                 {% for dia in atividade_semanal %}
-                    <div class="day-slot font-tech {% if dia.ativo %}active{% elif not dia.futuro %}inactive{% endif %} {% if dia.hoje %}hoje{% endif %}" title="{{ dia.data|date:'d/m' }}">
+                    <div class="day-slot font-tech {% if dia.ativo %}active{% elif not dia.futuro %}inactive{% endif %} {% if dia.hoje %}hoje{% endif %}"
+                        {% if dia.detalhes %}
+                        data-tooltip="{% for tipo, qtd in dia.detalhes.items %}{{ tipo }}: {{ qtd }}&#10;{% endfor %}"
+                        {% else %}
+                        data-tooltip="{{ dia.data|date:'d/m' }}"
+                        {% endif %}>
                         {{ dia.dia_nome }}
                     </div>
                 {% endfor %}

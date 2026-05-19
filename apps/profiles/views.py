@@ -399,13 +399,21 @@ def _ctx_atividade_semanal(user):
 
         total_dia = quiz_dia + dcr_dia + cod_dia + patrol_dia + pw_dia
         
+        detalhes = {}
+        if quiz_dia:     detalhes['Quiz']     = quiz_dia
+        if dcr_dia:      detalhes['Decriptar'] = dcr_dia
+        if cod_dia:      detalhes['Código']   = cod_dia
+        if patrol_dia:   detalhes['Patrulha'] = patrol_dia
+        if pw_dia:       detalhes['Cofre']    = pw_dia
+
         dias.append({
-            'data': dia,
+            'data':     dia,
             'dia_nome': nomes_dias[i],
-            'total': total_dia,
-            'ativo': total_dia > 0,
-            'hoje': dia == hoje,
-            'futuro': dia > hoje,
+            'total':    total_dia,
+            'detalhes': detalhes,
+            'ativo':    total_dia > 0,
+            'hoje':     dia == hoje,
+            'futuro':   dia > hoje,
         })
 
     streak_visual = 0
