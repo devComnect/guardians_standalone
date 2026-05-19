@@ -69,7 +69,9 @@
                                 type="{% if question.allow_multiple %}checkbox{% else %}radio{% endif %}"
                                 name="question_{{ question.id }}"
                                 value="{{ option.id }}"
-                                class="option-input visually-hidden">
+                                class="option-input visually-hidden"
+                                data-question-id="{{ question.id }}"
+                                data-attempt-id="{{ attempt.pk }}">
                             <div class="option-body">
                                 <div class="option-marker"></div>
                                 <span class="option-text">{{ option.option_text }}</span>
@@ -185,7 +187,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const isRadio = input.type === 'radio';
         input.addEventListener('change', function () {
             if (isRadio) {
-                // Limpa outros na mesma questão
                 document.querySelectorAll(`input[name="${input.name}"]`).forEach(i => {
                     i.closest('.option-label').querySelector('.option-body').classList.remove('selected');
                 });
@@ -193,6 +194,26 @@ document.addEventListener('DOMContentLoaded', function () {
             const body = this.closest('.option-label').querySelector('.option-body');
             if (this.checked) body.classList.add('selected');
             else              body.classList.remove('selected');
+
+            // ── Auto-save draft ──────────────────────────────
+            const questionId = this.dataset.questionId;
+            const attemptId  = this.dataset.attemptId;
+            const selected   = Array.from(
+                document.querySelectorAll(`input[name="question_${questionId}"]:checked`)
+            ).map(i => parseInt(i.value));
+
+            fetch("{% url 'minigames:save_quiz_draft' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify({
+                    attempt_id:  parseInt(attemptId),
+                    question_id: parseInt(questionId),
+                    option_ids:  selected,
+                }),
+            }).catch(() => {});  // falha silenciosa — não interrompe o quiz
         });
     });
 

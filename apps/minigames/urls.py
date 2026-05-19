@@ -9,6 +9,8 @@ urlpatterns = [
     path('quiz/<int:quiz_id>/play/',   views.take_quiz,   name='take_quiz'),
     path('quiz/<int:quiz_id>/submit/', views.submit_quiz, name='submit_quiz'),
     path('quiz/<int:quiz_id>/result/', views.quiz_result, name='quiz_result'),
+    path('quiz/draft/', views.save_quiz_draft, name='save_quiz_draft'),
+
     # PATRULHA
     path('patrol/start/', views.patrol_start, name='patrol_start'),
     path('patrol/guess/', views.patrol_guess, name='patrol_guess'),

@@ -183,7 +183,7 @@
         {% if attempt.timer_expired or attempt.abandoned or not is_perfect %}
         <div class="result-msg-block">
             {% if attempt.timer_expired %}
-            <p class="result-msg-text">// O tempo limite foi atingido. Pontuação zerada.</p>
+            <p class="result-msg-text">// O tempo limite foi atingido. Perguntas respondidas serão contabilizadas.</p>
             {% elif attempt.abandoned %}
             <p class="result-msg-text">// Protocolo encerrado antecipadamente.</p>
             {% elif not is_perfect %}

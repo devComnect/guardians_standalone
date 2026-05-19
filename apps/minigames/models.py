@@ -183,6 +183,14 @@ class QuizAttempt(models.Model):
             return 0
         elapsed = (timezone.now() - self.started_at).total_seconds()
         return max(0, int(self.quiz.time_limit_seconds - elapsed - self.penalty_seconds + self.bonus_seconds))
+    
+class QuizAnswerDraft(models.Model):
+    attempt  = models.ForeignKey(QuizAttempt, on_delete=models.CASCADE, related_name='drafts')
+    question = models.ForeignKey('QuizQuestion', on_delete=models.CASCADE)
+    option   = models.ForeignKey(QuizOption, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('attempt', 'question', 'option')
 
 # ─────────────────────────────────────────────
 # PATRULHA DIÁRIA (Codebreaker)

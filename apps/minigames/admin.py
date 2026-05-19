@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.contrib import messages
 
 from .models import (Quiz, QuizQuestion, QuizOption, QuizAttempt, MiniGameContent, PatrolAttempt, PasswordGameConfig, PasswordAttempt,
-                     WordBank, DecriptarConfig, DecriptarAttempt, CodigoConfig, CodigoAttempt, PatrolConfig )
+                     WordBank, DecriptarConfig, DecriptarAttempt, CodigoConfig, CodigoAttempt, PatrolConfig, QuizAnswerDraft )
 
 
 
@@ -12,6 +12,12 @@ from .models import (Quiz, QuizQuestion, QuizOption, QuizAttempt, MiniGameConten
 ################
 ###ADMIN QUIZ###
 ################
+
+@admin.register(QuizAnswerDraft)
+class QuizAnswerDraftAdmin(admin.ModelAdmin):
+    list_display  = ('attempt', 'question', 'option')
+    list_filter   = ('attempt__quiz',)
+    raw_id_fields = ('attempt', 'question', 'option')
 
 class QuizOptionInline(nested_admin.NestedTabularInline):
     model   = QuizOption

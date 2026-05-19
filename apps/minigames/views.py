@@ -11,7 +11,7 @@ import json
 from apps.profiles.services import registrar_desafio_diario , grant_xp, grant_coins, revoke_xp, revoke_coins
 from apps.store.services import consumir_efeito_unico, tem_efeito_ativo, get_tempo_extra_passivo, get_fator_reducao_tempo, get_vidas_extras
 from .models import (Quiz, QuizAttempt, QuizQuestion, QuizOption, PatrolAttempt, PasswordGameConfig, PatrolConfig,
-                        PasswordAttempt, DecriptarConfig, DecriptarAttempt, CodigoAttempt, CodigoConfig, WordBank)
+                        PasswordAttempt, DecriptarConfig, DecriptarAttempt, CodigoAttempt, CodigoConfig, WordBank, QuizAnswerDraft)
 from .password_rules import generate_rules_sequence, get_rules_details, validate_password
 from datetime import timedelta
 
@@ -108,13 +108,19 @@ def submit_quiz(request, quiz_id):
     total_correct = 0
     xp_earned     = 0
 
-    if not timer_expired:
-        for question in quiz.questions.prefetch_related('options').all():
-            correct_ids  = set(question.options.filter(is_correct=True).values_list('id', flat=True))
+    for question in quiz.questions.prefetch_related('options').all():
+        correct_ids = set(question.options.filter(is_correct=True).values_list('id', flat=True))
+
+        if timer_expired:
+            selected_ids = set(
+                attempt.drafts.filter(question=question).values_list('option_id', flat=True)
+            )
+        else:
             selected_ids = set(int(v) for v in request.POST.getlist(f'question_{question.id}') if v.isdigit())
-            if selected_ids == correct_ids:
-                total_correct += 1
-                xp_earned     += question.xp_points
+
+        if selected_ids and selected_ids == correct_ids:
+            total_correct += 1
+            xp_earned     += question.xp_points
 
     coins_base = quiz.coin_reward if (not abandoned and not timer_expired and xp_earned > 0) else 0
 
@@ -172,6 +178,30 @@ def quiz_result(request, quiz_id):
         'tem_token_retake': tem_token_retake,
     })
 
+@login_required
+@require_POST
+def save_quiz_draft(request):
+    import json
+    try:
+        data        = json.loads(request.body)
+        attempt_id  = data.get('attempt_id')
+        question_id = data.get('question_id')
+        option_ids  = data.get('option_ids', [])  # lista de ids selecionados
+    except (ValueError, KeyError):
+        return JsonResponse({'ok': False}, status=400)
+
+    attempt = get_object_or_404(QuizAttempt, pk=attempt_id, player=request.user, completed_at__isnull=True)
+
+    # Substitui todas as seleções da questão pelos ids atuais
+    QuizAnswerDraft.objects.filter(attempt=attempt, question_id=question_id).delete()
+    for oid in option_ids:
+        QuizAnswerDraft.objects.get_or_create(
+            attempt=attempt,
+            question_id=question_id,
+            option_id=oid,
+        )
+
+    return JsonResponse({'ok': True})
 
 ################
 ###VIEW PATROL###
