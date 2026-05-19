@@ -67,6 +67,15 @@
                 BATTLE PASS COMPLETO
               </div>
             {% endif %}
+            {% if bp_disponíveis and bp_disponíveis > 0 %}
+              <button id="btn-coletar-todos" class="font-tech mt-3 w-100"
+                      style="padding: 8px 0; font-size:0.72rem; letter-spacing:2px;
+                            background: rgba(0,255,159,0.08); border: 1px solid var(--neon-green);
+                            color: var(--neon-green); border-radius: 3px; cursor: pointer;
+                            transition: all 0.2s ease;">
+                <i class="bi bi-gift-fill me-2"></i>RESGATAR TUDO ({{ bp_disponíveis }})
+              </button>
+            {% endif %}
           </div>
 
           {# ── LISTA DE TIERS ── #}
@@ -188,7 +197,8 @@
 (function () {
     'use strict';
 
-    const COLETAR_URL = "{% url 'profiles:bp_coletar' %}";
+    const COLETAR_URL      = "{% url 'profiles:bp_coletar' %}";
+    const COLETAR_TODOS_URL = "{% url 'profiles:bp_coletar_todos' %}";
     const CSRF = () => document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
 
     document.getElementById('modalBattlePass')
@@ -203,19 +213,15 @@
             try {
                 const res  = await fetch(COLETAR_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': CSRF(),
-                    },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF() },
                     body: JSON.stringify({ tier: parseInt(tier) }),
                 });
                 const data = await res.json();
 
                 if (res.ok && data.ok) {
-                    if (typeof showToast !== 'undefined') {
+                    if (typeof showToast !== 'undefined')
                         showToast(data.mensagem || 'Recompensa coletada!', 'ok');
-                    }
-                    // Atualiza a row visualmente sem reload
+
                     const row = btn.closest('.bp-tier-row');
                     row.classList.remove('bp-tier-disponivel');
                     row.classList.add('bp-tier-coletado');
@@ -227,12 +233,10 @@
                         statusEl.innerHTML   = '<i class="bi bi-check-circle-fill me-1"></i>COLETADO';
                     }
 
-                    // Atualiza badge no botão do hero após breve delay
                     setTimeout(() => location.reload(), 1200);
                 } else {
-                    if (typeof showToast !== 'undefined') {
+                    if (typeof showToast !== 'undefined')
                         showToast(data.error || data.mensagem || 'Erro ao coletar.', 'erro');
-                    }
                     btn.disabled = false;
                     btn.innerHTML = '<i class="bi bi-gift-fill me-1"></i>RESGATAR';
                 }
@@ -241,5 +245,35 @@
                 btn.innerHTML = '<i class="bi bi-gift-fill me-1"></i>RESGATAR';
             }
         });
+
+    const btnTodos = document.getElementById('btn-coletar-todos');
+    if (btnTodos) {
+        btnTodos.addEventListener('click', async function () {
+            btnTodos.disabled = true;
+            btnTodos.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>COLETANDO...';
+
+            try {
+                const res  = await fetch(COLETAR_TODOS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF() },
+                    body: JSON.stringify({}),
+                });
+                const data = await res.json();
+
+                if (res.ok && data.ok) {
+                    if (typeof showToast !== 'undefined') showToast(data.mensagem, 'ok');
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    if (typeof showToast !== 'undefined')
+                        showToast(data.error || 'Erro ao coletar.', 'erro');
+                    btnTodos.disabled = false;
+                    btnTodos.innerHTML = '<i class="bi bi-gift-fill me-2"></i>RESGATAR TUDO';
+                }
+            } catch {
+                btnTodos.disabled = false;
+                btnTodos.innerHTML = '<i class="bi bi-gift-fill me-2"></i>RESGATAR TUDO';
+            }
+        });
+    }
 }());
 </script>

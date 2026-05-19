@@ -845,6 +845,42 @@ def usar_consumivel_view(request):
 
 @login_required
 @require_POST
+def coletar_todos_bp(request):
+    from .services import coletar_recompensa_bp
+    from .models import BattlePassConfig, PlayerBattlePass
+
+    bp_config = BattlePassConfig.get_ativo()
+    if not bp_config:
+        return JsonResponse({'ok': False, 'error': 'Nenhum battle pass ativo.'}, status=400)
+
+    pbp = PlayerBattlePass.objects.filter(player=request.user, battle_pass=bp_config).first()
+    if not pbp:
+        return JsonResponse({'ok': False, 'error': 'Você não possui este battle pass.'}, status=400)
+
+    coletados = set(pbp.tiers_coletados or [])
+    xp_atual  = pbp.xp_bp
+    tiers_disponiveis = [
+        t for t in bp_config.tiers.order_by('tier')
+        if xp_atual >= t.xp_necessario and t.tier not in coletados
+    ]
+
+    if not tiers_disponiveis:
+        return JsonResponse({'ok': False, 'error': 'Nenhuma recompensa disponível.'}, status=400)
+
+    resultados = []
+    for tier in tiers_disponiveis:
+        sucesso, mensagem, descricao = coletar_recompensa_bp(request.user, tier.tier)
+        resultados.append({'tier': tier.tier, 'ok': sucesso, 'recompensa': descricao})
+
+    coletados_count = sum(1 for r in resultados if r['ok'])
+    return JsonResponse({
+        'ok': True,
+        'mensagem': f'{coletados_count} recompensa(s) coletada(s)!',
+        'resultados': resultados,
+    })
+
+@login_required
+@require_POST
 def coletar_tier_bp(request):
     try:
         body   = json.loads(request.body)
@@ -852,10 +888,8 @@ def coletar_tier_bp(request):
     except (ValueError, TypeError):
         return JsonResponse({'error': 'Dados inválidos.'}, status=400)
 
-    print(f'[COLETAR TIER] user={request.user} tier={tier_n}')
     from .services import coletar_recompensa_bp
     sucesso, mensagem, descricao = coletar_recompensa_bp(request.user, tier_n)
-    print(f'[COLETAR TIER] resultado: sucesso={sucesso} mensagem={mensagem}')
     return JsonResponse({'ok': sucesso, 'mensagem': mensagem, 'recompensa': descricao})
 
 @login_required

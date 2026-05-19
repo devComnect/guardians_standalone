@@ -26,6 +26,8 @@ urlpatterns = [
     path('consumivel/usar/',     views.usar_consumivel_view, name='usar_consumivel'),
 
     path('battlepass/coletar/', views.coletar_tier_bp, name='bp_coletar'),
+    path('battle-pass/coletar-todos/', views.coletar_todos_bp, name='bp_coletar_todos'),
+
     path('selecionar-classe/', views.selecao_classe_view, name='selecao_classe'),
     path('<int:player_id>/', views.public_profile, name='public_profile'),
     path('ajax/inventario-visto/', views.marcar_inventario_visto, name='inventario_visto'),
