@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -70,6 +71,14 @@ class RankingSnapshot(models.Model):
     valor     = models.PositiveIntegerField(default=0)   # XP, coins ou qtd desafios
     atualizado_em = models.DateTimeField(auto_now=True)
     posicao_anterior = models.PositiveSmallIntegerField(null=True, blank=True)
+    valor_desde = models.DateTimeField(default=timezone.now)
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            original = RankingSnapshot.objects.filter(pk=self.pk).values('valor').first()
+            if original and original['valor'] != self.valor:
+                self.valor_desde = timezone.now()
+        super().save(*args, **kwargs)
 
     @property
     def tendencia(self):

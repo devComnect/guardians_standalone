@@ -38,7 +38,7 @@ def _reordenar_posicoes(season):
     for categoria in ['xp', 'moedas', 'ofensiva']:
         snapshots = list(
             RankingSnapshot.objects.filter(season=season, categoria=categoria)
-            .order_by('-valor')
+            .order_by('-valor', 'valor_desde')
             .values_list('pk', flat=True)
         )
         with transaction.atomic():

@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from django.db.models import Sum, Count
 from apps.rankings.models import Season, RankingSnapshot
-from apps.minigames.models import QuizAttempt, DecriptarAttempt, CodigoAttempt, PatrolAttempt, PasswordAttempt
+from django.utils import timezone as tz
 
 
 class Command(BaseCommand):
@@ -31,12 +31,14 @@ class Command(BaseCommand):
                 else:  # ofensiva
                     valor = p.ofensiva
 
-                dados.append((player, valor))
+                snap = RankingSnapshot.objects.filter(season=season, player=player, categoria=categoria).first()
+                valor_desde = snap.valor_desde if snap else tz.now()
+                dados.append((player, valor, valor_desde))
 
             # Ordena por valor desc e atribui posições
-            dados.sort(key=lambda x: x[1], reverse=True)
+            dados.sort(key=lambda x: (-x[1], x[2]))
 
-            for posicao, (player, valor) in enumerate(dados, start=1):
+            for posicao, (player, valor, valor_desde) in enumerate(dados, start=1):
                 RankingSnapshot.objects.update_or_create(
                     season=season, player=player, categoria=categoria,
                     defaults={'posicao': posicao, 'valor': valor}
