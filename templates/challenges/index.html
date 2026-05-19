@@ -48,7 +48,7 @@
                 <div class="card-body">
                     <h3 class="challenge-title">{{ quiz.titulo }}</h3>
                     {% if quiz.descricao %}
-                    <p class="challenge-desc">{{ quiz.descricao|truncatechars:100 }}</p>
+                    <p class="challenge-desc">{{ quiz.descricao }}</p>
                     {% else %}
                     <p class="challenge-desc">Avaliação de conhecimentos sobre segurança e políticas corporativas.</p>
                     {% endif %}
