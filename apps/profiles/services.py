@@ -81,6 +81,26 @@ def calcular_xp_com_bonus(user, xp_base, fonte, contexto=None):
     # ── Ofensiva ─────────────────────────────────
     bonus_ofensiva = get_ofensiva_bonus_pct(user)
     if bonus_ofensiva:
+        config_of = OfensivaConfig.get()
+        teto = config_of.teto_bonus_ofensiva
+
+        teto_extra_perk = int(get_perk_valor(user, 'ofensiva_teto'))
+        teto += teto_extra_perk
+
+        from apps.store.models import ActiveEffect
+        from django.utils import timezone
+        efeito_cap = ActiveEffect.objects.filter(
+            player=user, effect='STREAK_CAP_BOOST', expires_at__gt=timezone.now()
+        ).first()
+        teto_extra_item = int(efeito_cap.value) if efeito_cap else 0
+        teto += teto_extra_item
+
+        partes_motivo = [f"Teto base: {config_of.teto_bonus_ofensiva}%"]
+        if teto_extra_perk:
+            partes_motivo.append(f"+{teto_extra_perk}% perk")
+        if teto_extra_item:
+            partes_motivo.append(f"+{teto_extra_item}% item")
+
         bonus_pct += bonus_ofensiva
         breakdown.append({
             "fonte":         f"Ofensiva ({player.ofensiva} pts)",
@@ -88,6 +108,7 @@ def calcular_xp_com_bonus(user, xp_base, fonte, contexto=None):
             "tipo":          "ofensiva",
             "pct":           bonus_ofensiva,
             "xp_adicionado": int(xp_base * bonus_ofensiva / 100),
+            "motivo":        " · ".join(partes_motivo),
         })
 
     # ── Conquistas — global ───────────────────────
