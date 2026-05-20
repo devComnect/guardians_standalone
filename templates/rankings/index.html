@@ -91,7 +91,7 @@
     <div class="podium-section">
         {% for snap in podio %}
         {% with snap_c=cosmetics_map|get_item:snap.player.pk %}
-        
+
         <a href="{% url 'profiles:public_profile' snap.player.pk %}"
             class="podium-card pos-{{ forloop.counter }} {% if snap.player == request.user %}podium-mine{% endif %}">
 
@@ -101,20 +101,28 @@
                 {% else %}<i class="bi bi-patch-check-fill"></i>{% endif %}
             </div>
 
-            <div class="podium-avatar">
-                <div class="avatar-bg-layer {% if snap_c.bg %}cosmetic-bg cosmetic-bg-{{ snap_c.bg.item.item_id }}{% endif %}"></div>
-                
-                {% if snap.player.player.avatar %}
-                    <img src="{% static snap.player.player.avatar.name %}" alt="avatar" class="avatar-img">
-                {% else %}
-                    <div class="avatar-img d-flex align-items-center justify-content-center" style="color: var(--text-dim);">
-                        <i class="bi bi-person-fill"></i>
-                    </div>
-                {% endif %}
+            <div class="avatar-tooltip-wrapper">
+                <div class="podium-avatar">
+                    <div class="avatar-bg-layer {% if snap_c.bg %}cosmetic-bg cosmetic-bg-{{ snap_c.bg.item.item_id }}{% endif %}"></div>
 
-                {% if snap_c.frame %}
-                <div class="avatar-frame-overlay cosmetic-frame rarity-{{ snap_c.frame.item.raridade|lower }}" title="{{ snap_c.frame.item.name }}">
-                    <i class="bi {{ snap_c.frame.item.icon }} cosmetic-frame-icon"></i>
+                    {% if snap.player.player.avatar %}
+                        <img src="{% static snap.player.player.avatar.name %}" alt="avatar" class="avatar-img">
+                    {% else %}
+                        <div class="avatar-img d-flex align-items-center justify-content-center" style="color: var(--text-dim);">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                    {% endif %}
+
+                    {% if snap_c.frame %}
+                    <div class="avatar-frame-overlay cosmetic-frame rarity-{{ snap_c.frame.item.raridade|lower }}" title="{{ snap_c.frame.item.name }}">
+                        <i class="bi {{ snap_c.frame.item.icon }} cosmetic-frame-icon"></i>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if snap.player.player.bio %}
+                <div class="cyber-quote-tooltip font-tech">
+                    <span class="quote-mark">"</span>{{ snap.player.player.bio }}<span class="quote-mark">"</span>
                 </div>
                 {% endif %}
             </div>
@@ -164,29 +172,37 @@
 
         {% for snap in tabela %}
         {% with snap_c=cosmetics_map|get_item:snap.player.pk %}
-        
+
         <a href="{% url 'profiles:public_profile' snap.player.pk %}"
             class="rank-row {% if snap.player == request.user %}rank-row-mine{% endif %}">
 
             <span class="rank-pos font-tech">{{ snap.posicao }}</span>
 
             <div class="rank-player">
-                <div class="rank-avatar">
-                    <div class="avatar-bg-layer {% if snap_c.bg %}cosmetic-bg cosmetic-bg-{{ snap_c.bg.item.item_id }}{% endif %}"></div>
-                    
-                    {% if snap.player.player.avatar %}
-                        <img src="{% static snap.player.player.avatar.name %}" alt="avatar" class="avatar-img">
-                    {% else %}
-                        <div class="avatar-img d-flex align-items-center justify-content-center" style="color: var(--text-dim);">
-                            <i class="bi bi-person-fill"></i>
-                        </div>
-                    {% endif %}
+                <div class="avatar-tooltip-wrapper">
+                    <div class="rank-avatar">
+                        <div class="avatar-bg-layer {% if snap_c.bg %}cosmetic-bg cosmetic-bg-{{ snap_c.bg.item.item_id }}{% endif %}"></div>
 
-                    {% if snap_c.frame %}
-                    <div class="avatar-frame-overlay cosmetic-frame rarity-{{ snap_c.frame.item.raridade|lower }}"></div>
+                        {% if snap.player.player.avatar %}
+                            <img src="{% static snap.player.player.avatar.name %}" alt="avatar" class="avatar-img">
+                        {% else %}
+                            <div class="avatar-img d-flex align-items-center justify-content-center" style="color: var(--text-dim);">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                        {% endif %}
+
+                        {% if snap_c.frame %}
+                        <div class="avatar-frame-overlay cosmetic-frame rarity-{{ snap_c.frame.item.raridade|lower }}"></div>
+                        {% endif %}
+                    </div>
+
+                    {% if snap.player.player.bio %}
+                    <div class="cyber-quote-tooltip font-tech">
+                        <span class="quote-mark">"</span>{{ snap.player.player.bio }}<span class="quote-mark">"</span>
+                    </div>
                     {% endif %}
                 </div>
-                
+
                 <div class="rank-player-info">
                     <span class="rank-name">
                         {{ snap.player.player.display_name|default:snap.player.username }}
@@ -258,8 +274,8 @@
     const cdEl = document.getElementById('countdown');
 
     if (cdEl) {
-        const endDateStr = cdEl.dataset.end; 
-        
+        const endDateStr = cdEl.dataset.end;
+
         if (endDateStr) {
             const endDate = new Date(endDateStr + 'T23:59:59');
 
@@ -278,7 +294,7 @@
                 const hours = Math.floor((diff % 86400000) / 3600000);
                 const mins  = Math.floor((diff % 3600000)  / 60000);
                 const secs  = Math.floor((diff % 60000)    / 1000);
-                
+
                 document.getElementById('cd-days').textContent  = pad(days);
                 document.getElementById('cd-hours').textContent = pad(hours);
                 document.getElementById('cd-mins').textContent  = pad(mins);
@@ -297,7 +313,6 @@
     const btnClose       = document.getElementById('btnClosePrizes');
     const terminalOutput = document.getElementById('terminalOutput');
 
-    // CORREÇÃO: Aspas adicionadas em volta da variável do Django
     const PRIZES_TEXT = "{{ season.premio_descricao|escapejs }}";
 
     let typingInterval = null;
@@ -314,7 +329,6 @@
     }
 
     function openPrizes() {
-        console.log("Abrindo modal de prêmios...");
         if (!overlay) return;
         overlay.classList.add('active');
         document.body.style.overflow = 'hidden';

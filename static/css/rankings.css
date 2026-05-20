@@ -432,6 +432,53 @@
     0%,100% { transform: translateY(0); }
     50%      { transform: translateY(-5px); }
 }
+/*tooltip wrapper de bio*/
+.avatar-tooltip-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-tooltip-wrapper:hover .cyber-quote-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) translateX(0);
+}
+
+.avatar-tooltip-wrapper .cyber-quote-tooltip {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 10px);
+    transform: translateY(-50%) translateX(-10px);
+    width: max-content;
+    max-width: 200px;
+    background: rgba(10, 12, 20, 0.95);
+    border: 1px solid var(--neon-cyan);
+    color: #e0e0e0;
+    padding: 8px 12px;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    border-radius: 2px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 9999;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.8);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.avatar-tooltip-wrapper .cyber-quote-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    transform: translateY(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent var(--neon-cyan) transparent transparent;
+}
+
 
 /* Avatar */
 .podium-avatar {
@@ -464,6 +511,53 @@
 .podium-avatar .cosmetic-frame { z-index: 3; border-width: 2px; }
 
 .podium-avatar i { color: rgba(255,255,255,0.2); }
+
+.podium-avatar,
+.rank-avatar {
+    position: relative;
+}
+
+.podium-avatar:hover .cyber-quote-tooltip,
+.rank-avatar:hover .cyber-quote-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) translateX(0);
+}
+
+.podium-avatar .cyber-quote-tooltip,
+.rank-avatar .cyber-quote-tooltip {
+    position: absolute;
+    top: 50%;
+    left: 115%;
+    transform: translateY(-50%) translateX(-15px);
+    width: max-content;
+    max-width: 200px;
+    background: rgba(10, 12, 20, 0.95);
+    border: 1px solid var(--neon-cyan, #0dcaf0);
+    color: #e0e0e0;
+    padding: 8px 12px;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    border-radius: 2px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 999;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.8);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.podium-avatar .cyber-quote-tooltip::after,
+.rank-avatar .cyber-quote-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    transform: translateY(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent #0dcaf0 transparent transparent;
+}
 
 /* Título embaixo do frame no pódio */
 .podium-honor-title {
