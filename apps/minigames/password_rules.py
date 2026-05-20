@@ -28,7 +28,7 @@ PASSWORD_RULES_DB = {
     211: {"id": 211, "diff": "medium", "desc": "Deve conter 'HACK' ou 'CODE'.",                        "regex": r"(HACK|CODE)"},
     212: {"id": 212, "diff": "medium", "desc": "Deve conter pelo menos um colchete [ ou ].",           "regex": r"[\[\]]"},
     213: {"id": 213, "diff": "medium", "desc": "Deve conter 'BUG' ou 'FIX'.",                          "regex": r"(BUG|FIX)"},
-    214: {"id": 214, "diff": "medium", "desc": "Um navegador WEB famoso.",                             "regex": r"(EXPLORER|EDGE|CHROME|FIREFOX|SAFARI)"},
+    214: {"id": 214, "diff": "medium", "desc": "Um navegador WEB famoso. (Letra Maiúscula)",                             "regex": r"(EXPLORER|EDGE|CHROME|FIREFOX|SAFARI)"},
     # DIFÍCIL
     301: {"id": 301, "diff": "hard",   "desc": "Deve conter um protocolo (HTTP, FTP, SSH, TELNET).",   "regex": r"(HTTP|FTP|SSH|TELNET)"},
     302: {"id": 302, "diff": "hard",   "desc": "Deve conter 'SUDO' em maiúsculas.",                    "regex": r"SUDO"},
@@ -51,7 +51,7 @@ PASSWORD_RULES_DB = {
     407: {"id": 407, "diff": "insane", "desc": "Valor em formato de dólar ($99,99).",                  "regex": r"\$\d+\,\d{2}"},
     408: {"id": 408, "diff": "insane", "desc": "NÃO pode conter as vogais A ou I.",                    "regex": r"^[^AIai]*$"},
     409: {"id": 409, "diff": "insane", "desc": "NÃO pode conter os números (0,4,8).",                 "regex": r"^[^048]*$"},
-    410: {"id": 410, "diff": "insane", "desc": "Um sistema operacional amplamente conhecido.",          "regex": r"(WINDOWS|LINUX|KALI)"},
+    410: {"id": 410, "diff": "insane", "desc": "Um sistema operacional amplamente conhecido. (Letra Maiúscula)",          "regex": r"(WINDOWS|LINUX|KALI)"},
     # DINÂMICAS (math)
     500: {"id": 500, "diff": "medium", "template": "A soma de todos os números deve ser {}.",          "js_type": "sum"},
     501: {"id": 501, "diff": "hard",   "template": "O primeiro número menos o último deve ser {}.",    "js_type": "sub_first_last"},
