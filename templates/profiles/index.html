@@ -490,12 +490,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     {
                         label: 'Sinergia Atual',
                         data: [
-                            window.RADAR_DATA.codigo, 
-                            window.RADAR_DATA.decriptar, 
-                            window.RADAR_DATA.patrulha, 
-                            window.RADAR_DATA.cofre,
-                            //window.RADAR_DATA.moedas, 
-                            window.RADAR_DATA.quiz
+                            parseFloat(window.RADAR_DATA.codigo).toFixed(2),
+                            parseFloat(window.RADAR_DATA.decriptar).toFixed(2),
+                            parseFloat(window.RADAR_DATA.patrulha).toFixed(2),
+                            parseFloat(window.RADAR_DATA.cofre).toFixed(2),
+                            parseFloat(window.RADAR_DATA.quiz).toFixed(2)
                         ],
                         // Aplica as cores do tema dinamicamente
                         backgroundColor: hexToRgba(themeColorHex, 0.45),
@@ -534,7 +533,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             title: function() { return '// ANÁLISE DA BUILD'; },
                             label: function(context) {
                                 const label = context.chart.data.labels[context.dataIndex];
-                                return ` ${label}: +${context.raw}%`;
+                                return ` ${label}: +${parseFloat(context.raw).toFixed(2)}%`;
                             }
                         }
                     }
