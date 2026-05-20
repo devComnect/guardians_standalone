@@ -414,6 +414,10 @@
 }
 .podium-card:hover { transform: translateY(-6px); }
 
+.podium-card:has(.avatar-tooltip-wrapper:hover) {
+    z-index: 100;
+}
+
 /* Alturas do pódio */
 .podium-card.pos-1 .podium-base { height: 90px; }
 .podium-card.pos-2 .podium-base { height: 60px; }
