@@ -37,7 +37,7 @@ _LOOT_PACK_POOL = [
     (2,  'RARE'),   # Injetor de Overclock
     (5,  'COMMON'),   # Sniffer de Metadados
     (6,  'COMMON'),     # Buffer de Contingência
-    #(3,  'RARE'),     # Expansor de Cache
+    (3,  'RARE'),     # Expansor de Cache
     (4,  'RARE'),     # Protocolo Persistência
     (7,  'EPIC'),     # Script de Arbitragem
     (8,  'EPIC'),     # Monetizador de Expertise

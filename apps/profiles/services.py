@@ -5,6 +5,8 @@ Todos os minigames devem usar grant_xp() para conceder XP.
 
 from django.utils import timezone
 from django.db import transaction
+
+from apps.store.models import ActiveEffect
 from .models import OfensivaConfig, BattlePassTier
 from django.db.models import Sum
 
@@ -453,9 +455,14 @@ def get_ofensiva_bonus_pct(user):
     # Teto base da config
     teto = config.teto_bonus_ofensiva
 
-    # Extensão de teto via perk (tipo 'ofensiva_teto' — adicionaremos depois)
+    # Extensão de teto via item
     teto_extra = get_perk_valor(user, 'ofensiva_teto')
     teto += int(teto_extra)
+    efeito_cap = ActiveEffect.objects.filter(
+        player=user, effect='STREAK_CAP_BOOST', expires_at__gt=timezone.now()
+    ).first()
+    if efeito_cap:
+        teto += int(efeito_cap.value)
 
     # Bônus = 1% por ponto de ofensiva, limitado ao teto
     bonus = min(player.ofensiva, teto)

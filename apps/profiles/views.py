@@ -173,6 +173,9 @@ def _ctx_bonus(user, player):
         'cofre_xp': 0.0, 
         'moedas': 0.0,
     }
+
+    
+
     global_xp_acumulado = 0.0
     buffs_temporarios = []
 
@@ -260,6 +263,27 @@ def _ctx_bonus(user, player):
     ofensiva_config = OfensivaConfig.get()
     teto_ofensiva = ofensiva_config.teto_bonus_ofensiva
 
+    # Extensão de teto via perk
+    from apps.profiles.services import get_perk_valor
+    teto_extra = get_perk_valor(user, 'ofensiva_teto')
+    teto_ofensiva += int(teto_extra)
+
+    # Extensão de teto via item ativo
+    from apps.store.models import ActiveEffect as _AE
+    efeito_cap = _AE.objects.filter(
+        player=user, effect='STREAK_CAP_BOOST', expires_at__gt=agora
+    ).first()
+    if efeito_cap:
+        teto_ofensiva += int(efeito_cap.value)
+
+    bonus_ofensiva = min(player.ofensiva, teto_ofensiva)
+    multiplicador_ofensiva = bonus_ofensiva / 100
+
+    CHAVES_XP = ('quiz_xp', 'codigo_xp', 'decriptar_xp', 'patrulha_xp', 'cofre_xp')
+    for chave in CHAVES_XP:
+        base = radar_stats[chave]
+        radar_stats[chave] = round(base + (1 + base / 100) * multiplicador_ofensiva * 100, 2)
+
     return {
         'bonus': {
             'perks_ativos':       perks_ativos,
@@ -267,7 +291,7 @@ def _ctx_bonus(user, player):
             'itens_slot':         passivos_equipados,
             'buffs_temporarios':  buffs_temporarios,
             'matriz_radar':       radar_stats,
-            'bonus_ofensiva':     min(player.ofensiva, teto_ofensiva),
+            'bonus_ofensiva':     bonus_ofensiva,
             'ofensiva_atual':     player.ofensiva,
             'ofensiva_teto':      teto_ofensiva,
         }
