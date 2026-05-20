@@ -35,7 +35,7 @@ def get_perk_valor(user, tipo):
 
 def calcular_xp_com_bonus(user, xp_base, fonte, contexto=None):
     """
-    Aplica perks + bônus de ofensiva ao valor base.
+    Aplica perks + bônus de ofensiva + conquistas + items ao valor base.
     Retorna (xp_final, xp_bonus, bonus_breakdown).
     """
     from apps.store.services import get_passive_bonus_xp_pct
@@ -111,14 +111,14 @@ def calcular_xp_com_bonus(user, xp_base, fonte, contexto=None):
 
     # ── Conquistas — específicas por fonte ────────
     mapa_fonte_ach = {
-        'quiz':      'quiz_xp_pct',
-        'decriptar': 'anagram_xp_pct',
-        'codigo':    'termo_xp_pct',
-        'password':  'pw_xp_pct',
-        'patrol':    'patrol_xp_pct',
+    'quiz':      ['quiz_xp_pct'],
+    'decriptar': ['anagram_xp_pct', 'minigame_xp_pct'],
+    'codigo':    ['termo_xp_pct',   'minigame_xp_pct'],
+    'password':  ['pw_xp_pct',      'minigame_xp_pct'],
+    'patrol':    ['patrol_xp_pct'],
     }
-    tipo_ach = mapa_fonte_ach.get(fonte)
-    if tipo_ach:
+    tipos_ach = mapa_fonte_ach.get(fonte, [])
+    for tipo_ach in tipos_ach:
         ach_fonte = (
             PlayerAchievement.objects
             .filter(player=user, em_destaque=True,
