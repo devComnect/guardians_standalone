@@ -4,7 +4,7 @@ Etapa 9 — Lógica de negócio da Loja
 
 Regras de ouro:
   1. Unique Check: passivo duplicado é bloqueado
-  2. Price Modifier: Cartão Clonado (ID 102) aplica 15% de desconto
+  2. Price Modifier: Cartão Clonado (ID 102) aplica x% de desconto
   3. Atomic Transactions: Coins → Item → Log em uma única transação
   4. Gacha Lite: raridades ponderadas configuráveis via admin
 """
@@ -54,22 +54,17 @@ _LOOT_PESOS = {
 # HELPERS INTERNOS
 # ─────────────────────────────────────────────
 
-def _tem_cartao_clonado(user):
+def _calcular_preco_final(item, user):
     """Verifica se o player tem Cartão Clonado (ID 102) em slot ativo."""
-    return PlayerItem.objects.filter(
+    player_item = PlayerItem.objects.filter(
         player=user,
         item__item_id=102,
-        slot_index__isnull=False,   # Equipado em algum slot passivo
-    ).exists()
+        slot_index__isnull=False,
+    ).select_related('item').first()
 
-
-def _calcular_preco_final(item, user):
-    """
-    Retorna (preco_final, desconto_aplicado).
-    Desconto de 15% se player tem Cartão Clonado equipado.
-    """
-    if _tem_cartao_clonado(user):
-        desconto = int(item.cost * 0.15)
+    if player_item:
+        pct = player_item.item.value / 100
+        desconto = int(item.cost * pct)
         return max(0, item.cost - desconto), True
     return item.cost, False
 
@@ -96,13 +91,56 @@ def _proximo_slot_livre(user):
 
 def _sortear_raridade(config):
     """
-    Retorna uma raridade ('COMMON', 'RARE', 'EPIC')
+    Retorna uma raridade ('COMMON', 'RARE', 'EPIC', 'LEGENDARY')
     com base nos pesos configurados no StoreConfig.
     """
-    populacao = ['COMMON', 'RARE', 'EPIC']
-    pesos     = [config.weight_common, config.weight_rare, config.weight_epic]
+    populacao = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY']
+    pesos     = [config.weight_common, config.weight_rare, config.weight_epic, config.weight_legendary]
     return random.choices(populacao, weights=pesos, k=1)[0]
 
+def _is_prime(n):
+    if n < 2:
+        return False
+    for i in range(2, int(n**0.5) + 1):
+        if n % i == 0:
+            return False
+    return True
+
+
+def _e_primeiro_desafio_da_semana(user):
+    from apps.profiles.models import XPEvent
+    from apps.minigames.models import PatrolAttempt
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    hoje = timezone.localdate()
+    inicio_semana = hoje - timedelta(days=hoje.weekday())
+    
+    tem_evento = XPEvent.objects.filter(
+        player=user,
+        criado_em__date__gte=inicio_semana,
+    ).exists()
+    
+    tem_patrulha = PatrolAttempt.objects.filter(
+        player=user,
+        date__gte=inicio_semana,
+        completed=True
+    ).exists()
+    
+    return not tem_evento and not tem_patrulha
+
+def _e_primeiro_desafio_do_dia(user):
+    from apps.challenges.models import PlayerChallenge
+    from apps.minigames.models import PatrolAttempt
+    from django.utils import timezone
+    hoje = timezone.now().date()
+    tem_challenge = PlayerChallenge.objects.filter(
+        player=user, concluido=True, concluido_em__date=hoje
+    ).exists()
+    tem_patrulha = PatrolAttempt.objects.filter(
+        player=user, date=hoje, completed=True
+    ).exists()
+    return not tem_challenge and not tem_patrulha
 
 # ─────────────────────────────────────────────
 # GERAÇÃO DA LOJA DIÁRIA
@@ -819,6 +857,63 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None, retornar_breakdown
             else:
                 motivo = "não é o primeiro desafio da semana ❌"
 
+        elif effect == 'XP_WEEKEND':
+            if timezone.now().weekday() >= 5:
+                b = item.value
+                motivo = f"fim de semana ✅"
+            else:
+                motivo = f"dia {timezone.now().strftime('%A')} ❌"
+
+        elif effect == 'XP_TUESDAY':
+            if timezone.now().weekday() == 1:
+                b = item.value
+                motivo = "terça-feira ✅"
+            else:
+                motivo = f"dia {timezone.now().strftime('%A')} ❌"
+
+        elif effect == 'XP_HIGH_CASH':
+            if player.coins >= 100:
+                b = item.value
+                motivo = f"coins ({player.coins}) >= 100 ✅"
+            else:
+                motivo = f"coins ({player.coins}) < 100 ❌"
+
+        elif effect == 'XP_ZERO_CASH':
+            if player.coins == 0:
+                b = item.value
+                motivo = f"coins = 0 ✅"
+            else:
+                motivo = f"coins ({player.coins}) != 0 ❌"
+
+        elif effect == 'LUCKY_13':
+            resto = player.level % 10
+            if resto in (3, 6):
+                b = item.value
+                motivo = f"level {player.level} % 10 = {resto} ✅"
+            else:
+                motivo = f"level {player.level} % 10 = {resto} ❌"
+
+        elif effect == 'XP_BEAST_CASH':
+            if player.coins % 10 == 6:
+                b = item.value
+                motivo = f"coins ({player.coins}) termina em 6 ✅"
+            else:
+                motivo = f"coins ({player.coins}) termina em {player.coins % 10} ❌"
+
+        elif effect == 'XP_PRIME_CASH':
+            if _is_prime(player.coins):
+                b = item.value
+                motivo = f"coins ({player.coins}) é primo ✅"
+            else:
+                motivo = f"coins ({player.coins}) não é primo ❌"
+
+        elif effect == 'XP_FIRST_DAILY':
+            if _e_primeiro_desafio_do_dia(user):
+                b = item.value
+                motivo = "primeiro desafio do dia ✅"
+            else:
+                motivo = "já completou um desafio hoje ❌"
+
         else:
             motivo = f"effect '{effect}' não reconhecido"
 
@@ -876,18 +971,6 @@ def _get_consumivel_xp_bonus(user):
         expires_at__gt=agora,
     )
     return sum(e.value for e in efeitos)
-
-
-def _e_primeiro_desafio_da_semana(user):
-    """Verifica se o player ainda não fez nenhum desafio essa semana."""
-    from apps.profiles.models import XPEvent
-    hoje      = timezone.localdate()
-    inicio_semana = hoje - timedelta(days=hoje.weekday())  # Segunda-feira
-    return not XPEvent.objects.filter(
-        player=user,
-        criado_em__date__gte=inicio_semana,
-    ).exists()
-
 
 def get_tempo_extra_passivo(user):
     """

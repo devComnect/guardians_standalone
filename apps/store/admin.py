@@ -22,7 +22,7 @@ class StoreConfigAdmin(admin.ModelAdmin):
         ('Slots e Probabilidades', {
             'fields': (
                 'slots_diarios',
-                ('weight_common', 'weight_rare', 'weight_epic'),
+                ('weight_common', 'weight_rare', 'weight_epic', 'weight_legendary'),
             ),
             'description': 'Os pesos de raridade não precisam somar 100 — são ponderados automaticamente.'
         }),

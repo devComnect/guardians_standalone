@@ -35,6 +35,11 @@ class StoreConfig(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(100)],
         verbose_name='Peso EPIC (%)'
     )
+    weight_legendary     = models.PositiveSmallIntegerField(
+        default=2,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        verbose_name='Peso LEGENDARY (%)'
+    )
 
     # Slots da loja por dia
     slots_diarios   = models.PositiveSmallIntegerField(
@@ -71,7 +76,7 @@ class StoreConfig(models.Model):
     def __str__(self):
         return (
             f'Loja: {self.slots_diarios} slots | '
-            f'C:{self.weight_common}% R:{self.weight_rare}% E:{self.weight_epic}%'
+            f'C:{self.weight_common}% R:{self.weight_rare}% E:{self.weight_epic}% L:{self.weight_legendary}%'
         )
 
     @classmethod
@@ -134,6 +139,14 @@ class Item(models.Model):
         ('XP_DECRYPT_CHALLENGE',    '+XP% em desafios de Decriptar'),
         ('XP_RANDOM',               'Bônus XP% aleatório'),
         ('DOUBLE_XP_WEEK_FIRST',    'Dobra XP do 1º desafio da semana'),
+        ('XP_WEEKEND',    '+XP% se for fim de semana'),
+        ('XP_TUESDAY',    '+XP% se for terça-feira'),
+        ('XP_HIGH_CASH',  '+XP% se saldo >= 100'),
+        ('XP_ZERO_CASH',  '+XP% se saldo for 0'),
+        ('LUCKY_13',      '+XP% se nível % 10 for 3 ou 6'),
+        ('XP_BEAST_CASH', '+XP% se saldo terminar em 6'),
+        ('XP_PRIME_CASH', '+XP% se saldo for primo'),
+        ('XP_FIRST_DAILY','+XP% no primeiro desafio do dia'),
         # Cosméticos
         ('COSMETIC_FRAME',      'Frame de perfil'),
         ('COSMETIC_BACKGROUND', 'Background de perfil'),
