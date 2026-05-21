@@ -450,11 +450,28 @@
     animation-timing-function: ease-in-out, ease-in-out;
     animation-iteration-count: infinite, infinite;
 }
+.hud-module-slot-preview.rarity-legendary {
+    background: linear-gradient(160deg, rgba(20,5,25,0.98), rgba(10,2,15,0.99));
+    border: 1px solid rgba(189,0,255,0.55);
+    box-shadow: 0 0 12px rgba(189,0,255,0.25);
+    animation-name: module-float, legendary-module-glow-preview;
+    animation-duration: 3.5s, 2s;
+    animation-timing-function: ease-in-out, ease-in-out;
+    animation-iteration-count: infinite, infinite;
+}
+
+@keyframes legendary-module-glow-preview {
+    0%,100% { box-shadow: 0 0 12px rgba(189,0,255,0.25); }
+    50%      { box-shadow: 0 0 20px rgba(189,0,255,0.5); }
+}
 
 /* Topo colorido */
 .hud-module-slot-preview.rarity-common::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: rgba(173,181,189,0.6); border-radius: 4px 4px 0 0; }
 .hud-module-slot-preview.rarity-rare::before   { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: var(--neon-blue); border-radius: 4px 4px 0 0; box-shadow: 0 0 6px rgba(13,202,240,0.8); }
 .hud-module-slot-preview.rarity-epic::before   { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: var(--neon-gold); border-radius: 4px 4px 0 0; box-shadow: 0 0 6px rgba(252,238,10,0.9); }
+.hud-module-slot-preview.rarity-legendary::before { 
+    content:''; position:absolute; top:0; left:0; right:0; height:2px; background: var(--neon-purple); border-radius: 4px 4px 0 0; box-shadow: 0 0 6px rgba(189,0,255,0.9); 
+}
 
 /* Ícone e nome */
 .hud-slot-icon-preview {
@@ -464,6 +481,9 @@
 .hud-module-slot-preview.rarity-common .hud-slot-icon-preview { color: var(--c-common, #adb5bd); }
 .hud-module-slot-preview.rarity-rare   .hud-slot-icon-preview { color: var(--neon-blue); text-shadow: 0 0 8px rgba(13,202,240,0.7); }
 .hud-module-slot-preview.rarity-epic   .hud-slot-icon-preview { color: var(--neon-gold); text-shadow: 0 0 10px rgba(252,238,10,0.9); }
+.hud-module-slot-preview.rarity-legendary .hud-slot-icon-preview { 
+    color: var(--neon-purple); text-shadow: 0 0 10px rgba(189,0,255,0.9); 
+}
 
 .hud-slot-name-preview {
     font-size: 0.42rem;
@@ -499,7 +519,9 @@
     border: none;
 }
 
-
+.hud-module-slot-preview.rarity-legendary .card-back-desc-preview { 
+    color: rgba(189,0,255,0.85); 
+}
 
 /* ── STATUS BÔNUS ── */
 .status-screen-bg { background: #000; border: 1px solid #1a1a24; font-family: monospace; }

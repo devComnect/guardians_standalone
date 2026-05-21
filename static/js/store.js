@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const SFX = {
         click()    { playTone({ freq: 800, freq2: 600,  type: 'square',   duration: 0.06, gain: 0.10 }); },
-        /*hover()    { playTone({ freq: 1200, freq2: 1400, type: 'sine',    duration: 0.04, gain: 0.04 }); }, */
+        hover()    { playTone({ freq: 1200, freq2: 1400, type: 'sine',    duration: 0.04, gain: 0.04 }); }, 
         buy() {
             playTone({ freq: 300, freq2: 600,  type: 'sine', duration: 0.12, gain: 0.15 });
             playTone({ freq: 600, freq2: 900,  type: 'sine', duration: 0.12, gain: 0.12, delay: 0.10 });

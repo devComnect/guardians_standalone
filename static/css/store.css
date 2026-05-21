@@ -219,6 +219,26 @@
     50%      { box-shadow: 0 0 0 1px rgba(252,238,10,0.4), 0 0 28px rgba(252,238,10,0.45), inset 0 2px 6px rgba(0,0,0,0.5); }
 }
 
+.hud-module-slot.rarity-legendary.occupied {
+    background: linear-gradient(160deg, rgba(20,5,25,0.98) 0%, rgba(10,2,15,0.99) 100%);
+    border: 1px solid rgba(189,0,255,0.55);
+    box-shadow:
+        0 0 0 1px rgba(189,0,255,0.2),
+        0 0 16px rgba(189,0,255,0.25),
+        inset 0 1px 0 rgba(189,0,255,0.15),
+        inset 0 2px 6px rgba(0,0,0,0.5),
+        0 4px 16px rgba(189,0,255,0.12);
+    animation-name: module-float, legendary-module-glow;
+    animation-duration: 3.5s, 2s;
+    animation-timing-function: ease-in-out, ease-in-out;
+    animation-iteration-count: infinite, infinite;
+}
+
+@keyframes legendary-module-glow {
+    0%,100% { box-shadow: 0 0 0 1px rgba(189,0,255,0.2), 0 0 16px rgba(189,0,255,0.25), inset 0 2px 6px rgba(0,0,0,0.5); }
+    50%      { box-shadow: 0 0 0 1px rgba(189,0,255,0.4), 0 0 28px rgba(189,0,255,0.45), inset 0 2px 6px rgba(0,0,0,0.5); }
+}
+
 /* Hover lift */
 .hud-module-slot.occupied:hover {
     transform: translateY(-10px) scale(1.08) !important;
@@ -228,11 +248,17 @@
 .hud-module-slot.rarity-rare.occupied:hover  { box-shadow: 0 0 0 1px rgba(13,202,240,0.7), 0 0 28px rgba(13,202,240,0.4), 0 12px 32px rgba(0,0,0,0.6); }
 .hud-module-slot.rarity-epic.occupied:hover  { box-shadow: 0 0 0 1px rgba(252,238,10,0.7), 0 0 28px rgba(252,238,10,0.5), 0 12px 32px rgba(0,0,0,0.6); }
 .hud-module-slot.rarity-common.occupied:hover { box-shadow: 0 0 0 1px rgba(173,181,189,0.6), 0 0 16px rgba(173,181,189,0.2), 0 12px 32px rgba(0,0,0,0.6); }
+.hud-module-slot.rarity-legendary.occupied:hover { 
+    box-shadow: 0 0 0 1px rgba(189,0,255,0.7), 0 0 28px rgba(189,0,255,0.5), 0 12px 32px rgba(0,0,0,0.6); 
+}
 
 /* Topo colorido da carta */
 .hud-module-slot.rarity-common.occupied::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: rgba(173,181,189,0.6); border-radius: 4px 4px 0 0; }
 .hud-module-slot.rarity-rare.occupied::before   { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: var(--c-rare); border-radius: 4px 4px 0 0; box-shadow: 0 0 8px rgba(13,202,240,0.8); }
 .hud-module-slot.rarity-epic.occupied::before   { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: var(--c-epic); border-radius: 4px 4px 0 0; box-shadow: 0 0 8px rgba(252,238,10,0.9); }
+.hud-module-slot.rarity-legendary.occupied::before { 
+    content:''; position:absolute; top:0; left:0; right:0; height:3px; background: var(--c-legendary); border-radius: 4px 4px 0 0; box-shadow: 0 0 8px rgba(189,0,255,0.9); 
+}
 
 /* Slot drag-over */
 .hud-module-slot.drag-over {
@@ -259,6 +285,8 @@
 .hud-module-slot.rarity-common .hud-slot-icon { color: var(--c-common); opacity: 0.85; }
 .hud-module-slot.rarity-rare   .hud-slot-icon { color: var(--c-rare);   opacity: 0.9; text-shadow: 0 0 10px rgba(13,202,240,0.7); }
 .hud-module-slot.rarity-epic   .hud-slot-icon { color: var(--c-epic);   opacity: 0.9; text-shadow: 0 0 12px rgba(252,238,10,0.9); }
+.hud-module-slot.rarity-legendary .hud-slot-icon { color: var(--c-legendary); opacity: 0.9; text-shadow: 0 0 12px rgba(189,0,255,0.9); }
+.hud-module-slot.rarity-legendary .hud-slot-num { color: var(--c-legendary); }
 
 .hud-module-slot:hover .hud-slot-icon { opacity: 1; transform: scale(1.15); }
 
@@ -377,6 +405,10 @@
 .rarity-common .card-front::before { background: rgba(173,181,189,0.6); }
 .rarity-rare   .card-front::before { background: var(--c-rare); box-shadow: 0 0 8px rgba(13,202,240,0.8); }
 .rarity-epic   .card-front::before { background: var(--c-epic); box-shadow: 0 0 8px rgba(252,238,10,0.9); }
+.rarity-legendary .card-front::before { background: var(--c-legendary); box-shadow: 0 0 8px rgba(189,0,255,0.9); }
+.rarity-legendary .card-back { background: rgba(18,5,24,0.98); border: 1px solid rgba(189,0,255,0.4); }
+.rarity-legendary .card-back::before { background: var(--c-legendary); box-shadow: 0 0 8px rgba(189,0,255,0.9); }
+.rarity-legendary .card-back-desc { color: rgba(189,0,255,0.85); }
 
 /* Remove o ::before antigo do slot (agora está no card-front) */
 .hud-module-slot.occupied::before { display: none; }
