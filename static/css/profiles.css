@@ -353,7 +353,13 @@
 .cyber-title { color: var(--theme-color); font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; font-weight: bold; }
 
 /* ── TERMINAL LOG ── */
-.terminal-container { max-height: 280px; overflow-y: auto; background: #050505; padding: 15px; }
+.terminal-container {
+    overflow-y: auto;
+    background: #050505;
+    padding: 15px;
+    flex: 1;
+    max-height: 625px;
+}
 .terminal-list { list-style: none; padding: 0; margin: 0; }
 .terminal-item {
     display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #1a1a24;
