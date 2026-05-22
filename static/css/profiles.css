@@ -368,6 +368,17 @@
 .term-date { color: #6b7280; margin-right: 10px; }
 .term-source { color: var(--theme-color); margin-right: 10px; }
 .term-val { font-weight: bold; }
+.term-eye {
+    color: rgba(255,255,255,0.15);
+    font-size: 0.75rem;
+    transition: color 0.2s, opacity 0.2s;
+    opacity: 0;
+}
+
+.log-entry:hover .term-eye {
+    opacity: 1;
+    color: var(--theme-color);
+}
 
 /* ── CARTEIRA & INVENTÁRIO ── */
 .wallet-display {
