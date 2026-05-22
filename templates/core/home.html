@@ -87,12 +87,12 @@
                     <span class="stat-val font-tech text-warning">{{ player.coins|default:'0' }}</span>
                     <span class="stat-key">COINS</span>
                 </div>
-                <div class="stat-box">
-                    <span class="stat-val font-tech streak-val {% if player.streak_days >= 7 %}streak-hot{% endif %}">
-                        {{ player.streak_days|default:'0' }}
+                <div class="stat-box"> 
+                    <span class="stat-val font-tech streak-val {% if ofensiva_bonus >= 10 %}streak-hot{% endif %}">
+                        {{ ofensiva_bonus|default:'0' }}
                         <i class="bi bi-fire"></i>
                     </span>
-                    <span class="stat-key">STREAK</span>
+                    <span class="stat-key">% OFENSIVA</span>
                 </div>
             </div>
 

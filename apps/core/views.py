@@ -40,6 +40,7 @@ def home(request):
     patrol_done        = patrol_done_hoje or patrol_limite
     patrol_won         = patrol_attempt.won if patrol_attempt else False
     patrol_semanal_info = {'realizadas': patrulhas_na_semana, 'limite': 5}
+    ofensiva_bonus = get_ofensiva_bonus_pct(player.user)
 
     # Posição no ranking da temporada ativa
     ranking_pos = None
@@ -70,8 +71,8 @@ def home(request):
         'player': player,
         'patrol_done': patrol_done,
         'patrol_won': patrol_won,
-        'ranking_pos': ranking_pos,
-        'ofensiva_bonus': get_ofensiva_bonus_pct(request.user) if player else 0,
+        'ranking_pos': ranking_pos, 
+        'ofensiva_bonus': ofensiva_bonus,
         'mission_set': mission_data,
         'active_missions': active_missions,
         'frame_ativo': frame_ativo,
