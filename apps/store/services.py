@@ -513,22 +513,23 @@ def ativar_consumivel(user, item_id):
     if not resultado.get('sucesso', True):
         return False, resultado.get('mensagem', 'Erro ao aplicar efeito.'), {}
  
-    # Consome 1 unidade
     if pi.quantidade > 1:
         pi.quantidade -= 1
         pi.save()
     else:
         pi.delete()
- 
+
+    descricao_log = resultado.get('descricao_log', f'Ativou a carga "{item.name}".')
+
     StoreTransaction.objects.create(
         player      = user,
         item        = item,
         tipo        = 'activate',
         xp_delta    = resultado.get('xp_delta', 0),
         coins_delta = resultado.get('coins_delta', 0),
-        descricao   = f'Ativação de "{item.name}"',
+        descricao   = descricao_log,
     )
- 
+
     return True, resultado.get('mensagem', f'"{item.name}" ativado!'), resultado
 
 
@@ -580,13 +581,15 @@ def _aplicar_efeito_consumivel(user, player, item):
         if not criado:
             pi_drop.quantidade += 1
             pi_drop.save()
- 
+
         return {
-            'mensagem':       f'Pacote aberto! Você recebeu: {item_dropado.name} ({item_dropado.get_raridade_display()})',
-            'item_dropado_id':   item_dropado.item_id,
+            'sucesso': True,
+            'mensagem': f'Pacote aberto! Você recebeu: {item_dropado.name} ({item_dropado.get_raridade_display()})',
+            'descricao_log': f'Abriu "{item.name}" e ganhou {item_dropado.name}.', 
+            'item_dropado_id': item_dropado.item_id,
             'item_dropado_nome': item_dropado.name,
             'item_dropado_raridade': item_dropado.raridade,
-            'item_dropado_icon':     item_dropado.icon,
+            'item_dropado_icon': item_dropado.icon,
         }
   
     # ── Efeitos instantâneos ─────────────────────────────────
@@ -702,23 +705,21 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None, retornar_breakdown
     if contexto is None:
         contexto = {}
 
+    player = getattr(user, 'player', None)
+    if not player:
+        return (0, []) if retornar_breakdown else 0
+
     passivos = PlayerItem.objects.filter(
         player=user,
         item__tipo='passive',
         slot_index__isnull=False,
     ).select_related('item')
 
-    if not passivos.exists():
-        return (0, []) if retornar_breakdown else 0
-
-    player = getattr(user, 'player', None)
-    if not player:
-        return (0, []) if retornar_breakdown else 0
-
     bonus_total  = 0.0
     breakdown    = []
     multiplicadores = []
 
+    # Se houver passivos, processa-os normalmente. Caso contrário, pula para os consumíveis.
     for pi in passivos:
         item   = pi.item
         effect = item.effect
@@ -927,7 +928,6 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None, retornar_breakdown
             "ativo":      b > 0,
         })
 
-    # ── XP_STACK_MULTIPLIER — aplicado sobre o total acumulado ──
     for item in multiplicadores:
         acrescimo   = bonus_total * (item.value / 100)
         bonus_total += acrescimo
@@ -940,7 +940,7 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None, retornar_breakdown
             "ativo":     acrescimo > 0,
         })
 
-    # ── Consumíveis ativos ───────────────────────────────────────
+    # ── Consumíveis ativos — Agora são alcançados mesmo se 'passivos' estiver vazio ──
     agora    = timezone.now()
     efeitos  = ActiveEffect.objects.filter(
         player=user, effect='XP_BOOST_DAYS', expires_at__gt=agora
