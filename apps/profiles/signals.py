@@ -1,6 +1,5 @@
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.utils import timezone
 
 
 # ─────────────────────────────────────────────
@@ -44,7 +43,6 @@ def log_xp_event(sender, instance, created, **kwargs):
     if not created:
         return
 
-    # Fontes com log resumo próprio — não gera log individual de XP
     FONTES_COM_LOG_PROPRIO = {'missao'}
     if instance.fonte in FONTES_COM_LOG_PROPRIO:
         return
@@ -69,82 +67,56 @@ def log_xp_event(sender, instance, created, **kwargs):
 
 
 # ─────────────────────────────────────────────
-# LEVEL UP
+# LEVEL UP + CLASSE
 # ─────────────────────────────────────────────
-
-_player_level_cache = {}
-_player_classe_cache = {}
-
-
-@receiver(pre_save,  sender='profiles.Player')
-def cache_player_state(sender, instance, **kwargs):
-    """Captura level e classe antes do save para detectar mudanças."""
-    if not instance.pk:
-        return
-    valores = instance.__class__.objects.filter(
-        pk=instance.pk
-    ).values('level', 'classe', 'coins').first()
-    if valores:
-        _player_level_cache[instance.pk]  = valores['level']
-        _player_classe_cache[instance.pk] = (valores['classe'], valores['coins'])
-
 
 @receiver(post_save, sender='profiles.Player')
 def log_level_up(sender, instance, created, **kwargs):
     if created:
         return
-
+    nivel_anterior = getattr(instance, '_nivel_anterior', None)
+    if not nivel_anterior or instance.level <= nivel_anterior:
+        return
     from apps.profiles.log_service import registrar_log
-
-    nivel_anterior = _player_level_cache.pop(instance.pk, None)
-    if nivel_anterior and instance.level > nivel_anterior:
-        registrar_log(
-            user=instance.user,
-            tipo='level_up',
-            titulo=f'LEVEL UP → {instance.level}',
-            breakdown={
-                "nivel_anterior": nivel_anterior,
-                "nivel_novo": instance.level,
-            }
-        )
+    registrar_log(
+        user=instance.user,
+        tipo='level_up',
+        titulo=f'LEVEL UP → {instance.level}',
+        breakdown={
+            "nivel_anterior": nivel_anterior,
+            "nivel_novo":     instance.level,
+        }
+    )
 
 
 @receiver(post_save, sender='profiles.Player')
 def log_classe_change(sender, instance, created, **kwargs):
     if created:
         return
-
+    classe_anterior = getattr(instance, '_classe_anterior', None)
+    if not classe_anterior or classe_anterior == instance.classe:
+        return
     from apps.profiles.log_service import registrar_log
     from apps.profiles.models import ClasseConfig
-
-    cached = _player_classe_cache.pop(instance.pk, None)
-    if not cached:
-        return
-
-    classe_anterior, _ = cached
-    if classe_anterior != instance.classe:
-        config = ClasseConfig.get()
-        
-        is_primeira_vez = (classe_anterior == 'none')
-        
-        if is_primeira_vez:
-            custo = config.custo_primeira_classe
-            titulo_log = f'Primeira Classe: {instance.get_classe_display()}'
-        else:
-            custo = config.custo_troca_coins
-            titulo_log = f'Classe alterada: {classe_anterior} → {instance.classe}'
-
-        registrar_log(
-            user=instance.user,
-            tipo='classe_change',
-            titulo=titulo_log,
-            coin_delta=-custo,
-            breakdown={
-                "classe_anterior": classe_anterior,
-                "classe_nova": instance.classe,
-                "custo": custo,
-            }
-        )
+    config = ClasseConfig.get()
+    is_primeira_vez = (classe_anterior == 'none')
+    custo      = config.custo_primeira_classe if is_primeira_vez else config.custo_troca_coins
+    titulo_log = (
+        f'Primeira Classe: {instance.get_classe_display()}'
+        if is_primeira_vez else
+        f'Classe alterada: {classe_anterior} → {instance.classe}'
+    )
+    registrar_log(
+        user=instance.user,
+        tipo='classe_change',
+        titulo=titulo_log,
+        coin_delta=-custo,
+        breakdown={
+            "classe_anterior": classe_anterior,
+            "classe_nova":     instance.classe,
+            "custo":           custo,
+        }
+    )
 
 
 # ─────────────────────────────────────────────
@@ -155,9 +127,7 @@ def log_classe_change(sender, instance, created, **kwargs):
 def log_achievement(sender, instance, created, **kwargs):
     if not created:
         return
-
     from apps.profiles.log_service import registrar_log
-
     registrar_log(
         user=instance.player,
         tipo='achievement',
@@ -172,7 +142,7 @@ def log_achievement(sender, instance, created, **kwargs):
 
 
 # ─────────────────────────────────────────────
-# LOJA — registrado via função para evitar import circular
+# LOJA
 # ─────────────────────────────────────────────
 
 def _register_store_signals():
@@ -191,15 +161,12 @@ def _register_store_signals():
         def log_store_transaction(sender, instance, created, **kwargs):
             if not created:
                 return
-
             from apps.profiles.log_service import registrar_log
-
             tipo_log = TIPO_MAP.get(instance.tipo, 'system')
             titulo   = instance.descricao or (
                 f'{instance.get_tipo_display()}: {instance.item.name}'
                 if instance.item else instance.get_tipo_display()
             )
-
             breakdown = {"tipo_transacao": instance.tipo}
             if instance.item:
                 breakdown.update({
@@ -209,11 +176,10 @@ def _register_store_signals():
                     "effect":    instance.item.effect,
                 })
             if instance.coins_delta:
-                breakdown["custo"]              = abs(instance.coins_delta)
-                breakdown["desconto_aplicado"]  = instance.desconto_aplicado
+                breakdown["custo"]             = abs(instance.coins_delta)
+                breakdown["desconto_aplicado"] = instance.desconto_aplicado
             if instance.xp_delta:
                 breakdown["xp_convertido"] = instance.xp_delta
-
             registrar_log(
                 user=instance.player,
                 tipo=tipo_log,
@@ -239,18 +205,14 @@ def _register_mission_signals():
         def log_mission_claim(sender, instance, created, **kwargs):
             if created or not instance.is_claimed:
                 return
-
             from apps.profiles.log_service import registrar_log
             from apps.profiles.models import SystemLog
-
-            # Evita log duplicado
             if SystemLog.objects.filter(
                 player=instance.user,
                 tipo='mission_claim',
                 breakdown__mission_set_id=instance.pk,
             ).exists():
                 return
-
             try:
                 from apps.missions.models import MissionConfig
                 config      = MissionConfig.get()
@@ -258,9 +220,7 @@ def _register_mission_signals():
                 coin_reward = config.reward_coins
             except Exception:
                 xp_reward = coin_reward = 0
-
             missoes = list(instance.missions.values_list('title_generated', flat=True))
-
             registrar_log(
                 user=instance.user,
                 tipo='mission_claim',
@@ -287,26 +247,15 @@ def _register_battle_pass_signals():
     try:
         from apps.profiles.models import PlayerBattlePass
 
-        _bp_tiers_cache = {}
-
-        @receiver(pre_save, sender=PlayerBattlePass)
-        def cache_bp_tiers(sender, instance, **kwargs):
-            if instance.pk:
-                anterior = instance.__class__.objects.filter(
-                    pk=instance.pk
-                ).values_list('tiers_coletados', flat=True).first()
-                _bp_tiers_cache[instance.pk] = list(anterior or [])
-
         @receiver(post_save, sender=PlayerBattlePass)
         def log_battle_pass_tier(sender, instance, created, **kwargs):
             if created:
                 return
-
-            from apps.profiles.log_service import registrar_log
-
-            tiers_anteriores = set(_bp_tiers_cache.pop(instance.pk, []))
+            tiers_anteriores = set(getattr(instance, '_tiers_anteriores', []))
             tiers_novos      = set(instance.tiers_coletados) - tiers_anteriores
-
+            if not tiers_novos:
+                return
+            from apps.profiles.log_service import registrar_log
             for tier_num in tiers_novos:
                 tier_obj = instance.battle_pass.tiers.filter(tier=tier_num).first()
                 if not tier_obj:
@@ -330,8 +279,9 @@ def _register_battle_pass_signals():
         print(f'[BATTLE PASS SIGNAL ERROR] {e}')
         print(traceback.format_exc())
 
+
 # ─────────────────────────────────────────────
-# SIGNALS — Derrota/Abandono em Minigames (xp_earned = 0)
+# DERROTA/ABANDONO EM MINIGAMES
 # ─────────────────────────────────────────────
 
 def _log_derrota_minigame(user, titulo, descricao):
@@ -339,14 +289,13 @@ def _log_derrota_minigame(user, titulo, descricao):
     registrar_log(
         user=user,
         tipo='xp_loss',
-        titulo=titulo, 
+        titulo=titulo,
         descricao=descricao,
         xp_delta=0,
     )
 
 
 def _is_derrota(instance):
-    """Retorna True se o attempt foi finalizado agora com 0 XP."""
     return instance.completed_at is not None and instance.xp_earned == 0
 
 

@@ -207,6 +207,8 @@ def grant_xp(user, xp_base, fonte, descricao='', contexto=None):
         player.level += 1
         niveis_subidos.append(player.level)
 
+    player._nivel_anterior = level_antes
+    player._classe_anterior = player.classe 
     player.save()
 
     level_up = len(niveis_subidos) > 0
@@ -358,13 +360,16 @@ def trocar_classe(user, nova_classe):
 
     if player.coins < custo:
         return False, f'Coins insuficientes. Necessário: {custo} ⬡'
-
+    
+    classe_anterior_raw = player.classe 
     classe_antiga = player.get_classe_display()
     
     # Aplica as mudanças
     player.coins             -= custo
     player.classe             = nova_classe
     player.classe_trocada_em  = timezone.now()
+    player._nivel_anterior  = player.level
+    player._classe_anterior = classe_anterior_raw
     player.save()
 
     # Define a mensagem dependendo do contexto
@@ -391,6 +396,7 @@ def revoke_xp(user, xp_amount, descricao='', fonte='estorno'):
     if not player or xp_amount <= 0:
         return
 
+    level_antes_revoke = player.level
     player.xp_total = max(0, player.xp_total - xp_amount)
 
     novo_level = 1
@@ -399,6 +405,8 @@ def revoke_xp(user, xp_amount, descricao='', fonte='estorno'):
 
     level_perdido = player.level > novo_level
     player.level  = novo_level
+    player._nivel_anterior  = level_antes_revoke
+    player._classe_anterior = player.classe
     player.save()
 
     try:
@@ -790,6 +798,7 @@ def atualizar_battle_pass(user, xp_ganho):
             icone    = 'bi-stars',
         )
 
+    pbp._tiers_anteriores = list(pbp.tiers_coletados)
     pbp.save()
 
 
@@ -841,10 +850,12 @@ def coletar_recompensa_bp(user, tier_number):
             pi.save()
 
     # ── Registra coleta ───────────────────────────
-    coletados = pbp.tiers_coletados
+    pbp._tiers_anteriores = list(pbp.tiers_coletados)
+    
+    coletados = list(pbp.tiers_coletados)
     coletados.append(tier_number)
     pbp.tiers_coletados = coletados
-    pbp.save()
+    pbp.save(update_fields=['tiers_coletados'])
 
     descricao = tier.recompensa_descricao or f'Tier {tier_number}'
     
