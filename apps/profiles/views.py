@@ -946,7 +946,7 @@ def public_profile(request, player_id):
         return redirect('profiles:index')
 
     from apps.store.models import PlayerItem
-    from apps.profiles.models import PlayerAchievement, SystemLog, AchievementConfig, OfensivaConfig
+    from apps.profiles.models import PlayerAchievement, SystemLog, AchievementConfig
 
     # 2. Busca os cosméticos equipados do player alvo
     frame_ativo = PlayerItem.objects.filter(
@@ -961,13 +961,14 @@ def public_profile(request, player_id):
         player=target_user, equipado=True, item__effect='COSMETIC_TITLE'
     ).select_related('item').first()
 
-    # 3. Busca apenas as conquistas em destaque
-    todas_conquistas = PlayerAchievement.objects.filter(
+    # 3. Conquistas
+    from apps.profiles.models import PlayerAchievement
+
+    conquistas_desbloqueadas = PlayerAchievement.objects.filter(
         player=target_user
     ).select_related('achievement').order_by('-desbloqueada_em')
-    conquistas_destaque = PlayerAchievement.objects.filter(
-        player=target_user, em_destaque=True
-    ).select_related('achievement')
+
+    conquistas_em_destaque = conquistas_desbloqueadas.filter(em_destaque=True)
 
     # 4. Busca os logs recentes e mascara a palavra do minigame CÓDIGO
     logs_raw = SystemLog.objects.filter(
@@ -991,15 +992,32 @@ def public_profile(request, player_id):
         })
 
     # 5. Calcula o bônus de ofensiva (respeitando o teto)
-    try:
-        teto_ofensiva = OfensivaConfig.get().teto_bonus_ofensiva
-    except Exception:
-        teto_ofensiva = 100 # Fallback de segurança
-        
-    ofensiva_bonus = min(player_obj.ofensiva, teto_ofensiva)
+    from apps.profiles.services import get_ofensiva_bonus_pct
+    ofensiva_bonus = get_ofensiva_bonus_pct(target_user)
 
     # 6. Configurações gerais
     config = AchievementConfig.get()
+
+    # 7. Items do player
+
+    from apps.store.models import PlayerItem, ActiveEffect, StoreConfig
+    from django.utils import timezone
+
+    # Itens passivos (slots)
+    config_store = StoreConfig.get()
+    passivos = PlayerItem.objects.filter(
+        player=target_user, item__tipo='passive'
+    ).select_related('item')
+    slot_ocupado = {pi.slot_index: pi for pi in passivos if pi.slot_index is not None}
+    slots_grade = [
+        {'numero': s, 'player_item': slot_ocupado.get(s)}
+        for s in range(1, config_store.max_passivos_slots + 1)
+    ]
+
+    # Efeitos ativos
+    efeitos_ativos = ActiveEffect.objects.filter(
+        player=target_user, expires_at__gt=timezone.now()
+    ).select_related('item')
 
     context = {
         'target_user': target_user,
@@ -1007,11 +1025,13 @@ def public_profile(request, player_id):
         'frame_ativo': frame_ativo,
         'bg_ativo': bg_ativo,
         'titulo_ativo': titulo_ativo,
-        'conquistas_todas': todas_conquistas, 
-        'conquistas_destaque': conquistas_destaque, 
+        'conquistas_desbloqueadas': conquistas_desbloqueadas, 
+        'conquistas_em_destaque': conquistas_em_destaque, 
         'logs_recentes': logs_recentes,
         'ofensiva_bonus': ofensiva_bonus,
         'config': config,
+        'slots_grade': slots_grade,
+        'efeitos_ativos': efeitos_ativos,
     }
 
     return render(request, 'profiles/public_profile.html', context) 

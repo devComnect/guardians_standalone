@@ -86,13 +86,13 @@
             </div>
             <div class="stat-box">
                 <div class="stat-value font-tech text-danger">
-                    {{ player_obj.streak_days }} <i class="bi bi-fire"></i>
+                    {{ player_obj.ofensiva }} <i class="bi bi-fire"></i>
                 </div>
                 <div class="stat-label">DIAS DE OFENSIVA</div>
             </div>
             <div class="stat-box">
-                <div class="stat-value font-tech text-success">+{{ ofensiva_bonus }}%</div>
-                <div class="stat-label">BÔNUS DE STREAK</div>
+                <div class="stat-value font-tech text-success">{{ player_obj.streak_days }} DIAS</div>
+                <div class="stat-label">STREAK CONSECUTIVA</div>
             </div>
         </div>
 
@@ -138,44 +138,55 @@
                 </div>
             </div>
 
-            <!-- ARQUIVO DE CONQUISTAS (expandido) -->
+            <!-- ARQUIVO DE CONQUISTAS -->
             <div class="col-lg-7">
                 <div class="cyber-card d-flex flex-column h-100">
-                    <div class="cyber-header">
+                    <div class="cyber-header d-flex justify-content-between align-items-center">
                         <h5 class="cyber-title mb-0 text-info">
                             <i class="bi bi-grid-3x3-gap-fill"></i> ARQUIVO DE CONQUISTAS
                         </h5>
+                        {% if conquistas_desbloqueadas %}
+                        <button class="btn btn-sm font-tech" 
+                                style="border: 1px solid rgba(13,202,240,0.3); color: var(--neon-cyan); font-size: 0.7rem; letter-spacing: 1px;"
+                                data-bs-toggle="modal" data-bs-target="#modalConquistas">
+                            VER TODAS <i class="bi bi-arrow-right"></i>
+                        </button>
+                        {% endif %}
+                        <button class="btn btn-sm font-tech mt-3"
+                                style="border: 1px solid rgba(13,202,240,0.3); color: var(--neon-cyan); font-size: 0.7rem; letter-spacing: 1px;"
+                                data-bs-toggle="modal" data-bs-target="#modalInventario">
+                            <i class="bi bi-cpu"></i> VER MÓDULOS
+                        </button>
+
+                        {% include 'profiles/_public_inventario_modal.html' %}
                     </div>
                     <div class="card-body d-flex align-items-center justify-content-center flex-grow-1"
                         style="background: rgba(0,0,0,0.2);">
-                        {% if conquistas_todas %}
-                        <div style="display: grid;
-                                    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-                                    gap: 16px;
-                                    width: 100%;
-                                    padding: 8px;
-                                    max-height: 320px;
-                                    overflow-y: auto;">
-                            {% for ach in conquistas_todas %}
-                            <div class="achievement-item unlocked rarity-{{ ach.achievement.raridade|lower }} d-flex flex-column align-items-center gap-1"
-                                style="width: 72px; height: 72px; margin: 0 auto;"
-                                title="{{ ach.achievement.nome }}">
-                                {% if 'bi-' in ach.achievement.imagem %}
-                                    <i class="bi {{ ach.achievement.imagem }}" style="font-size: 1.8rem;"></i>
+                        {% if conquistas_em_destaque %}
+                        <div class="destaque-slots d-flex gap-3 flex-wrap justify-content-center">
+                            {% for pa in conquistas_em_destaque %}
+                            <div class="achievement-item em-destaque unlocked rarity-{{ pa.achievement.raridade }}"
+                                style="width: 80px; height: 80px;"
+                                title="{{ pa.achievement.nome }}">
+                                {% if 'bi-' in pa.achievement.imagem %}
+                                    <i class="bi {{ pa.achievement.imagem }}" style="font-size: 2rem;"></i>
                                 {% else %}
-                                    <img src="{% static ach.achievement.imagem %}"
-                                        onerror="this.onerror=null; this.outerHTML='<i class=\'bi bi-trophy-fill text-muted\'></i>';"
-                                        class="ach-img">
+                                    <img src="{% static pa.achievement.imagem %}" class="ach-img"
+                                        onerror="this.onerror=null; this.outerHTML='<i class=\'bi bi-trophy-fill text-muted\'></i>';">
                                 {% endif %}
                             </div>
                             {% endfor %}
                         </div>
+                        {% elif conquistas_desbloqueadas %}
+                        <p class="text-muted font-tech text-center my-2">Nenhuma conquista em destaque.</p>
                         {% else %}
                         <p class="text-muted font-tech text-center my-2">O histórico está vazio.</p>
                         {% endif %}
                     </div>
                 </div>
             </div>
+
+            {% include 'profiles/_public_conquistas_modal.html' %}
 
         </div>
 
@@ -186,6 +197,30 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+document.querySelectorAll('#modalConquistas .achievement-item[data-nome]').forEach(item => {
+    item.addEventListener('mouseenter', function() {
+        document.getElementById('ach-preview-nome').textContent = this.dataset.nome || '-';
+        document.getElementById('ach-preview-desc').textContent = this.dataset.desc || '-';
+        document.getElementById('ach-preview-bonus').textContent = this.dataset.bonus || '-';
+
+        const imgEl = this.querySelector('img');
+        const iconEl = this.querySelector('i');
+        const previewContainer = document.getElementById('ach-preview-img');
+
+        if (imgEl) {
+            const rarity = this.classList.contains('rarity-lendaria') ? 'rarity-lendaria'
+                         : this.classList.contains('rarity-epica')    ? 'rarity-epica'
+                         : this.classList.contains('rarity-rara')     ? 'rarity-rara'
+                         : 'rarity-comum';
+
+            previewContainer.innerHTML = `<div class="achievement-item unlocked ${rarity} mx-auto" style="width:80px; height:80px; animation:none;"><img src="${imgEl.src}" class="ach-img"></div>`;
+        } else if (iconEl) {
+            const classes = iconEl.className;
+            previewContainer.innerHTML = `<div class="achievement-item mx-auto" style="width:80px; height:80px; animation:none;"><i class="${classes}" style="font-size:2rem;"></i></div>`;
+        }
+    });
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('skillsRadarChart');
     if (ctx) {

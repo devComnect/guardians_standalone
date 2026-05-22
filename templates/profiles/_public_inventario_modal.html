@@ -1,0 +1,67 @@
+{% load static %}
+<div class="modal fade cyber-modal" id="modalInventario" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header cyber-header">
+                <h5 class="cyber-title" style="letter-spacing: 4px; text-shadow: 0 0 15px rgba(13,202,240,0.4);">
+                    <i class="bi bi-cpu-fill"></i> MÓDULOS INSTALADOS
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <h6 class="font-tech mb-3" style="color: rgba(13,202,240,0.7); letter-spacing: 2px;">
+                    UPGRADES PASSIVOS
+                </h6>
+                <div class="d-flex flex-wrap justify-content-center gap-4 pb-4">
+                    {% for slot in slots_grade %}
+                    <div class="hud-module-slot {% if slot.player_item %}occupied rarity-{{ slot.player_item.item.raridade|lower }}{% else %}empty{% endif %}">
+                        {% if slot.player_item %}
+                        <div class="card-inner">
+                            <div class="card-front">
+                                <span class="hud-slot-num font-tech">0{{ slot.numero }}</span>
+                                <i class="bi {{ slot.player_item.item.icon|default:'bi-cpu' }} hud-slot-icon"></i>
+                                <span class="hud-slot-name">{{ slot.player_item.item.name }}</span>
+                            </div>
+                            <div class="card-back">
+                                <p class="card-back-desc font-tech">{{ slot.player_item.item.description }}</p>
+                            </div>
+                        </div>
+                        {% else %}
+                        <i class="bi bi-dash-square-dotted hud-slot-empty-icon" style="font-size: 2rem;"></i>
+                        <span class="font-tech text-theme mt-2">SLOT {{ slot.numero }} VAZIO</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% if efeitos_ativos %}
+                <hr style="border-color: rgba(13,202,240,0.15);">
+                <h6 class="font-tech mb-3 mt-3" style="color: rgba(13,202,240,0.7); letter-spacing: 2px;">
+                    EFEITOS ATIVOS
+                </h6>
+                <div class="d-flex flex-wrap justify-content-center gap-4 pb-2">
+                    {% for ef in efeitos_ativos %}
+                    <div class="hud-module-slot occupied rarity-rara">
+                        <div class="card-inner">
+                            <div class="card-front">
+                                <span class="hud-slot-num font-tech" style="color: var(--neon-gold);">
+                                    ATÉ {{ ef.expires_at|date:"d/m" }}
+                                </span>
+                                <i class="bi {{ ef.item.icon|default:'bi-lightning-charge' }} hud-slot-icon" style="color: var(--neon-gold);"></i>
+                                <span class="hud-slot-name text-warning">{{ ef.item.name }}</span>
+                            </div>
+                            <div class="card-back">
+                                <p class="card-back-desc font-tech">{{ ef.item.description }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
