@@ -13,12 +13,11 @@
     <div class="container py-4">
 
         <div class="profile-hero text-center mb-4">
-            
             <div class="avatar-frame {% if frame_ativo %}has-cosmetic{% endif %}">
                 <div class="avatar-bg-layer {% if bg_ativo %}cosmetic-bg cosmetic-bg-{{ bg_ativo.item.item_id }} rarity-bg-{{ bg_ativo.item.raridade|lower }}{% endif %}"></div>
                 
                 {% if player_obj.avatar %}
-                        <img src="{% static player_obj.avatar.name %}" alt="Avatar" class="avatar-img">
+                    <img src="{% static player_obj.avatar.name %}" alt="Avatar" class="avatar-img">
                 {% else %}
                     <div class="avatar-img d-flex align-items-center justify-content-center">
                         <i class="bi bi-person-bounding-box text-theme" style="font-size: 3rem;"></i>
@@ -52,7 +51,6 @@
                     <span class="scanner-line"></span>
                     // CLASSE: {{ player_obj.get_classe_display|upper }} //
                 </div>
-
                 <div class="profile-class-title title-widget font-tech">
                     {% if titulo_ativo %}
                         <span class="glitch-text" data-text="{{ titulo_ativo.item.name }}">
@@ -75,104 +73,152 @@
             </div>
         </div>
 
-        <div class="stats-row cyber-card mb-5">
-            <div class="stat-box">
-                <div class="stat-value font-tech">{{ player_obj.level }}</div>
-                <div class="stat-label">LEVEL DO SISTEMA</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-value font-tech text-warning">{{ player_obj.coins }}</div>
-                <div class="stat-label">G-COINS</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-value font-tech text-danger">
-                    {{ player_obj.ofensiva }} <i class="bi bi-fire"></i>
+        <div class="cyber-card mb-4 p-3">
+            <div class="d-flex flex-wrap justify-content-around gap-3">
+
+                <div class="stat-box text-center">
+                    <div class="stat-value font-tech">{{ player_obj.level }}</div>
+                    <div class="stat-label">LEVEL</div>
                 </div>
-                <div class="stat-label">DIAS DE OFENSIVA</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-value font-tech text-success">{{ player_obj.streak_days }} DIAS</div>
-                <div class="stat-label">STREAK CONSECUTIVA</div>
+
+                <div class="stat-box text-center">
+                    <div class="stat-value font-tech text-warning">{{ player_obj.coins }}</div>
+                    <div class="stat-label">G-COINS</div>
+                </div>
+
+                <div class="stat-box text-center">
+                    <div class="stat-value font-tech text-danger">
+                        {{ player_obj.ofensiva }} <i class="bi bi-fire"></i>
+                    </div>
+                    <div class="stat-label">OFENSIVA</div>
+                </div>
+
+                <div class="stat-box text-center">
+                    <div class="stat-value font-tech text-success">{{ player_obj.streak_days }} DIAS</div>
+                    <div class="stat-label">STREAK</div>
+                </div>
+
+                <div class="stat-box text-center" style="border-left: 1px solid rgba(13,202,240,0.1); padding-left: 1rem;">
+                    <div class="stat-value font-tech text-info">{{ total_quizzes }}</div>
+                    <div class="stat-label">QTDE QUIZZES</div>
+                </div>
+
+                <div class="stat-box text-center">
+                    <div class="stat-value font-tech text-info">{{ total_minigames }}</div>
+                    <div class="stat-label">MINIGAMES VENCIDOS</div>
+                </div>
+
+                <div class="stat-box text-center">
+                    <div class="stat-value font-tech text-info">{{ total_patrulhas }}</div>
+                    <div class="stat-label">QTDE PATRULHAS</div>
+                </div>
+
+                <div class="stat-box text-center" style="border-left: 1px solid rgba(13,202,240,0.1); padding-left: 1rem;">
+                    <div class="stat-value font-tech text-warning">{{ maior_xp }} XP</div>
+                    <div class="stat-label">RECORDE XP</div>
+                </div>
+
+                <div class="stat-box text-center">
+                    <div class="stat-value font-tech" style="color: var(--neon-purple);">{{ tempo_medio_str }}</div>
+                    <div class="stat-label">TEMPO MÉDIO</div>
+                </div>
+
             </div>
         </div>
 
-        <div class="row g-4 mb-4">
+        <!-- MÓDULOS + CONQUISTAS (preview lado a lado) -->
+        <div class="row g-2 mb-2">
 
-            <!-- REGISTRO DE GANHOS -->
-            <div class="col-lg-5">
+            <!-- MÓDULOS INSTALADOS -->
+            <div class="col-lg-6">
                 <div class="cyber-card d-flex flex-column h-100">
-                    <div class="cyber-header">
+                    <div class="cyber-header d-flex justify-content-between align-items-center">
                         <h5 class="cyber-title mb-0">
-                            <i class="bi bi-terminal"></i> REGISTRO DE GANHOS
+                            <i class="bi bi-cpu-fill"></i> MÓDULOS INSTALADOS
                         </h5>
+                        <button class="btn btn-sm font-tech"
+                                style="border: 1px solid rgba(13,202,240,0.3); color: var(--neon-cyan); font-size: 0.7rem; letter-spacing: 1px;"
+                                data-bs-toggle="modal" data-bs-target="#modalInventario">
+                            VER TUDO <i class="bi bi-arrow-right"></i>
+                        </button>
                     </div>
-                    <div class="terminal-container flex-grow-1" style="min-height: 0; overflow-y: auto;">
-                        <ul class="terminal-list">
-                            {% for log in logs_recentes %}
-                            <li class="terminal-item d-flex justify-content-between align-items-center">
-                                <div style="display: flex; flex-direction: column;">
-                                    <div>
-                                        <span class="term-date">[{{ log.criado_em|date:"d/m/y H:i" }}]</span>
-                                        <span class="term-source text-theme">{{ log.titulo|default:"SISTEMA"|upper }}</span>
+                    <div class="card-body d-flex align-items-center justify-content-center flex-grow-1"
+                         style="background: rgba(0,0,0,0.2);">
+                        <div class="d-flex flex-wrap gap-3 justify-content-center">
+                            {% for slot in slots_grade %}
+                                {% if slot.player_item %}
+                                <div class="hud-module-slot occupied rarity-{{ slot.player_item.item.raridade|lower }}"
+                                     style="cursor: pointer;"
+                                     data-bs-toggle="modal" data-bs-target="#modalInventario"
+                                     title="{{ slot.player_item.item.name }}">
+                                    <div class="card-inner">
+                                        <div class="card-front">
+                                            <span class="hud-slot-num font-tech">0{{ slot.numero }}</span>
+                                            <i class="bi {{ slot.player_item.item.icon|default:'bi-cpu' }} hud-slot-icon"></i>
+                                            <span class="hud-slot-name">{{ slot.player_item.item.name }}</span>
+                                        </div>
+                                        <div class="card-back">
+                                            <p class="card-back-desc font-tech">{{ slot.player_item.item.description }}</p>
+                                        </div>
                                     </div>
-                                    {% if log.descricao %}
-                                    <span class="term-desc text-light ms-2" style="font-size: 0.75rem; opacity: 0.8;">
-                                        > {{ log.descricao }}
-                                    </span>
-                                    {% endif %}
                                 </div>
-                                <div class="d-flex flex-column text-end ms-3" style="min-width: 70px;">
-                                    {% if log.xp_delta > 0 %}
-                                        <span class="term-val text-success fw-bold">+{{ log.xp_delta }} XP</span>
-                                    {% endif %}
-                                    {% if log.coin_delta > 0 %}
-                                        <span class="term-val text-warning fw-bold">+{{ log.coin_delta }} ⬡</span>
-                                    {% endif %}
-                                </div>
-                            </li>
+                                {% endif %}
                             {% empty %}
-                            <li class="text-muted font-tech">Nenhum ganho registrado recentemente.</li>
+                            <p class="text-muted font-tech text-center">Nenhum módulo instalado.</p>
                             {% endfor %}
-                        </ul>
+                            {% if efeitos_ativos %}
+                                {% for ef in efeitos_ativos %}
+                                <div class="hud-module-slot occupied rarity-rara"
+                                     style="cursor: pointer;"
+                                     data-bs-toggle="modal" data-bs-target="#modalInventario"
+                                     title="{{ ef.item.name }}">
+                                    <div class="card-inner">
+                                        <div class="card-front">
+                                            <span class="hud-slot-num font-tech" style="color: var(--neon-gold);">ATÉ {{ ef.expires_at|date:"d/m" }}</span>
+                                            <i class="bi {{ ef.item.icon|default:'bi-lightning-charge' }} hud-slot-icon" style="color: var(--neon-gold);"></i>
+                                            <span class="hud-slot-name text-warning">{{ ef.item.name }}</span>
+                                        </div>
+                                        <div class="card-back">
+                                            <p class="card-back-desc font-tech">{{ ef.item.description }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ARQUIVO DE CONQUISTAS -->
-            <div class="col-lg-7">
+            <!-- CONQUISTAS EM DESTAQUE -->
+            <div class="col-lg-6">
                 <div class="cyber-card d-flex flex-column h-100">
                     <div class="cyber-header d-flex justify-content-between align-items-center">
                         <h5 class="cyber-title mb-0 text-info">
-                            <i class="bi bi-grid-3x3-gap-fill"></i> ARQUIVO DE CONQUISTAS
+                            <i class="bi bi-grid-3x3-gap-fill"></i> DESTAQUES DE {{ player_obj.display_name|default:player_obj.user.username }}
                         </h5>
                         {% if conquistas_desbloqueadas %}
-                        <button class="btn btn-sm font-tech" 
+                        <button class="btn btn-sm font-tech"
                                 style="border: 1px solid rgba(13,202,240,0.3); color: var(--neon-cyan); font-size: 0.7rem; letter-spacing: 1px;"
                                 data-bs-toggle="modal" data-bs-target="#modalConquistas">
                             VER TODAS <i class="bi bi-arrow-right"></i>
                         </button>
                         {% endif %}
-                        <button class="btn btn-sm font-tech mt-3"
-                                style="border: 1px solid rgba(13,202,240,0.3); color: var(--neon-cyan); font-size: 0.7rem; letter-spacing: 1px;"
-                                data-bs-toggle="modal" data-bs-target="#modalInventario">
-                            <i class="bi bi-cpu"></i> VER MÓDULOS
-                        </button>
-
-                        {% include 'profiles/_public_inventario_modal.html' %}
                     </div>
                     <div class="card-body d-flex align-items-center justify-content-center flex-grow-1"
-                        style="background: rgba(0,0,0,0.2);">
+                         style="background: rgba(0,0,0,0.2);">
                         {% if conquistas_em_destaque %}
                         <div class="destaque-slots d-flex gap-3 flex-wrap justify-content-center">
                             {% for pa in conquistas_em_destaque %}
                             <div class="achievement-item em-destaque unlocked rarity-{{ pa.achievement.raridade }}"
-                                style="width: 80px; height: 80px;"
-                                title="{{ pa.achievement.nome }}">
+                                 style="width: 80px; height: 80px; cursor: pointer;"
+                                 data-bs-toggle="modal" data-bs-target="#modalConquistas"
+                                 title="{{ pa.achievement.nome }}">
                                 {% if 'bi-' in pa.achievement.imagem %}
                                     <i class="bi {{ pa.achievement.imagem }}" style="font-size: 2rem;"></i>
                                 {% else %}
                                     <img src="{% static pa.achievement.imagem %}" class="ach-img"
-                                        onerror="this.onerror=null; this.outerHTML='<i class=\'bi bi-trophy-fill text-muted\'></i>';">
+                                         onerror="this.onerror=null; this.outerHTML='<i class=\'bi bi-trophy-fill text-muted\'></i>';">
                                 {% endif %}
                             </div>
                             {% endfor %}
@@ -186,119 +232,92 @@
                 </div>
             </div>
 
-            {% include 'profiles/_public_conquistas_modal.html' %}
+        </div>
 
+        <!-- REGISTRO DE GANHOS -->
+        <div class="row g-4 mb-4">
+            <div class="col-12">
+                <div class="cyber-card d-flex flex-column">
+                    <div class="cyber-header">
+                        <h5 class="cyber-title mb-0">
+                            <i class="bi bi-terminal"></i> HISTÓRICO DE DESAFIOS
+                        </h5>
+                    </div>
+                    <div class="terminal-container" style="max-height: 360px; overflow-y: auto;">
+                        <ul class="terminal-list">
+                            {% for entry in historico_desafios %}
+                            <li class="terminal-item d-flex justify-content-between align-items-center">
+                                <div class="d-flex flex-column">
+                                    <div>
+                                        <span class="term-date">[{{ entry.completed_at|date:"d/m/y H:i" }}]</span>
+                                        <span class="term-source text-theme">{{ entry.titulo|upper }}</span>
+                                    </div>
+                                    <div class="d-flex gap-3 ms-2 mt-1">
+                                        {% if entry.duracao %}
+                                        <span style="font-size: 0.72rem; color: rgba(13,202,240,0.6);" class="font-tech">
+                                            <i class="bi bi-stopwatch"></i> {{ entry.duracao }}
+                                        </span>
+                                        {% endif %}
+                                        {% if entry.acertos %}
+                                        <span style="font-size: 0.72rem; color: rgba(255,255,255,0.5);" class="font-tech">
+                                            <i class="bi bi-check2-square"></i> {{ entry.acertos }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-column text-end ms-3" style="min-width: 80px;">
+                                    {% if entry.xp_earned %}
+                                        <span class="term-val text-success fw-bold">+{{ entry.xp_earned }} XP</span>
+                                    {% endif %}
+                                    {% if entry.coins_earned %}
+                                        <span class="term-val text-warning fw-bold">+{{ entry.coins_earned }} ⬡</span>
+                                    {% endif %}
+                                </div>
+                            </li>
+                            {% empty %}
+                            <li class="text-muted font-tech p-3">Nenhum desafio concluído registrado.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
 
     </div>
 </div>
+
+{% include 'profiles/_public_conquistas_modal.html' %}
+{% include 'profiles/_public_inventario_modal.html' %}
+
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.querySelectorAll('#modalConquistas .achievement-item[data-nome]').forEach(item => {
-    item.addEventListener('mouseenter', function() {
-        document.getElementById('ach-preview-nome').textContent = this.dataset.nome || '-';
-        document.getElementById('ach-preview-desc').textContent = this.dataset.desc || '-';
-        document.getElementById('ach-preview-bonus').textContent = this.dataset.bonus || '-';
-
-        const imgEl = this.querySelector('img');
-        const iconEl = this.querySelector('i');
-        const previewContainer = document.getElementById('ach-preview-img');
-
-        if (imgEl) {
-            const rarity = this.classList.contains('rarity-lendaria') ? 'rarity-lendaria'
-                         : this.classList.contains('rarity-epica')    ? 'rarity-epica'
-                         : this.classList.contains('rarity-rara')     ? 'rarity-rara'
-                         : 'rarity-comum';
-
-            previewContainer.innerHTML = `<div class="achievement-item unlocked ${rarity} mx-auto" style="width:80px; height:80px; animation:none;"><img src="${imgEl.src}" class="ach-img"></div>`;
-        } else if (iconEl) {
-            const classes = iconEl.className;
-            previewContainer.innerHTML = `<div class="achievement-item mx-auto" style="width:80px; height:80px; animation:none;"><i class="${classes}" style="font-size:2rem;"></i></div>`;
-        }
-    });
-});
-
 document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('skillsRadarChart');
-    if (ctx) {
-        const themeColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-color').trim() || '#0dcaf0';
-        
-        new Chart(ctx, {
-            type: 'radar',
-            data: {
-                labels: ['Lógica', 'Redes', 'Cripto', 'Hardware', 'Social Eng.'],
-                datasets: [{
-                    label: 'Eficiência',
-                    data: [
-                        {{ player_obj.skill_logica|default:10 }},
-                        {{ player_obj.skill_redes|default:10 }},
-                        {{ player_obj.skill_cripto|default:10 }},
-                        {{ player_obj.skill_hardware|default:10 }},
-                        {{ player_obj.skill_social|default:10 }}
-                    ],
-                    backgroundColor: themeColor + '33', 
-                    borderColor: themeColor,
-                    pointBackgroundColor: themeColor,
-                    pointBorderColor: '#fff',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: themeColor
-                }]
-            },
-            options: {
-                // Ativa a interação global para a área do gráfico
-                interaction: {
-                    mode: 'dataset',
-                    intersect: false
-                },
-                scales: {
-                    r: {
-                        angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        pointLabels: { color: '#adb5bd', font: { family: 'Courier New', size: 10 } },
-                        ticks: { display: false },
-                        min: -1,
-                        suggestedMax: 50,
-                    }
-                },
-                plugins: { 
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(10, 12, 20, 0.95)',
-                        titleFont: { family: 'Courier New', size: 13, weight: 'bold' },
-                        bodyFont: { family: 'Courier New', size: 12 },
-                        bodyColor: '#fff',
-                        borderColor: themeColor,
-                        borderWidth: 1,
-                        padding: 12,
-                        displayColors: false,
-                        callbacks: {
-                            // Define o título do balão
-                            title: function() {
-                                return 'BÔNUS DE HABILIDADES';
-                            },
-                            // Esconde a label padrão (para não duplicar)
-                            label: function() {
-                                return '';
-                            },
-                            // Lista todos os pontos e seus valores de uma vez
-                            afterBody: function(context) {
-                                const chartData = context[0].chart.data;
-                                const labels = chartData.labels;
-                                const values = chartData.datasets[0].data;
-                                
-                                return labels.map((label, i) => {
-                                    return `> ${label.padEnd(12, ' ')} : +${values[i]}%`;
-                                });
-                            }
-                        }
-                    }
-                }
+
+    document.querySelectorAll('#modalConquistas .achievement-item[data-nome]').forEach(item => {
+        item.addEventListener('mouseenter', function() {
+            document.getElementById('ach-preview-nome').textContent = this.dataset.nome || '-';
+            document.getElementById('ach-preview-desc').textContent = this.dataset.desc || '-';
+            document.getElementById('ach-preview-bonus').textContent = this.dataset.bonus || '-';
+
+            const imgEl = this.querySelector('img');
+            const iconEl = this.querySelector('i');
+            const previewContainer = document.getElementById('ach-preview-img');
+
+            if (imgEl) {
+                const rarity = this.classList.contains('rarity-lendaria') ? 'rarity-lendaria'
+                             : this.classList.contains('rarity-epica')    ? 'rarity-epica'
+                             : this.classList.contains('rarity-rara')     ? 'rarity-rara'
+                             : 'rarity-comum';
+                previewContainer.innerHTML = `<div class="achievement-item unlocked ${rarity} mx-auto" style="width:80px;height:80px;animation:none;"><img src="${imgEl.src}" class="ach-img"></div>`;
+            } else if (iconEl) {
+                previewContainer.innerHTML = `<div class="achievement-item mx-auto" style="width:80px;height:80px;animation:none;"><i class="${iconEl.className}" style="font-size:2rem;"></i></div>`;
             }
         });
-    }
+    });
+
 });
 </script>
 {% endblock %}

@@ -617,9 +617,6 @@
 .destaque-slots {
     min-height: 70px;
     padding: 10px;
-    background: rgba(0,0,0,0.3);
-    border: 1px dashed rgba(255,255,255,0.1);
-    border-radius: 8px;
 }
 
 .ach-img {

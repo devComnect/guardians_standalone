@@ -1019,6 +1019,120 @@ def public_profile(request, player_id):
         player=target_user, expires_at__gt=timezone.now()
     ).select_related('item')
 
+    # 8. Novos stats
+
+    from apps.minigames.models import QuizAttempt, PatrolAttempt, PasswordAttempt, DecriptarAttempt, CodigoAttempt
+    from django.db.models import Max, Avg, F, ExpressionWrapper, DurationField
+
+    quizzes_completos = QuizAttempt.objects.filter(
+        player=target_user, completed_at__isnull=False, abandoned=False, timer_expired=False
+    )
+    total_quizzes = quizzes_completos.count()
+
+    total_minigames = (
+        PasswordAttempt.objects.filter(player=target_user, is_won=True).count() +
+        DecriptarAttempt.objects.filter(player=target_user, completed_at__isnull=False, abandoned=False, timer_expired=False).count() +
+        CodigoAttempt.objects.filter(player=target_user, won=True).count()
+    )
+
+    total_patrulhas = PatrolAttempt.objects.filter(player=target_user, completed=True).count()
+
+    maior_xp = max([
+        quizzes_completos.aggregate(m=Max('xp_earned'))['m'] or 0,
+        PasswordAttempt.objects.filter(player=target_user, is_won=True).aggregate(m=Max('xp_earned'))['m'] or 0,
+        DecriptarAttempt.objects.filter(player=target_user, completed_at__isnull=False).aggregate(m=Max('xp_earned'))['m'] or 0,
+        CodigoAttempt.objects.filter(player=target_user, won=True).aggregate(m=Max('xp_earned'))['m'] or 0,
+        PatrolAttempt.objects.filter(player=target_user, won=True).aggregate(m=Max('xp_earned'))['m'] or 0,
+    ])
+
+    tempos = []
+    for Model, filtro in [
+        (QuizAttempt,     {'completed_at__isnull': False, 'abandoned': False, 'timer_expired': False}),
+        (PasswordAttempt, {'is_won': True}),
+        (DecriptarAttempt,{'completed_at__isnull': False, 'abandoned': False, 'timer_expired': False}),
+        (CodigoAttempt,   {'won': True}),
+        (PatrolAttempt,   {'completed': True}),
+    ]:
+        avg = Model.objects.filter(player=target_user, **filtro).annotate(
+            duracao=ExpressionWrapper(F('completed_at') - F('started_at'), output_field=DurationField())
+        ).aggregate(media=Avg('duracao'))['media']
+        if avg:
+            tempos.append(avg.total_seconds())
+
+    tempo_medio_seg = int(sum(tempos) / len(tempos)) if tempos else 0
+    tempo_medio_str = f"{tempo_medio_seg // 60}m {tempo_medio_seg % 60}s" if tempo_medio_seg else "—"
+
+    # 9. Novos logs de desafios
+
+    from itertools import chain
+    from operator import attrgetter
+
+    def _attempt_row(obj, tipo):
+        row = {
+            'tipo': tipo,
+            'xp_earned': obj.xp_earned,
+            'coins_earned': obj.coins_earned,
+            'completed_at': obj.completed_at,
+            'duracao': None,
+            'acertos': None,
+        }
+        if obj.completed_at and obj.started_at:
+            seg = int((obj.completed_at - obj.started_at).total_seconds())
+            row['duracao'] = f"{seg // 60}m {seg % 60}s"
+
+        if tipo == 'Quiz':
+            total_q = obj.quiz.questions.count() if hasattr(obj, 'quiz') else '?'
+            row['acertos'] = f"{obj.total_correct}/{total_q}"
+            row['titulo'] = obj.quiz.titulo
+        else:
+            row['titulo'] = tipo
+        if tipo == 'Código':
+            row['acertos'] = f"{len(obj.guesses)}/{obj.max_attempts}"
+        elif tipo == 'Decriptar':
+            total_d = len(obj.words_sequence) if obj.words_sequence else '?'
+            row['acertos'] = f"{obj.correct_count}/{total_d}"
+        elif tipo == 'Patrulha':
+            row['acertos'] = f"{obj.attempts_count}/10"
+            row['duracao'] = None
+
+            
+        return row
+
+    historico_desafios = []
+
+    quiz_qs = QuizAttempt.objects.filter(
+        player=target_user, completed_at__isnull=False, abandoned=False, timer_expired=False
+    ).select_related('quiz').prefetch_related('quiz__questions').order_by('-completed_at')[:4]
+
+    password_qs = PasswordAttempt.objects.filter(
+        player=target_user, is_won=True
+    ).order_by('-completed_at')[:4]
+
+    decriptar_qs = DecriptarAttempt.objects.filter(
+        player=target_user, completed_at__isnull=False, abandoned=False, timer_expired=False
+    ).order_by('-completed_at')[:4]
+
+    codigo_qs = CodigoAttempt.objects.filter(
+        player=target_user, won=True
+    ).order_by('-completed_at')[:4]
+
+    patrulha_qs = PatrolAttempt.objects.filter(
+        player=target_user, completed=True
+    ).order_by('-completed_at')[:4]
+
+    for obj in quiz_qs:
+        historico_desafios.append(_attempt_row(obj, 'Quiz'))
+    for obj in password_qs:
+        historico_desafios.append(_attempt_row(obj, 'Cofre'))
+    for obj in decriptar_qs:
+        historico_desafios.append(_attempt_row(obj, 'Decriptar'))
+    for obj in codigo_qs:
+        historico_desafios.append(_attempt_row(obj, 'Código'))
+    for obj in patrulha_qs:
+        historico_desafios.append(_attempt_row(obj, 'Patrulha'))
+
+    historico_desafios.sort(key=lambda x: x['completed_at'], reverse=True)
+
     context = {
         'target_user': target_user,
         'player_obj': player_obj,
@@ -1032,6 +1146,12 @@ def public_profile(request, player_id):
         'config': config,
         'slots_grade': slots_grade,
         'efeitos_ativos': efeitos_ativos,
+        'total_quizzes': total_quizzes,
+        'total_minigames': total_minigames,
+        'total_patrulhas': total_patrulhas,
+        'maior_xp': maior_xp,
+        'tempo_medio_str': tempo_medio_str,
+        'historico_desafios': historico_desafios,
     }
 
     return render(request, 'profiles/public_profile.html', context) 
