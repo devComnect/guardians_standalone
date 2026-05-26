@@ -1037,13 +1037,12 @@ def public_profile(request, player_id):
 
     total_patrulhas = PatrolAttempt.objects.filter(player=target_user, completed=True).count()
 
-    maior_xp = max([
-        quizzes_completos.aggregate(m=Max('xp_earned'))['m'] or 0,
-        PasswordAttempt.objects.filter(player=target_user, is_won=True).aggregate(m=Max('xp_earned'))['m'] or 0,
-        DecriptarAttempt.objects.filter(player=target_user, completed_at__isnull=False).aggregate(m=Max('xp_earned'))['m'] or 0,
-        CodigoAttempt.objects.filter(player=target_user, won=True).aggregate(m=Max('xp_earned'))['m'] or 0,
-        PatrolAttempt.objects.filter(player=target_user, won=True).aggregate(m=Max('xp_earned'))['m'] or 0,
-    ])
+    from apps.profiles.models import XPEvent
+
+    maior_xp = XPEvent.objects.filter(
+        player=target_user,
+        fonte__in=['quiz', 'password', 'decriptar', 'codigo', 'patrol'],
+    ).aggregate(m=Max('xp_total'))['m'] or 0
 
     tempos = []
     for Model, filtro in [
@@ -1063,18 +1062,28 @@ def public_profile(request, player_id):
     tempo_medio_str = f"{tempo_medio_seg // 60}m {tempo_medio_seg % 60}s" if tempo_medio_seg else "—"
 
     # 9. Novos logs de desafios
+    from apps.profiles.models import XPEvent
 
-    from itertools import chain
-    from operator import attrgetter
+    FONTE_MAP = {
+        'Quiz':      'quiz',
+        'Cofre':     'password',
+        'Decriptar': 'decriptar',
+        'Código':    'codigo',
+        'Patrulha':  'patrol',
+    }
 
     def _attempt_row(obj, tipo):
+        from datetime import timedelta
         row = {
             'tipo': tipo,
+            'titulo': tipo,
             'xp_earned': obj.xp_earned,
             'coins_earned': obj.coins_earned,
             'completed_at': obj.completed_at,
             'duracao': None,
             'acertos': None,
+            'xp_base': None,
+            'xp_bonus': None,
         }
         if obj.completed_at and obj.started_at:
             seg = int((obj.completed_at - obj.started_at).total_seconds())
@@ -1084,9 +1093,7 @@ def public_profile(request, player_id):
             total_q = obj.quiz.questions.count() if hasattr(obj, 'quiz') else '?'
             row['acertos'] = f"{obj.total_correct}/{total_q}"
             row['titulo'] = obj.quiz.titulo
-        else:
-            row['titulo'] = tipo
-        if tipo == 'Código':
+        elif tipo == 'Código':
             row['acertos'] = f"{len(obj.guesses)}/{obj.max_attempts}"
         elif tipo == 'Decriptar':
             total_d = len(obj.words_sequence) if obj.words_sequence else '?'
@@ -1095,7 +1102,20 @@ def public_profile(request, player_id):
             row['acertos'] = f"{obj.attempts_count}/10"
             row['duracao'] = None
 
-            
+        fonte = FONTE_MAP.get(tipo)
+        if fonte and obj.completed_at:
+            janela_inicio = obj.completed_at - timedelta(seconds=15)
+            janela_fim    = obj.completed_at + timedelta(seconds=15)
+            evento = XPEvent.objects.filter(
+                player=target_user,
+                fonte=fonte,
+                criado_em__gte=janela_inicio,
+                criado_em__lte=janela_fim,
+            ).order_by('-criado_em').first()
+            if evento:
+                row['xp_base']  = evento.xp_base
+                row['xp_bonus'] = evento.xp_bonus
+
         return row
 
     historico_desafios = []
@@ -1131,6 +1151,23 @@ def public_profile(request, player_id):
     for obj in patrulha_qs:
         historico_desafios.append(_attempt_row(obj, 'Patrulha'))
 
+    bonus_qs = XPEvent.objects.filter(
+        player=target_user,
+        fonte='bonus',
+    ).order_by('-criado_em')[:4]
+
+    for obj in bonus_qs:
+        historico_desafios.append({
+            'tipo':         'bonus',
+            'titulo':       obj.descricao,
+            'xp_earned':    obj.xp_total,
+            'coins_earned': 0,
+            'completed_at': obj.criado_em,
+            'duracao':      None,
+            'acertos':      None,
+            'xp_base':      obj.xp_base,
+            'xp_bonus':     obj.xp_bonus,
+        })
     historico_desafios.sort(key=lambda x: x['completed_at'], reverse=True)
 
     context = {

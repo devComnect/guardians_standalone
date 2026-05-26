@@ -131,6 +131,7 @@ class XPEvent(models.Model):
         ('decriptar',  'Decriptar'),
         ('codigo',     'Código'),
         ('password',   'Cofre de Senhas'),
+        ('patrol',     'Patrulha'),
         ('feedback',   'Feedback'),
         ('conquista',  'Conquista'),
         ('missao',     'Missão'),
