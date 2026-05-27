@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Arquivo de Quizzes — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/quizzes_gallery.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="quiz-wrapper">
+
+    <div class="quiz-header">
+        <div class="d-flex align-items-center justify-content-center gap-4 mb-4">
+            <a href="{% url 'training:home' %}" class="btn-back font-tech">
+                <i class="bi bi-arrow-left"></i> VOLTAR
+            </a>
+            <h1 class="quiz-title font-tech">// ARQUIVO DE QUIZZES</h1>
+        </div>
+    </div>
+
+    <div class="quiz-content">
+        {% if not season %}
+            <div class="empty-state font-tech">
+                <i class="bi bi-hdd-network"></i>
+                <p>// SEM TEMPORADA ATIVA</p>
+            </div>
+        {% else %}
+            <div class="quiz-grid">
+                {% for card in cards %}
+                
+                    {% if card.status == 'futuro' %}
+                    <div class="quiz-card state-locked">
+                        <div class="card-body">
+                            <div class="card-scanlines"></div>
+                            <div class="card-top">
+                                <span class="quiz-badge font-tech">ENCRIPTADO</span>
+                            </div>
+                            <div class="card-content flex-center text-center">
+                                <i class="bi bi-lock-fill card-icon mb-2"></i>
+                                <h3 class="quiz-name font-tech">ACESSO NEGADO</h3>
+                                <p class="quiz-desc">Disponível em: <br><span class="text-highlight">{{ card.quiz.available_from }}</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% elif card.status == 'disponivel' %}
+                    <div class="quiz-card state-pending">
+                        <div class="card-glow"></div>
+                        <div class="card-body">
+                            <div class="card-scanlines"></div>
+                            <div class="card-top">
+                                <span class="quiz-badge font-tech text-blink">AÇÃO REQUERIDA</span>
+                            </div>
+                            <div class="card-content flex-center text-center">
+                                <i class="bi bi-hourglass-split card-icon mb-2"></i>
+                                <h3 class="quiz-name font-tech">{{ card.quiz.titulo }}</h3>
+                                <p class="quiz-desc">Prazo limite: <br><span class="text-highlight">{{ card.quiz.available_until }}</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% elif card.status == 'perdido' %}
+                    <div class="quiz-card state-failed">
+                        <div class="card-glow"></div>
+                        <div class="card-body">
+                            <div class="card-scanlines"></div>
+                            <div class="card-top">
+                                <span class="quiz-badge font-tech">FALHA CRÍTICA</span>
+                            </div>
+                            <div class="card-content flex-center text-center">
+                                <i class="bi bi-x-circle card-icon mb-2"></i>
+                                <h3 class="quiz-name font-tech text-strike">{{ card.quiz.titulo }}</h3>
+                                <p class="quiz-desc">Conexão perdida em: <br><span class="text-highlight">{{ card.quiz.available_until }}</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% else %}
+                    <div class="quiz-card state-success">
+                        <div class="card-glow"></div>
+                        <div class="card-body">
+                            <div class="card-scanlines"></div>
+                            <div class="card-top d-flex justify-content-between align-items-center">
+                                <span class="quiz-name-small font-tech">{{ card.quiz.titulo }}</span>
+                                <div>
+                                    {% if card.is_new %}
+                                    <span class="badge-novo font-tech me-2">NOVO</span>
+                                    {% endif %}
+                                    <span class="quiz-badge font-tech">SISTEMA LIMPO</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card-content flex-column justify-content-between">
+                                <div>
+                                    {% if card.quiz.descricao %}
+                                        <p class="quiz-desc mb-3">{{ card.quiz.descricao }}</p>
+                                    {% endif %}
+                                    
+                                    <div class="quiz-stats font-tech mb-4">
+                                        <div class="stat-item">
+                                            <i class="bi bi-star-fill"></i> {{ card.attempt.xp_earned }} XP
+                                        </div>
+                                        <div class="stat-divider"></div>
+                                        <div class="stat-item">
+                                            <i class="bi bi-check-circle"></i> {{ card.attempt.total_correct }} ACERTOS
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button class="btn-cyber w-100 font-tech mt-auto" type="button" 
+                                        onclick="openQuizLog('quiz-data-{{ card.quiz.id }}', '{{ card.quiz.titulo|escapejs }}', '{{ card.attempt.xp_earned }}', '{{ card.attempt.total_correct }}')">
+                                    ABRIR LOG DE QUESTÕES
+                                </button>
+
+                                <div id="quiz-data-{{ card.quiz.id }}" style="display: none;">
+                                    <div class="question-log-modal">
+                                        {% for q in card.questoes %}
+                                        <div class="q-block">
+                                            <p class="q-text font-ui">{{ forloop.counter }}. {{ q.texto }}</p>
+                                            <ul class="q-options font-tech">
+                                                {% for opt in q.opcoes %}
+                                                <li class="{% if opt.correta %}opt-correct{% elif opt.escolhida and not opt.correta %}opt-wrong{% else %}opt-neutral{% endif %}">
+                                                    <span class="opt-icon">
+                                                        {% if opt.correta %}[✓]
+                                                        {% elif opt.escolhida and not opt.correta %}[X]
+                                                        {% else %}[-]
+                                                        {% endif %}
+                                                    </span>
+                                                    {{ opt.texto }}
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                {% empty %}
+                    <div class="empty-state font-tech">
+                        <i class="bi bi-inboxes"></i>
+                        <p>// NENHUM DADO ENCONTRADO NO SETOR</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<div class="quiz-overlay" id="quiz-overlay" onclick="closeQuizLog(event)">
+    <div class="quiz-modal" id="quiz-modal">
+        <div class="card-scanlines"></div>
+        <button class="btn-close-modal font-tech" onclick="closeQuizLog(event, true)">[X] FECHAR</button>
+        
+        <div class="quiz-modal-header">
+            <span class="quiz-badge font-tech d-inline-block mb-2" style="background:rgba(5,217,232,0.1); border-color:var(--neon-green); color:var(--neon-green);">REGISTRO DECRIPTADO</span>
+            <h2 class="quiz-modal-title font-tech" id="modal-quiz-title"></h2>
+            
+            <div class="quiz-stats font-tech mt-3" style="justify-content: flex-start; background: transparent; border: none; padding: 0;">
+                <div class="stat-item"><i class="bi bi-star-fill"></i> <span id="modal-quiz-xp"></span> XP</div>
+                <div class="stat-divider"></div>
+                <div class="stat-item"><i class="bi bi-check-circle"></i> <span id="modal-quiz-acertos"></span> ACERTOS</div>
+            </div>
+        </div>
+        
+        <div class="quiz-modal-body" id="modal-quiz-content">
+            </div>
+    </div>
+</div>
+
+<script>
+function openQuizLog(dataId, title, xp, acertos) {
+    document.getElementById('modal-quiz-title').textContent = title;
+    document.getElementById('modal-quiz-xp').textContent = xp;
+    document.getElementById('modal-quiz-acertos').textContent = acertos;
+    
+    // Transfere o HTML oculto do card para o corpo do modal
+    const contentHTML = document.getElementById(dataId).innerHTML;
+    document.getElementById('modal-quiz-content').innerHTML = contentHTML;
+    
+    document.getElementById('quiz-overlay').classList.add('active');
+}
+
+function closeQuizLog(event, force = false) {
+    if (force || event.target.id === 'quiz-overlay') {
+        document.getElementById('quiz-overlay').classList.remove('active');
+        setTimeout(() => {
+            document.getElementById('modal-quiz-content').innerHTML = ''; // Limpa ao fechar
+        }, 300);
+    }
+}
+</script>
+{% endblock %}

@@ -267,6 +267,11 @@ class PlayerAdmin(admin.ModelAdmin):
             CodigoAttempt.objects.filter(player=user, config__isnull=False).delete()
             CodigoAttempt.objects.filter(player=user).delete()
 
+            
+            # ── Galerias
+            from apps.training.models import PlayerWordUnlock
+            PlayerWordUnlock.objects.filter(player=user).delete()
+
             try:
                 PatrolAttempt.objects.filter(player=user).delete()
             except Exception:
@@ -298,6 +303,7 @@ class PlayerAdmin(admin.ModelAdmin):
             eventos_count = EventoPontos.objects.filter(player=user).count()
 
             PlayerBattlePass.objects.filter(player=user).delete()
+
             
             # ── 1º PASSO: Zera o perfil do player e SALVA
             player_obj.xp_total            = 0

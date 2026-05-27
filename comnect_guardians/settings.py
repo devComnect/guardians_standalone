@@ -37,6 +37,7 @@ LOCAL_APPS = [
     'apps.store',
     'apps.feedback',
     'apps.missions.apps.MissionsConfig',
+    'apps.training.apps.TrainingConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

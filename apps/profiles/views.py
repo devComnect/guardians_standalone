@@ -139,6 +139,19 @@ def _ctx_stats(user, player):
 
     desafios_total = quiz_count + dcr_count + cod_count + patrol_count + pw_count
 
+    # . Stats de galeria
+    from apps.minigames.models import Quiz
+    from apps.training.models import PlayerWordUnlock
+
+    quiz_season_total = Quiz.objects.filter(
+        ativo=True,
+        available_from__gte=season.inicio
+    ).count() if season else 0
+
+    lexico_desbloqueado = PlayerWordUnlock.objects.filter(player=user, season=season).count() if season else 0
+    from apps.minigames.models import WordBank
+    lexico_total = WordBank.objects.filter(ativo=True).count()
+
     return {
         'stats': {
             'desafios_total':   desafios_total,
@@ -156,6 +169,9 @@ def _ctx_stats(user, player):
             'ranking_moedas':   ranking_moedas,
             'ranking_ofensiva': ranking_ofensiva,
             'season':           season,
+            'quiz_season_total':    quiz_season_total,
+            'lexico_desbloqueado':  lexico_desbloqueado,
+            'lexico_total':         lexico_total,
         }
     }
 

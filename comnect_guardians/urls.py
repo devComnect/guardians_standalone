@@ -16,6 +16,7 @@ urlpatterns = [
     path('loja/',     include('apps.store.urls')),
     path('feedback/', include('apps.feedback.urls')),
     path('missions/', include('apps.missions.urls')), #botão de resgate
+    path('treinamentos/', include('apps.training.urls')),
 ]
 
 if settings.DEBUG:

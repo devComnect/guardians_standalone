@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Treinamentos — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/training.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="training-wrapper">
+    
+    <div class="training-header">
+        <h1 class="training-title font-tech">// CENTRAL DE TREINAMENTO</h1>
+        <p class="training-sub font-tech">SISTEMA: {{ season.nome|default:"MODO OFFLINE"|upper }}</p>
+    </div>
+
+    <div class="training-hub">
+        
+        <a href="{% url 'training:galeria_quizzes' %}" class="hub-card rarity-rare">
+            {% if novos_quizzes_count > 0 %}
+            <div class="hub-notification font-tech">{{ novos_quizzes_count }} NOVO</div>
+            {% endif %}
+            <div class="card-glow"></div>
+            <div class="card-body">
+                <div class="card-scanlines"></div>
+                <div class="card-shimmer"></div>
+                
+                <div class="card-art">
+                    <i class="bi bi-collection card-art-icon"></i>
+                </div>
+                
+                <div class="card-content">
+                    <span class="hub-badge font-tech">ARQUIVO MESTRE</span>
+                    <h2 class="card-name">GALERIA DE QUIZZES</h2>
+                    <p class="card-desc">Revise dados táticos e simulações cognitivas adquiridas na temporada atual.</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{% url 'training:galeria_termos' %}" class="hub-card rarity-legendary">
+            {% if novos_termos_count > 0 %}
+            <div class="hub-notification font-tech">{{ novos_termos_count }} NOVO(S)</div>
+            {% endif %}
+            <div class="card-glow"></div>
+            <div class="card-body">
+                <div class="card-scanlines"></div>
+                <div class="card-shimmer"></div>
+                
+                <div class="card-art">
+                    <i class="bi bi-journal-code card-art-icon"></i>
+                </div>
+                
+                <div class="card-content">
+                    <span class="hub-badge font-tech">LÉXICO DE CAMPO</span>
+                    <h2 class="card-name">TERMOS DECRIPTADOS</h2>
+                    <p class="card-desc">Acesse artefatos linguísticos e fragmentos de código desbloqueados nos desafios.</p>
+                </div>
+            </div>
+        </a>
+
+        <div class="hub-card state-locked">
+            <div class="card-body">
+                <div class="card-scanlines"></div>
+                
+                <div class="card-art">
+                    <i class="bi bi-lock card-art-icon"></i>
+                </div>
+                
+                <div class="card-content">
+                    <span class="hub-badge font-tech">ACESSO RESTRITO</span>
+                    <h2 class="card-name">ACADEMIA</h2>
+                    <p class="card-desc">Módulo de expansão de habilidades em desenvolvimento. Aguarde liberação do sistema.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

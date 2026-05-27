@@ -52,6 +52,7 @@ class WordBank(models.Model):
     dificuldade = models.CharField(max_length=10, choices=DIFICULDADE_CHOICES)
     comprimento = models.PositiveSmallIntegerField(editable=False)
     ativo       = models.BooleanField(default=True)
+    descricao_detalhada = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         self.palavra    = self.palavra.upper().strip()

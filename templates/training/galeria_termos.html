@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Léxico de Campo — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/lexico.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="lexico-wrapper">
+    
+    <div class="lexico-header">
+        <div class="d-flex align-items-center justify-content-center gap-4 mb-3">
+            <a href="{% url 'training:home' %}" class="btn-back font-tech">
+                <i class="bi bi-arrow-left"></i> VOLTAR
+            </a>
+            <h1 class="lexico-title font-tech">// LÉXICO DE CAMPO</h1>
+        </div>
+
+        {% if season %}
+        <div class="lexico-stats font-tech">
+            <span class="stats-label">PROGRESSO DECRIPTADO</span>
+            <span class="stats-value">{{ desbloqueadas }} / {{ total }}</span>
+        </div>
+        {% else %}
+        <p class="text-muted font-tech">// SEM TEMPORADA ATIVA</p>
+        {% endif %}
+    </div>
+
+    {% if season %}
+        <div class="lexico-content">
+            {% regroup cards by word.get_categoria_display as cards_por_categoria %}
+            
+            <div class="terminal-tabs-wrapper">
+                <button class="nav-arrow nav-left" id="tab-prev"><i class="bi bi-chevron-left"></i></button>
+                
+                <div class="terminal-tabs" id="tabs-container">
+                    {% for grupo in cards_por_categoria %}
+                    <button class="tab-btn font-tech {% if forloop.first %}active{% endif %}" data-target="cat-{{ forloop.counter }}">
+                        {{ grupo.grouper|upper }}
+                        <div class="tab-indicator"></div>
+                    </button>
+                    {% endfor %}
+                </div>
+                
+                <button class="nav-arrow nav-right" id="tab-next"><i class="bi bi-chevron-right"></i></button>
+            </div>
+
+            <div class="terminal-display">
+                {% for grupo in cards_por_categoria %}
+                <div class="category-panel {% if forloop.first %}active{% endif %}" id="cat-{{ forloop.counter }}">
+                    
+                    <div class="term-carousel">
+                        {% for card in grupo.list %}
+                            
+                            {% if card.desbloqueada %}
+                            <div class="term-card diff-{{ card.word.get_dificuldade_display|slugify }}" 
+                                onclick="openTermTerminal('{{ card.word.palavra }}', '{{ card.word.get_dificuldade_display|upper }}', '{{ card.word.dica|escapejs }}', '{{ card.word.descricao_detalhada|escapejs|default:'' }}', 'diff-{{ card.word.get_dificuldade_display|slugify }}')">
+                                <div class="card-glow"></div>
+                                <div class="card-body">
+                                    <div class="card-scanlines"></div>
+                                    <div class="card-top d-flex justify-content-between align-items-center">
+                                        <span class="term-difficulty font-tech">{{ card.word.get_dificuldade_display|upper }}</span>
+                                        {% if card.is_new %}
+                                        <span class="badge-novo font-tech">NOVO</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-content">
+                                        <h3 class="term-word font-tech">{{ card.word.palavra }}</h3>
+                                        <p class="term-desc">{{ card.word.dica|default:"Sem definição cadastrada." }}</p>
+                                        
+                                        <div class="mt-auto text-end pt-3">
+                                            <span class="term-btn-more font-tech">VER MAIS_</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-content">
+                                        <h3 class="term-word font-tech">{{ card.word.palavra }}</h3>
+                                        <p class="term-desc">{{ card.word.dica|default:"Sem definição cadastrada." }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% else %}
+                            <div class="term-card state-locked">
+                                <div class="card-body">
+                                    <div class="card-scanlines"></div>
+                                    <div class="card-content locked-content">
+                                        <i class="bi bi-cpu card-art-icon"></i>
+                                        <span class="locked-text font-tech">DADOS CORROMPIDOS</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                        {% endfor %}
+                    </div>
+
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+<div class="terminal-overlay" id="terminal-overlay" onclick="closeTermTerminal(event)">
+    <div class="terminal-modal" id="terminal-modal">
+        <div class="card-scanlines"></div>
+        <button class="btn-close-terminal font-tech" onclick="closeTermTerminal(event, true)">[X] FECHAR</button>
+        
+        <div class="terminal-modal-header">
+            <span class="term-difficulty font-tech" id="modal-diff"></span>
+            <h2 class="term-word font-tech glitch-text" id="modal-word"></h2>
+        </div>
+        
+        <div class="terminal-modal-body">
+            <p class="term-desc text-info mb-4" id="modal-hint"></p>
+            <div class="terminal-divider"></div>
+            <p class="term-detail font-tech" id="modal-detail"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+function openTermTerminal(palavra, dificuldade, dica, detalhe, diffClass) {
+    const overlay = document.getElementById('terminal-overlay');
+    const modal = document.getElementById('terminal-modal');
+    
+    document.getElementById('modal-word').textContent = palavra;
+    document.getElementById('modal-diff').textContent = dificuldade;
+    document.getElementById('modal-hint').textContent = dica || "Sem definição primária.";
+    document.getElementById('modal-detail').innerHTML = detalhe ? detalhe.replace(/\n/g, '<br>') : "<i>Nenhum dado estendido disponível no banco de dados.</i>";
+    
+    modal.className = `terminal-modal ${diffClass}`;
+    overlay.classList.add('active');
+}
+
+function closeTermTerminal(event, force = false) {
+    if (force || event.target.id === 'terminal-overlay') {
+        document.getElementById('terminal-overlay').classList.remove('active');
+    }
+}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const tabs = document.querySelectorAll('.tab-btn');
+    const panels = document.querySelectorAll('.category-panel');
+    const tabContainer = document.getElementById('tabs-container');
+    const btnPrev = document.getElementById('tab-prev');
+    const btnNext = document.getElementById('tab-next');
+
+    // Troca de Abas
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            panels.forEach(p => p.classList.remove('active'));
+            
+            tab.classList.add('active');
+            document.getElementById(tab.dataset.target).classList.add('active');
+            
+            // Centraliza a aba ativa no scroll horizontal
+            tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
+    });
+
+    // Navegação pelas Setas
+    let currentIndex = 0;
+    
+    const updateTabByIndex = (index) => {
+        if(index >= 0 && index < tabs.length) {
+            currentIndex = index;
+            tabs[currentIndex].click();
+        }
+    };
+
+    btnNext.addEventListener('click', () => updateTabByIndex(currentIndex + 1));
+    btnPrev.addEventListener('click', () => updateTabByIndex(currentIndex - 1));
+});
+</script>
+{% endblock %}

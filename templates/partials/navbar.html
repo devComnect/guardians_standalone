@@ -27,6 +27,9 @@
             <li><a href="{% url 'feedback:index' %}"     class="cg-nav-item {% if request.resolver_match.app_name == 'feedback' %}active{% endif %}">
                 <i class="bi bi-chat-square-text"></i> Feedback
             </a></li>
+            <li><a href="{% url 'training:home' %}"     class="cg-nav-item {% if request.resolver_match.app_name == 'training' %}active{% endif %}">
+                <i class="bi bi-star-fill"></i> Treinamentos
+            </a></li>
         </ul>
 
         <!-- Player HUD (direita) -->
