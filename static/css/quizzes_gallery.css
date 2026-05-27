@@ -170,6 +170,28 @@
     padding: 10px 14px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
     background: linear-gradient(90deg, rgba(255,255,255,0.03), transparent);
+    /* Força o layout em linha única */
+    flex-wrap: nowrap !important;
+    gap: 12px;
+}
+
+.quiz-name-small {
+    font-size: 0.8rem;
+    color: var(--text-bright);
+    letter-spacing: 1px;
+    /* Trunca o texto longo com reticências */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Evita que o container das badges encolha ou quebre */
+.card-top > div {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
 }
 
 .quiz-card:not(.state-locked) .card-top::before {
