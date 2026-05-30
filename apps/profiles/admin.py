@@ -242,7 +242,7 @@ class PlayerAdmin(admin.ModelAdmin):
     def reset_total_player(self, request, queryset):
         from apps.minigames.models import (
             QuizAttempt, DecriptarAttempt, CodigoAttempt,
-            PatrolAttempt, PasswordAttempt,
+            PatrolAttempt, PasswordAttempt, LogScanAttempt
         )
         from apps.profiles.models import (
             XPEvent, PlayerNotification, PlayerAchievement, PlayerBattlePass, EventoPontos
@@ -266,6 +266,7 @@ class PlayerAdmin(admin.ModelAdmin):
             DecriptarAttempt.objects.filter(player=user).delete()
             CodigoAttempt.objects.filter(player=user, config__isnull=False).delete()
             CodigoAttempt.objects.filter(player=user).delete()
+            LogScanAttempt.objects.filter(player=user).delete()
 
             
             # ── Galerias

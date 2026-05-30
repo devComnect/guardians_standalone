@@ -30,6 +30,12 @@ urlpatterns = [
     path('codigo/play/',                       views.play_codigo,        name='play_codigo'),
     path('codigo/check/',                      views.check_codigo_guess, name='check_codigo'),
     path('codigo/resultado/<int:attempt_id>/', views.codigo_result,      name='codigo_result'),
+    # LogScan
+    path('logscan/start/',                       views.start_logscan,          name='start_logscan'),
+    path('logscan/play/',                        views.play_logscan,           name='play_logscan'),
+    path('logscan/check/',                       views.check_logscan_selection, name='check_logscan'),
+    path('logscan/finish/',                      views.finish_logscan,         name='finish_logscan'),
+    path('logscan/resultado/<int:attempt_id>/',  views.logscan_result,         name='logscan_result'),
     #Retake
     path('retake/', views.retake_consumivel, name='retake_consumivel'),
     #Hint

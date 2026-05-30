@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.contrib import messages
 
 from .models import (Quiz, QuizQuestion, QuizOption, QuizAttempt, MiniGameContent, PatrolAttempt, PasswordGameConfig, PasswordAttempt,
-                     WordBank, DecriptarConfig, DecriptarAttempt, CodigoConfig, CodigoAttempt, PatrolConfig, QuizAnswerDraft )
+                     WordBank, DecriptarConfig, DecriptarAttempt, CodigoConfig, CodigoAttempt, PatrolConfig, QuizAnswerDraft, LogScanAttempt, LogScanConfig )
 
 
 
@@ -270,3 +270,44 @@ class CodigoAttemptAdmin(admin.ModelAdmin):
             messages.WARNING
     )
 
+# ══════════════════════════════════════
+# LOGSCAN
+# ══════════════════════════════════════
+
+@admin.register(LogScanConfig)
+class LogScanConfigAdmin(admin.ModelAdmin):
+    fieldsets = (
+        ('Recompensas', {
+            'fields': ('xp_per_word', 'coin_reward')
+        }),
+        ('Timer', {
+            'fields': ('time_limit_seconds',)
+        }),
+        ('Dificuldade — Qtd. de Palavras por Sessão', {
+            'fields': ('words_count_easy', 'words_count_medio', 'words_count_hard')
+        }),
+        ('Disponibilidade', {
+            'fields': ('ativo', ('day_seg', 'day_ter', 'day_qua', 'day_qui', 'day_sex', 'day_sab', 'day_dom')),
+        }),
+    )
+
+    def has_add_permission(self, request):
+        return not LogScanConfig.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(LogScanAttempt)
+class LogScanAttemptAdmin(admin.ModelAdmin):
+    list_display    = ('player', 'date', 'correct_count', 'xp_earned', 'coins_earned', 'abandoned', 'timer_expired', 'completed_at')
+    list_filter     = ('date', 'abandoned', 'timer_expired')
+    readonly_fields = ('player', 'config', 'date', 'grid', 'placements', 'words_sequence',
+                       'correct_count', 'xp_earned', 'coins_earned', 'started_at', 'completed_at')
+    actions         = ['resetar_tentativa']
+
+    @admin.action(description='🗑️ Resetar tentativa — libera para refazer hoje')
+    def resetar_tentativa(self, request, queryset):
+        count = queryset.count()
+        queryset.delete()
+        self.message_user(request, f'{count} tentativa(s) removida(s).')

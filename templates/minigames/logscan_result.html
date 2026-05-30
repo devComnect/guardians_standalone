@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Resultado — LogScan{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/game_result.css' %}">
+{% endblock %}
+
+{% block content %}
+
+{% if is_perfect %}
+<div class="result-particles" id="particles"></div>
+{% endif %}
+
+<div class="result-wrapper">
+    <div class="result-panel {% if is_perfect %}result-perfect{% elif attempt.timer_expired %}result-fail{% elif attempt.abandoned %}result-abandoned{% elif attempt.correct_count > 0 %}result-partial{% endif %}">
+
+        <div class="result-xp-hero">
+
+            <div class="result-icon-wrap">
+                {% if is_perfect %}<i class="bi bi-trophy-fill"></i>
+                {% elif attempt.timer_expired %}<i class="bi bi-alarm-fill"></i>
+                {% elif attempt.abandoned %}<i class="bi bi-flag-fill"></i>
+                {% else %}<i class="bi bi-shield-check"></i>{% endif %}
+            </div>
+
+            <p class="result-status-label">
+                {% if is_perfect %}VARREDURA COMPLETA
+                {% elif attempt.timer_expired %}TEMPO ESGOTADO
+                {% elif attempt.abandoned %}MISSÃO ABANDONADA
+                {% else %}SESSÃO ENCERRADA{% endif %}
+            </p>
+
+            <h1 class="result-title-text">
+                {% if is_perfect %}// FULL SCAN
+                {% elif attempt.timer_expired %}// TIMER EXPIRED
+                {% elif attempt.abandoned %}// ABORTED
+                {% else %}// SCAN COMPLETE{% endif %}
+            </h1>
+
+            <p class="result-quiz-name">LogScan — {{ attempt.date|date:"d/m/Y" }}</p>
+
+            <div class="xp-counter-wrap">
+                <span class="xp-counter-label">XP GANHO</span>
+                <span class="xp-counter-value" id="xpCounter">0</span>
+                <span class="xp-counter-suffix">XP</span>
+            </div>
+
+            <div class="result-level-bar-wrap">
+                <div class="level-bar-header">
+                    <div class="level-bar-label">
+                        <i class="bi bi-cpu-fill"></i>
+                        NÍVEL
+                        <span class="level-badge">{{ request.user.player.level }}</span>
+                    </div>
+                    <span class="level-bar-xp-text">
+                        {{ request.user.player.xp_no_nivel_atual }} / {{ request.user.player.xp_necessario_nivel_atual }} XP
+                    </span>
+                </div>
+                <div class="level-bar-track">
+                    <div class="level-bar-fill" id="levelBarFill"></div>
+                    <div class="levelup-flash" id="levelupFlash"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="result-stats-row">
+            <div class="result-stat-cell">
+                <span class="stat-icon"><i class="bi bi-star-fill"></i></span>
+                <span class="stat-value">{{ attempt.xp_earned }}</span>
+                <span class="stat-label">XP BASE</span>
+            </div>
+            <div class="result-stat-cell">
+                <span class="stat-icon"><i class="bi bi-search"></i></span>
+                <span class="stat-value">{{ attempt.correct_count }}/{{ total_words }}</span>
+                <span class="stat-label">PALAVRAS</span>
+            </div>
+            <div class="result-stat-cell">
+                <span class="stat-icon"><i class="bi bi-coin"></i></span>
+                <span class="stat-value">{{ attempt.coins_earned }}</span>
+                <span class="stat-label">COINS</span>
+            </div>
+        </div>
+
+        {% if attempt.words_sequence %}
+        <div class="game-detail-block game-words-reveal">
+            <div class="game-detail-label">
+                <i class="bi bi-list-check"></i> PALAVRAS DA SESSÃO
+            </div>
+            <div class="words-grid">
+                {% for w in attempt.words_sequence %}
+                <div class="word-item {% if w.solved %}word-correct{% else %}word-miss{% endif %}">
+                    <i class="bi {% if w.solved %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %} word-item-icon"></i>
+                    <span class="word-item-text">{{ w.palavra }}</span>
+                    {% if not w.solved and w.dica %}
+                    <span class="word-item-hint">{{ w.dica }}</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if attempt.timer_expired or attempt.abandoned %}
+        <div class="result-msg-block">
+            {% if attempt.timer_expired %}
+            <p class="result-msg-text">// Tempo limite atingido.</p>
+            {% elif attempt.abandoned %}
+            <p class="result-msg-text">// Protocolo encerrado antecipadamente.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% include 'minigames/_xp_breakdown.html' %}
+
+        <div class="result-actions">
+            <a href="{% url 'challenges:index' %}" class="btn-result">
+                <i class="bi bi-arrow-left"></i> <span>DESAFIOS</span>
+            </a>
+            <a href="{% url 'core:home' %}" class="btn-result secondary">
+                <i class="bi bi-house-door"></i> <span>BASE</span>
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<script>
+(function () {
+    const STORAGE_KEY   = 'xp_result_{{ request.user.pk }}_logscan_{{ attempt.pk }}';
+    const XP_FROM_DJ    = {{ xp_result.xp_final|default:0 }};
+    const XP_FINAL      = XP_FROM_DJ > 0
+        ? (localStorage.setItem(STORAGE_KEY, XP_FROM_DJ), XP_FROM_DJ)
+        : (Number(localStorage.getItem(STORAGE_KEY)) || 0);
+    const XP_PCT_BEFORE = {{ request.user.player.xp_percentual }};
+    const XP_NO_NIVEL   = {{ request.user.player.xp_no_nivel_atual }};
+    const XP_NECESSARIO = {{ request.user.player.xp_necessario_nivel_atual }};
+    const IS_PERFECT    = {{ is_perfect|yesno:"true,false" }};
+
+    const counterEl    = document.getElementById('xpCounter');
+    const barFill      = document.getElementById('levelBarFill');
+    const levelupFlash = document.getElementById('levelupFlash');
+
+    function animateCounter(target, duration) {
+        if (target === 0) { counterEl.textContent = '0'; return; }
+        const start = performance.now();
+        const ease  = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+        function step(now) {
+            const p = Math.min((now - start) / duration, 1);
+            counterEl.textContent = Math.round(ease(p) * target).toLocaleString('pt-BR');
+            if (p < 1) requestAnimationFrame(step);
+            else counterEl.textContent = target.toLocaleString('pt-BR');
+        }
+        requestAnimationFrame(step);
+    }
+
+    function startAnimations() {
+        animateCounter(XP_FINAL, 4500);
+        if (!barFill) return;
+        const pctFinal  = Math.min(100, Math.round((XP_NO_NIVEL / XP_NECESSARIO) * 100));
+        const leveledUp = XP_FINAL > 0 && pctFinal <= XP_PCT_BEFORE;
+        barFill.style.cssText = `width:${XP_PCT_BEFORE}%;transition:none`;
+        setTimeout(() => {
+            barFill.style.transition = 'width 1.8s cubic-bezier(0.22,1,0.36,1)';
+            if (leveledUp) {
+                barFill.style.width = '100%';
+                setTimeout(() => {
+                    if (levelupFlash) { levelupFlash.classList.add('active'); setTimeout(() => levelupFlash.classList.remove('active'), 700); }
+                    barFill.style.cssText = 'width:0%;transition:none';
+                    setTimeout(() => { barFill.style.transition = 'width 1.2s cubic-bezier(0.22,1,0.36,1)'; barFill.style.width = pctFinal + '%'; }, 80);
+                }, 1900);
+            } else {
+                barFill.style.width = pctFinal + '%';
+            }
+        }, 400);
+    }
+
+    setTimeout(startAnimations, 600);
+
+    if (IS_PERFECT) {
+        const container = document.getElementById('particles');
+        if (container) {
+            const colors = ['#fcee0a','#00ff9f','#0dcaf0','#bd00ff','#ff2a6d'];
+            for (let i = 0; i < 60; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.cssText = `left:${Math.random()*100}%;top:${-Math.random()*20}px;background:${colors[Math.floor(Math.random()*colors.length)]};width:${2+Math.random()*3}px;height:${2+Math.random()*3}px;animation-duration:${3+Math.random()*5}s;animation-delay:${Math.random()*3}s;box-shadow:0 0 4px currentColor;border-radius:${Math.random()>.5?'50%':'0'}`;
+                container.appendChild(p);
+            }
+        }
+    }
+})();
+</script>
+{% endblock %}

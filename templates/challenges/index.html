@@ -275,6 +275,64 @@
         </div>
 
         {% endif %}
+        {# ═══════════════════════════════════════ #}
+        {# LOGSCAN                                 #}
+        {# ═══════════════════════════════════════ #}
+        {% if logscan_today and logscan_config and logscan_status != 'concluido' %}
+
+        <div class="challenge-card tipo-logscan card-enter">
+
+            <div class="card-hero">
+                <div class="card-hero-icon">
+                    <i class="bi bi-terminal-fill"></i>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                    <span class="challenge-type-badge">
+                        <i class="bi bi-terminal-fill"></i> LOGSCAN
+                    </span>
+                    <span class="challenge-status-badge status-{{ logscan_status }}">
+                        {% if logscan_status == 'em_andamento' %}
+                            <i class="bi bi-hourglass-split"></i> EM ANDAMENTO
+                        {% else %}
+                            <i class="bi bi-unlock-fill"></i> DISPONÍVEL
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <h3 class="challenge-title">LogScan</h3>
+                <p class="challenge-desc">Analise o dump de log e localize os termos de segurança ocultos no grid de caracteres.</p>
+
+                <div class="challenge-meta">
+                    <span class="meta-item"><i class="bi bi-star-fill"></i> {{ logscan_config.xp_per_word }} XP / palavra</span>
+                    <span class="meta-item"><i class="bi bi-coin"></i> {{ logscan_config.coin_reward }} Coins</span>
+                    <span class="meta-item"><i class="bi bi-search"></i> {{ logscan_config.total_words }} palavras</span>
+                    <span class="meta-item">
+                        <i class="bi bi-clock"></i>
+                        {% if logscan_config.time_limit_seconds %}{{ logscan_config.time_limit_seconds }}s{% else %}Livre{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                {% if logscan_status == 'em_andamento' %}
+                    <a href="{% url 'minigames:play_logscan' %}" class="btn-challenge warning">
+                        <i class="bi bi-arrow-right-circle"></i>
+                        <span>CONTINUAR</span>
+                    </a>
+                {% else %}
+                    <a href="{% url 'minigames:start_logscan' %}" class="btn-challenge">
+                        <i class="bi bi-play-fill"></i>
+                        <span>INICIAR</span>
+                    </a>
+                {% endif %}
+                <span class="expires-label font-tech">// disponível hoje</span>
+            </div>
+
+        </div>
+
+        {% endif %}
 
     </div>{# /challenge-grid #}
 

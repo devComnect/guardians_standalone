@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from apps.profiles.views import _ctx_conquistas
 from apps.minigames.models import (Quiz, QuizAttempt, PasswordGameConfig, PasswordAttempt, DecriptarAttempt, DecriptarConfig,
-                                   CodigoConfig, CodigoAttempt)
+                                   CodigoConfig, CodigoAttempt, LogScanConfig, LogScanAttempt)
 
 
 @login_required
@@ -43,6 +43,23 @@ def index(request):
             decriptar_status = 'em_andamento'
         else:
             decriptar_status = 'concluido'
+
+    # ── LogScan ───────────────────────────────────────────
+    logscan_config  = LogScanConfig.objects.filter(ativo=True).first()
+    logscan_today   = logscan_config and logscan_config.is_active_today()
+    logscan_attempt = None
+    logscan_status  = None
+
+    if logscan_today:
+        logscan_attempt = LogScanAttempt.objects.filter(
+            player=request.user, date=today
+        ).first()
+        if not logscan_attempt:
+            logscan_status = 'disponivel'
+        elif not logscan_attempt.is_completed:
+            logscan_status = 'em_andamento'
+        else:
+            logscan_status = 'concluido'
 
     # ── Código ───────────────────────────────────────────
     codigo_config  = CodigoConfig.objects.filter(ativo=True).first()
@@ -101,5 +118,9 @@ def index(request):
         'codigo_today':   codigo_today,
         'codigo_attempt': codigo_attempt,
         'codigo_status':  codigo_status,
+        'logscan_config':  logscan_config,
+        'logscan_today':   logscan_today,
+        'logscan_attempt': logscan_attempt,
+        'logscan_status':  logscan_status,
         **_ctx_conquistas(request.user),
     })

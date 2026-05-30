@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}LogScan — Comnect Guardians{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/logscan.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="logscan-container"
+     data-attempt-id="{{ attempt.id }}"
+     data-timer="{{ remaining_time }}"
+     data-total="{{ total_words }}"
+     data-correct="{{ correct_count }}">
+
+    <!-- HUD -->
+    <header class="ls-hud">
+        <div class="hud-block">
+            <span class="hud-label font-tech">TIMER</span>
+            <div id="timer-display" class="hud-value font-tech">
+                {% if config.time_limit_seconds %}--:--{% else %}LIVRE{% endif %}
+            </div>
+        </div>
+
+        <div class="hud-block hud-center">
+            <span class="hud-label font-tech">// LOGSCAN</span>
+            <div class="hud-value font-tech" id="score-display">
+                <span id="correct-count">{{ correct_count }}</span> / {{ total_words }}
+            </div>
+        </div>
+
+        <div class="hud-block hud-right">
+            <span class="hud-label font-tech">STATUS</span>
+            <div class="hud-value font-tech" id="status-display">SCANNING</div>
+        </div>
+
+        <button type="button" id="abort-btn" class="hud-abort-btn" title="Abandonar">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </header>
+
+    <!-- Game Body -->
+    <main class="ls-main">
+        <div class="ls-layout">
+
+            <!-- Coluna esquerda: grid -->
+            <div class="ls-grid-col">
+                <p class="zone-label font-tech">// ANALISANDO DUMP DE LOG — ENCONTRE AS AMEAÇAS</p>
+                <div class="ls-log-prefix font-tech" id="log-prefix-bar">
+                    <span>[ SYS ] 2024-01-15 08:42:11 — DUMP INICIADO — NÍVEL CRÍTICO</span>
+                </div>
+                <div class="ls-grid-wrapper">
+                    <table class="ls-grid" id="ls-grid" cellspacing="0"></table>
+                </div>
+                <div class="ls-console font-tech" id="ls-console">
+                    &gt; aguardando seleção...
+                </div>
+            </div>
+
+            <!-- Coluna direita: lista de palavras -->
+            <div class="ls-words-col">
+                <p class="zone-label font-tech">// AMEAÇAS DETECTADAS</p>
+                <div class="ls-word-list" id="word-list"></div>
+                <div class="ls-legend font-tech">
+                    <i class="bi bi-mouse2"></i> Clique e arraste para selecionar
+                </div>
+            </div>
+
+        </div>
+
+        <div class="security-notice font-tech">
+            <i class="bi bi-shield-lock-fill"></i>
+            PROTOCOLO ATIVO — NÃO SAIA DA PÁGINA. DESCONEXÃO = FALHA IMEDIATA.
+        </div>
+    </main>
+</div>
+
+<script id="grid-data" type="application/json">{{ grid|safe }}</script>
+<script id="words-data" type="application/json">{{ words_payload|safe }}</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/logscan.js' %}"></script>
+<script>window.CSRF_TOKEN = '{{ csrf_token }}';</script>
+{% endblock %}

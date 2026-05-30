@@ -546,3 +546,90 @@ class CodigoAttempt(models.Model):
                 secret_remaining[secret_remaining.index(g)] = None
 
         return result
+    
+
+# ─────────────────────────────────────────────
+# LOGSCAN (Caça-Palavras)
+# ─────────────────────────────────────────────
+
+class LogScanConfig(models.Model):
+    time_limit_seconds = models.PositiveIntegerField(default=180, help_text='0 = sem limite')
+    xp_per_word        = models.PositiveSmallIntegerField(default=40)
+    coin_reward        = models.PositiveSmallIntegerField(default=15)
+    words_count_easy   = models.PositiveSmallIntegerField(default=2, verbose_name='Palavras fáceis / sessão')
+    words_count_medio  = models.PositiveSmallIntegerField(default=2, verbose_name='Palavras médias / sessão')
+    words_count_hard   = models.PositiveSmallIntegerField(default=1, verbose_name='Palavras difíceis / sessão')
+    ativo              = models.BooleanField(default=True)
+
+    day_seg = models.BooleanField(default=False, verbose_name='Segunda-feira')
+    day_ter = models.BooleanField(default=True,  verbose_name='Terça-feira')
+    day_qua = models.BooleanField(default=False, verbose_name='Quarta-feira')
+    day_qui = models.BooleanField(default=True,  verbose_name='Quinta-feira')
+    day_sex = models.BooleanField(default=False, verbose_name='Sexta-feira')
+    day_sab = models.BooleanField(default=False, verbose_name='Sábado')
+    day_dom = models.BooleanField(default=False, verbose_name='Domingo')
+
+    class Meta:
+        verbose_name        = 'Config — LogScan'
+        verbose_name_plural = 'Config — LogScan'
+
+    def __str__(self):
+        return 'Configuração LogScan'
+
+    def is_active_today(self):
+        today = timezone.localdate().weekday()
+        days  = [self.day_seg, self.day_ter, self.day_qua,
+                 self.day_qui, self.day_sex, self.day_sab, self.day_dom]
+        return self.ativo and days[today]
+
+    def total_words(self):
+        return self.words_count_easy + self.words_count_medio + self.words_count_hard
+
+    def select_words(self):
+        def pick(dif, count):
+            pool = list(WordBank.objects.filter(ativo=True, dificuldade=dif).values('id', 'palavra', 'dica'))
+            return random.sample(pool, min(count, len(pool)))
+
+        words = (pick('facil', self.words_count_easy) +
+                 pick('medio', self.words_count_medio) +
+                 pick('dificil', self.words_count_hard))
+        random.shuffle(words)
+        return words
+
+
+class LogScanAttempt(models.Model):
+    player        = models.ForeignKey(User, on_delete=models.CASCADE, related_name='logscan_attempts')
+    config        = models.ForeignKey(LogScanConfig, on_delete=models.CASCADE)
+    date          = models.DateField()
+    grid          = models.JSONField(default=list)   # Matriz 2D de letras
+    placements    = models.JSONField(default=dict)   # {'PALAVRA': [[r,c], [r,c], ...]}
+    words_sequence = models.JSONField(default=list)  # [{'id', 'palavra', 'dica', 'solved'}, ...]
+    correct_count  = models.PositiveSmallIntegerField(default=0)
+    xp_earned      = models.PositiveSmallIntegerField(default=0)
+    coins_earned   = models.PositiveSmallIntegerField(default=0)
+    abandoned      = models.BooleanField(default=False)
+    timer_expired  = models.BooleanField(default=False)
+    started_at     = models.DateTimeField(auto_now_add=True)
+    completed_at   = models.DateTimeField(null=True, blank=True)
+    bonus_seconds  = models.PositiveIntegerField(default=0)
+    penalty_seconds = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together     = ('player', 'date')
+        verbose_name        = 'Tentativa — LogScan'
+        verbose_name_plural = 'Tentativas — LogScan'
+        ordering            = ['-date']
+
+    def __str__(self):
+        return f'{self.player.username} — LogScan {self.date}'
+
+    def remaining_seconds(self):
+        if not self.config.time_limit_seconds:
+            return 0
+        elapsed     = (timezone.now() - self.started_at).total_seconds()
+        tempo_total = self.config.time_limit_seconds + self.bonus_seconds - self.penalty_seconds
+        return max(0, int(tempo_total - elapsed))
+
+    @property
+    def is_completed(self):
+        return self.completed_at is not None

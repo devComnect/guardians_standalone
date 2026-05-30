@@ -1,5 +1,4 @@
 import random
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -10,10 +9,11 @@ from django.urls import reverse
 import json
 from apps.profiles.services import registrar_desafio_diario , grant_xp, grant_coins, revoke_xp, revoke_coins
 from apps.store.services import consumir_efeito_unico, tem_efeito_ativo, get_tempo_extra_passivo, get_fator_reducao_tempo, get_vidas_extras
-from .models import (Quiz, QuizAttempt, QuizQuestion, QuizOption, PatrolAttempt, PasswordGameConfig, PatrolConfig,
+from .models import (Quiz, QuizAttempt, QuizQuestion, QuizOption, PatrolAttempt, PasswordGameConfig, PatrolConfig,LogScanConfig, LogScanAttempt,
                         PasswordAttempt, DecriptarConfig, DecriptarAttempt, CodigoAttempt, CodigoConfig, WordBank, QuizAnswerDraft)
 from .password_rules import generate_rules_sequence, get_rules_details, validate_password
 from datetime import timedelta
+from .logscan_grid import build_grid
 
 
 
@@ -1204,4 +1204,236 @@ def retake_consumivel(request):
         'redirect':    redirect_url,
         'xp_estornado': xp_estorno,
         'coins_estornado': coins_estorno,
+    })
+
+# ─────────────────────────────────────────────
+# LOGSCAN (Caça-Palavras)
+# ─────────────────────────────────────────────
+
+@login_required
+def start_logscan(request):
+    config = LogScanConfig.objects.filter(ativo=True).first()
+
+    if not config or not config.is_active_today():
+        messages.error(request, 'LogScan não está disponível hoje.')
+        return redirect('challenges:index')
+
+    today   = timezone.localdate()
+    attempt = LogScanAttempt.objects.filter(player=request.user, date=today).first()
+
+    if attempt and attempt.is_completed:
+        return redirect('minigames:logscan_result', attempt_id=attempt.id)
+
+    if attempt and not attempt.is_completed:
+        if config.time_limit_seconds and attempt.remaining_seconds() == 0:
+            attempt.timer_expired = True
+            attempt.completed_at  = timezone.now()
+            attempt.save()
+            return redirect('minigames:logscan_result', attempt_id=attempt.id)
+        return redirect('minigames:play_logscan')
+
+    selected = config.select_words()
+    words    = [w['palavra'] for w in selected]
+
+    try:
+        grid, placements = build_grid(words)
+    except ValueError:
+        messages.error(request, 'Não foi possível gerar o grid. Tente novamente.')
+        return redirect('challenges:index')
+
+    words_sequence = [
+        {
+            'id':      w['id'],
+            'palavra': w['palavra'],
+            'dica':    w.get('dica', ''),
+            'solved':  False,
+        }
+        for w in selected
+    ]
+
+    LogScanAttempt.objects.create(
+        player=request.user,
+        config=config,
+        date=today,
+        grid=grid,
+        placements=placements,
+        words_sequence=words_sequence,
+    )
+    return redirect('minigames:play_logscan')
+
+
+@login_required
+def play_logscan(request):
+    today   = timezone.localdate()
+    attempt = LogScanAttempt.objects.filter(
+        player=request.user, date=today, completed_at__isnull=True
+    ).first()
+
+    if not attempt:
+        messages.warning(request, 'Inicie o LogScan pela Central de Desafios.')
+        return redirect('challenges:index')
+
+    config = attempt.config
+
+    if config.time_limit_seconds and attempt.remaining_seconds() == 0:
+        attempt.timer_expired = True
+        attempt.completed_at  = timezone.now()
+        attempt.save()
+        return redirect('minigames:logscan_result', attempt_id=attempt.id)
+
+    words_payload = [
+        {
+            'palavra': w['palavra'],
+            'dica':    w['dica'],
+            'solved':  w['solved'],
+        }
+        for w in attempt.words_sequence
+    ]
+
+    return render(request, 'minigames/logscan.html', {
+        'attempt':        attempt,
+        'config':         config,
+        'grid':           json.dumps(attempt.grid),
+        'words_payload':  json.dumps(words_payload),
+        'remaining_time': attempt.remaining_seconds(),
+        'total_words':    len(attempt.words_sequence),
+        'correct_count':  attempt.correct_count,
+    })
+
+
+@login_required
+@require_POST
+def check_logscan_selection(request):
+    try:
+        body      = json.loads(request.body)
+        attempt_id = body.get('attempt_id')
+        palavra    = body.get('palavra', '').upper().strip()
+        cells      = body.get('cells', [])  # [[r,c], ...]
+    except (ValueError, json.JSONDecodeError):
+        return JsonResponse({'error': 'Payload inválido.'}, status=400)
+
+    attempt = LogScanAttempt.objects.filter(
+        pk=attempt_id, player=request.user, completed_at__isnull=True
+    ).first()
+
+    if not attempt:
+        return JsonResponse({'error': 'Tentativa não encontrada.'}, status=404)
+
+    if attempt.config.time_limit_seconds and attempt.remaining_seconds() == 0:
+        attempt.timer_expired = True
+        attempt.completed_at  = timezone.now()
+        attempt.save()
+        return JsonResponse({
+            'error': 'timer_expired',
+            'redirect': f'/minigames/logscan/resultado/{attempt.id}/'
+        })
+
+    expected_cells = attempt.placements.get(palavra)
+
+    if not expected_cells:
+        return JsonResponse({'correct': False, 'reason': 'palavra_invalida'})
+
+    if cells != expected_cells:
+        return JsonResponse({'correct': False, 'reason': 'celulas_erradas'})
+
+    words = attempt.words_sequence
+    already_solved = next((w['solved'] for w in words if w['palavra'] == palavra), True)
+    if already_solved:
+        return JsonResponse({'correct': True, 'already_solved': True, 'correct_count': attempt.correct_count})
+
+    for w in words:
+        if w['palavra'] == palavra:
+            w['solved'] = True
+            break
+
+    attempt.words_sequence = words
+    attempt.correct_count  = sum(1 for w in words if w['solved'])
+    attempt.save()
+
+    all_done = attempt.correct_count == len(words)
+
+    if all_done:
+        xp          = attempt.correct_count * attempt.config.xp_per_word
+        coins_result = grant_coins(request.user, attempt.config.coin_reward, 'logscan')
+
+        attempt.xp_earned    = xp
+        attempt.coins_earned = coins_result['final']
+        attempt.completed_at = timezone.now()
+        attempt.save()
+
+        contexto = {
+            'segundos_restantes': attempt.remaining_seconds(),
+            'perfeito': True,
+            'won': True,
+        }
+        xp_result = grant_xp(request.user, xp, 'logscan', 'LogScan concluído', contexto=contexto)
+        request.session['last_xp_result'] = xp_result
+        registrar_desafio_diario(request.user)
+
+    return JsonResponse({
+        'correct':       True,
+        'correct_count': attempt.correct_count,
+        'all_done':      all_done,
+        'redirect':      f'/minigames/logscan/resultado/{attempt.id}/' if all_done else None,
+    })
+
+
+@login_required
+@require_POST
+def finish_logscan(request):
+    try:
+        body          = json.loads(request.body)
+        attempt_id    = body.get('attempt_id')
+        timer_expired = body.get('timer_expired', False)
+        abandoned     = body.get('abandoned', False)
+    except (ValueError, json.JSONDecodeError):
+        return JsonResponse({'error': 'Payload inválido.'}, status=400)
+
+    attempt = LogScanAttempt.objects.filter(
+        pk=attempt_id, player=request.user, completed_at__isnull=True
+    ).first()
+
+    if not attempt:
+        return JsonResponse({'error': 'Tentativa não encontrada.'}, status=404)
+
+    xp          = attempt.correct_count * attempt.config.xp_per_word
+    moedas_base = attempt.config.coin_reward if xp > 0 else 0
+
+    if moedas_base > 0:
+        coins_result         = grant_coins(request.user, moedas_base, 'logscan')
+        attempt.coins_earned = coins_result['final']
+    else:
+        attempt.coins_earned = 0
+
+    attempt.xp_earned     = xp
+    attempt.timer_expired = timer_expired
+    attempt.abandoned     = abandoned
+    attempt.completed_at  = timezone.now()
+    attempt.save()
+
+    if xp > 0:
+        descricao = f'LogScan parcial ({attempt.correct_count}/{len(attempt.words_sequence)})'
+        xp_result = grant_xp(request.user, xp, 'logscan', descricao, contexto={
+            'segundos_restantes': 0,
+            'won': False,
+        })
+        request.session['last_xp_result'] = xp_result
+
+    registrar_desafio_diario(request.user)
+    return JsonResponse({'redirect': f'/minigames/logscan/resultado/{attempt.id}/'})
+
+
+@login_required
+def logscan_result(request, attempt_id):
+    attempt     = get_object_or_404(LogScanAttempt, pk=attempt_id, player=request.user)
+    total_words = len(attempt.words_sequence)
+    is_perfect  = attempt.correct_count == total_words and total_words > 0
+    xp_result   = request.session.pop('last_xp_result', None)
+
+    return render(request, 'minigames/logscan_result.html', {
+        'attempt':     attempt,
+        'total_words': total_words,
+        'is_perfect':  is_perfect,
+        'max_xp':      total_words * attempt.config.xp_per_word,
+        'xp_result':   xp_result,
     })
