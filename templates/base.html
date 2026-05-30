@@ -25,7 +25,7 @@
 
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="theme-{{ request.user.player.classe|default:'none'|lower }}">
 
     {% if user.is_authenticated %}
         {% include 'partials/navbar.html' %}

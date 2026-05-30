@@ -3,9 +3,12 @@
 {% load cg_filters %}
 {% block title %}Central de Desafios — Comnect Guardians{% endblock %}
 
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/challenges.css' %}">
+<link rel="stylesheet" href="{% static 'css/modal_conquistas.css' %}">
 {% endblock %}
+
 
 {% block content %}
 <div class="challenges-wrapper">
@@ -15,6 +18,7 @@
         <h1 class="page-title font-tech">// CENTRAL DE DESAFIOS</h1>
         <p class="page-sub font-tech">{{ today|date:"d/m/Y" }} — MISSÕES ATIVAS</p>
     </div>
+    
 
     <div class="challenge-grid">
 
@@ -287,4 +291,33 @@
 
 </div>
 </div>
+
+{% include 'challenges/_modal_conquistas.html' %}
+
+
+<button class="btn-floating-conquistas" data-bs-toggle="modal" data-bs-target="#modalConquistas">
+    <div class="mini-slots-container">
+        {% for pa in conquistas_em_destaque %}
+            <div class="mini-slot rarity-{{ pa.achievement.raridade }}">
+                {% if pa.achievement.imagem %}
+                    <img src="{% static pa.achievement.imagem %}" alt="mod">
+                {% else %}
+                    <i class="bi bi-award-fill" style="color: var(--neon-gold);"></i>
+                {% endif %}
+            </div>
+        {% empty %}
+            <i class="bi bi-cpu mini-slot empty"></i>
+            <i class="bi bi-cpu mini-slot empty"></i>
+            <i class="bi bi-cpu mini-slot empty"></i>
+        {% endfor %}
+    </div>
+    <span class="font-tech texto-vertical">EQUIPAR</span>
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.CONQUISTAS_TOGGLE_URL = "{% url 'profiles:conquista_destaque' %}";
+</script>
+<script src="{% static 'js/modal_conquistas.js' %}"></script>
 {% endblock %}

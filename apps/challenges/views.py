@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-
+from apps.profiles.views import _ctx_conquistas
 from apps.minigames.models import (Quiz, QuizAttempt, PasswordGameConfig, PasswordAttempt, DecriptarAttempt, DecriptarConfig,
                                    CodigoConfig, CodigoAttempt)
 
@@ -101,4 +101,5 @@ def index(request):
         'codigo_today':   codigo_today,
         'codigo_attempt': codigo_attempt,
         'codigo_status':  codigo_status,
+        **_ctx_conquistas(request.user),
     })

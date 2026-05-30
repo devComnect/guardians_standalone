@@ -501,27 +501,50 @@ def _ctx_inventario(user):
     }
 
 def _ctx_conquistas(user):
-    """Galeria de conquistas — separadas em desbloqueadas e bloqueadas."""
     from .models import AchievementConfig
+    from collections import defaultdict
 
-    config   = AchievementConfig.get()
-    todas    = Achievement.objects.filter(ativo=True).order_by('raridade', 'trigger_value')
+    BONUS_GRUPOS = {
+        'global_xp_pct':   'Bônus Global',
+        'quiz_xp_pct':     'Bônus em Quiz',
+        'minigame_xp_pct': 'Bônus em Minigames',
+        'patrol_xp_pct':   'Bônus em Patrulha',
+        'anagram_xp_pct':  'Bônus em Decriptar',
+        'termo_xp_pct':    'Bônus em Código',
+        'pw_xp_pct':       'Bônus em Cofre de Senhas',
+        'coin_pct':        'Bônus de Moedas',
+        'ofensiva_teto':   'Ofensiva',
+        'streak_shield':   'Streak',
+        None:              'Sem Bônus',
+    }
 
+    config      = AchievementConfig.get()
+    todas       = Achievement.objects.filter(ativo=True).order_by('raridade', 'trigger_value')
     desbloqueadas = PlayerAchievement.objects.filter(
         player=user
-    ).select_related('achievement').order_by('-desbloqueada_em')
+    ).select_related('achievement').order_by('achievement__bonus_type', 'achievement__raridade')
 
     ids_desbloqueados = set(pa.achievement_id for pa in desbloqueadas)
     em_destaque_count = desbloqueadas.filter(em_destaque=True).count()
+    bloqueadas        = [a for a in todas if a.id not in ids_desbloqueados]
 
-    bloqueadas = [a for a in todas if a.id not in ids_desbloqueados]
+    grupos = defaultdict(list)
+    for pa in desbloqueadas:
+        chave = pa.achievement.bonus_type or None
+        grupos[chave].append(pa)
+
+    conquistas_agrupadas = [
+        {'label': BONUS_GRUPOS.get(k, k), 'items': v}
+        for k, v in sorted(grupos.items(), key=lambda x: list(BONUS_GRUPOS.keys()).index(x[0]) if x[0] in BONUS_GRUPOS else 99)
+    ]
 
     return {
+        'conquistas_agrupadas':   conquistas_agrupadas,
         'conquistas_desbloqueadas': desbloqueadas,
-        'conquistas_bloqueadas':    bloqueadas,
-        'conquistas_em_destaque':   desbloqueadas.filter(em_destaque=True),
-        'max_destaques':            config.max_destaques,
-        'em_destaque_count':        em_destaque_count,
+        'conquistas_bloqueadas':  bloqueadas,
+        'conquistas_em_destaque': desbloqueadas.filter(em_destaque=True),
+        'max_destaques':          config.max_destaques,
+        'em_destaque_count':      em_destaque_count,
     }
 
 def _ctx_battle_pass(user):
