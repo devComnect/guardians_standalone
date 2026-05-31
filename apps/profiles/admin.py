@@ -411,7 +411,7 @@ class AchievementConfigAdmin(admin.ModelAdmin):
 class AchievementAdmin(admin.ModelAdmin):
     list_display  = ('code', 'nome', 'raridade_badge', 'trigger_type',
                      'trigger_value', 'bonus_display', 'ativo')
-    list_filter   = ('raridade', 'trigger_type', 'ativo')
+    list_filter   = ('raridade', 'trigger_type', 'ativo', 'bonus_type')
     list_editable = ('ativo',)
     search_fields = ('code', 'nome', 'descricao')
     ordering      = ('trigger_type', 'trigger_value')

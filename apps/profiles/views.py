@@ -515,6 +515,7 @@ def _ctx_conquistas(user):
         'coin_pct':        'Bônus de Moedas',
         'ofensiva_teto':   'Ofensiva',
         'streak_shield':   'Streak',
+        'logscan_xp_pct':  'Bônus em LogScan',
         None:              'Sem Bônus',
     }
 
