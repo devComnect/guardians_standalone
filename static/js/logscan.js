@@ -165,8 +165,9 @@
     // ── Submit seleção ────────────────────────────────────
     function submitSelection(cells) {
         const letters = cells.map(([r, c]) => grid[r][c]).join('');
+        const lettersRev = cells.slice().reverse().map(([r, c]) => grid[r][c]).join('');
 
-        const matched = wordsData.find(w => !w.solved && w.palavra === letters);
+        const matched = wordsData.find(w => !w.solved && (w.palavra === letters || w.palavra === lettersRev));
         if (!matched) {
             flashCells(cells, 'cell-error');
             setConsole('> sequência não reconhecida.', 'txt-error');

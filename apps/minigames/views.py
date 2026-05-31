@@ -1333,7 +1333,7 @@ def check_logscan_selection(request):
     if not expected_cells:
         return JsonResponse({'correct': False, 'reason': 'palavra_invalida'})
 
-    if cells != expected_cells:
+    if cells != expected_cells and cells != list(reversed(expected_cells)):
         return JsonResponse({'correct': False, 'reason': 'celulas_erradas'})
 
     words = attempt.words_sequence

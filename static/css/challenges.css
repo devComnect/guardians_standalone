@@ -391,8 +391,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px;
-    padding: 20px 10px;
+    gap: 20px; 
+    padding: 30px 18px; 
     border-radius: 12px 0 0 12px;
     border-right: none;
     background: rgba(10, 12, 20, 0.95);
@@ -416,6 +416,8 @@
     transform: rotate(180deg);
     letter-spacing: 4px;
     color: rgba(13, 202, 240, 0.8);
+    font-size: 1.2rem; 
+    font-weight: bold;
 }
 
 .mini-slots-container {
@@ -425,8 +427,8 @@
 }
 
 .mini-slot {
-    width: 36px;
-    height: 36px;
+    width: 52px; 
+    height: 52px; 
     border-radius: 50%;
     border: 2px solid rgba(13, 202, 240, 0.6);
     background: transparent;
@@ -448,5 +450,5 @@
     border: 1px dashed rgba(13, 202, 240, 0.3);
     background: rgba(0, 0, 0, 0.5);
     color: rgba(13, 202, 240, 0.3);
-    font-size: 1.2rem;
+    font-size: 1.6rem; 
 }
