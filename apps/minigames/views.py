@@ -7,14 +7,14 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.urls import reverse
 import json
-from apps.profiles.services import registrar_desafio_diario , grant_xp, grant_coins, revoke_xp, revoke_coins
+from apps.profiles.services import registrar_desafio_diario, grant_xp, grant_coins, revoke_xp, revoke_coins, verificar_conquistas
 from apps.store.services import consumir_efeito_unico, tem_efeito_ativo, get_tempo_extra_passivo, get_fator_reducao_tempo, get_vidas_extras
 from .models import (Quiz, QuizAttempt, QuizQuestion, QuizOption, PatrolAttempt, PasswordGameConfig, PatrolConfig,LogScanConfig, LogScanAttempt,
                         PasswordAttempt, DecriptarConfig, DecriptarAttempt, CodigoAttempt, CodigoConfig, WordBank, QuizAnswerDraft)
 from .password_rules import generate_rules_sequence, get_rules_details, validate_password
 from datetime import timedelta
 from .logscan_grid import build_grid
-
+from apps.missions.services import MissionService
 
 
 ################
@@ -1369,6 +1369,9 @@ def check_logscan_selection(request):
         xp_result = grant_xp(request.user, xp, 'logscan', 'LogScan concluído', contexto=contexto)
         request.session['last_xp_result'] = xp_result
         registrar_desafio_diario(request.user)
+        verificar_conquistas(request.user, 'logscan_count')
+        verificar_conquistas(request.user, 'logscan_perfect')
+        verificar_conquistas(request.user, 'minigame_count')
 
     return JsonResponse({
         'correct':       True,
@@ -1420,6 +1423,8 @@ def finish_logscan(request):
         request.session['last_xp_result'] = xp_result
 
     registrar_desafio_diario(request.user)
+    verificar_conquistas(request.user, 'logscan_count')
+    verificar_conquistas(request.user, 'minigame_count')
     return JsonResponse({'redirect': f'/minigames/logscan/resultado/{attempt.id}/'})
 
 

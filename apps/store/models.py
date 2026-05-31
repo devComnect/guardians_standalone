@@ -137,6 +137,8 @@ class Item(models.Model):
         ('XP_CODE_CHALLENGE',       '+XP% em desafios de Código'),
         ('XP_PATROL_CHALLENGE',     '+XP% em desafios de Patrulha'),
         ('XP_DECRYPT_CHALLENGE',    '+XP% em desafios de Decriptar'),
+        ('XP_DECRYPT_CHALLENGE',    '+XP% em desafios de Decriptar'),
+        ('XP_LOGSCAN_CHALLENGE',    '+XP% em desafios de LogScan'),
         ('XP_RANDOM',               'Bônus XP% aleatório'),
         ('DOUBLE_XP_WEEK_FIRST',    'Dobra XP do 1º desafio da semana'),
         ('XP_WEEKEND',    '+XP% se for fim de semana'),

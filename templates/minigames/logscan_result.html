@@ -113,7 +113,49 @@
         </div>
         {% endif %}
 
-        {% include 'minigames/_xp_breakdown.html' %}
+        {% if xp_result and xp_result.bonus_breakdown %}
+        <div class="result-modifiers-section">
+            <div class="modifiers-header">
+                <i class="bi bi-cpu-fill"></i> MODIFICADORES ATIVOS
+            </div>
+            <div class="bonus-cards-grid">
+                {% for b in xp_result.bonus_breakdown %}
+                <div class="bonus-card {% if b.categoria == 'Perk Global' %}cat-perk-global{% elif b.categoria == 'Perk Específico' %}cat-perk-especifico{% elif b.categoria == 'Ofensiva' %}cat-ofensiva{% elif b.categoria == 'Conquista' %}cat-conquista{% elif b.categoria == 'Módulo Passivo' %}cat-modulo{% elif b.categoria == 'Consumível Ativo' %}cat-consumivel{% else %}cat-default{% endif %}"
+                     style="animation-delay: {{ forloop.counter0 }}00ms;">
+                    <div class="bonus-card-inner">
+                        <div class="bonus-card-front">
+                            <span class="bonus-card-cat">{{ b.categoria|default:b.tipo }}</span>
+                            <i class="bi bonus-card-icon {% if b.categoria == 'Perk Global' %}bi-lightning-charge-fill{% elif b.categoria == 'Perk Específico' %}bi-lightning-fill{% elif b.categoria == 'Ofensiva' %}bi-fire{% elif b.categoria == 'Conquista' %}bi-trophy-fill{% elif b.categoria == 'Módulo Passivo' %}bi-cpu-fill{% elif b.categoria == 'Consumível Ativo' %}bi-capsule-pill{% else %}bi-plus-circle-fill{% endif %}"></i>
+                            <span class="bonus-card-name">{{ b.fonte }}</span>
+                            {% if b.ativo == False %}<span class="bonus-card-xp is-inactive">inativo</span>
+                            {% elif b.xp_adicionado == 0 %}<span class="bonus-card-xp is-zero">+0 XP</span>
+                            {% else %}<span class="bonus-card-xp">+{{ b.xp_adicionado }} XP</span>{% endif %}
+                        </div>
+                        <div class="bonus-card-back">
+                            <span class="bonus-card-back-cat">{{ b.categoria|default:b.tipo }}</span>
+                            <span class="bonus-card-back-name">{{ b.fonte }}</span>
+                            {% if b.motivo %}<span class="bonus-card-back-motivo">{{ b.motivo }}</span>{% endif %}
+                            {% if b.ativo == False %}<span class="bonus-card-back-xp is-inactive">inativo</span>
+                            {% elif b.xp_adicionado == 0 %}<span class="bonus-card-back-xp is-zero">+0 XP (+{{ b.pct }}%)</span>
+                            {% else %}<span class="bonus-card-back-xp">+{{ b.xp_adicionado }} XP (+{{ b.pct }}%)</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="modifiers-subtotal">
+                <span class="modifiers-subtotal-label"><i class="bi bi-plus-slash-minus"></i> SUBTOTAL BÔNUS</span>
+                <span class="modifiers-subtotal-val">+{{ xp_result.xp_bonus }} XP</span>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if xp_result and xp_result.xp_final %}
+        <div class="result-total-block">
+            <span class="result-total-label"><i class="bi bi-check2-circle"></i> XP TOTAL OBTIDO</span>
+            <span class="result-total-value">+{{ xp_result.xp_final }} XP</span>
+        </div>
+        {% endif %}
 
         <div class="result-actions">
             <a href="{% url 'challenges:index' %}" class="btn-result">

@@ -273,6 +273,8 @@ class Achievement(models.Model):
         ('codigo_count',     'Nº de Código concluídos'),
         ('patrol_count',     'Nº de Patrulhas concluídas'),
         ('all_daily_count',  'Nº de dias com todos os desafios feitos'),
+        ('logscan_count',   'Nº de LogScan concluídos'),
+        ('logscan_perfect', 'Nº de LogScan com 100%'),
         # Progressão
         ('level_reached',    'Level atingido'),
         ('streak_days',      'Streak de dias consecutivos'),
@@ -298,6 +300,7 @@ class Achievement(models.Model):
         ('coin_pct',         'Bônus de Moedas (%)'),
         ('ofensiva_teto',    'Aumenta teto de ofensiva (+N)'),
         ('streak_shield',    'Proteção de streak (dias)'),
+        ('logscan_xp_pct', 'Bônus XP em LogScan (%)'),
     ]
 
     RARIDADE_CHOICES = [

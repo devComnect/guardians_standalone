@@ -843,7 +843,10 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None, retornar_breakdown
         elif effect == 'XP_DECRYPT_CHALLENGE' and fonte == 'decriptar':
             b      = item.value
             motivo = "fonte=decriptar ✅"
-        elif effect in ('XP_CODE_CHALLENGE', 'XP_PATROL_CHALLENGE', 'XP_DECRYPT_CHALLENGE'):
+        elif effect == 'XP_LOGSCAN_CHALLENGE' and fonte == 'logscan':
+            b      = item.value
+            motivo = "fonte=logscan ✅"
+        elif effect in ('XP_CODE_CHALLENGE', 'XP_PATROL_CHALLENGE', 'XP_DECRYPT_CHALLENGE', 'XP_LOGSCAN_CHALLENGE'):
             motivo = f"fonte='{fonte}' ❌"
 
         elif effect == 'XP_RANDOM':

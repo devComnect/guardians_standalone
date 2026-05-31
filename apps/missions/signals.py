@@ -3,7 +3,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from .services import MissionService
-from apps.minigames.models import QuizAttempt, PasswordAttempt, DecriptarAttempt, CodigoAttempt
+from apps.minigames.models import QuizAttempt, PasswordAttempt, DecriptarAttempt, CodigoAttempt, LogScanAttempt
 from apps.feedback.models import Feedback
 
 @receiver(post_save, sender=Feedback)
@@ -29,6 +29,7 @@ def track_missions_via_xp(sender, instance, created, **kwargs):
         'decriptar': ('MIN_GAME_COUNT', DecriptarAttempt),
         'codigo': ('MIN_GAME_COUNT', CodigoAttempt),
         'patrol': ('PATROL_COUNT', None), # Patrulha não tem bônus complexo
+        'logscan':   ('MIN_GAME_COUNT', LogScanAttempt),
     }
 
     if fonte in mapping:
@@ -68,6 +69,9 @@ def calculate_bonuses(attempt, fonte, xp_event):
         max_xp = attempt.quiz.total_xp_possivel()
         if xp_event.xp_base >= max_xp and max_xp > 0:
             perfect = True
+    elif fonte == 'logscan':
+        total = len(attempt.words_sequence) if attempt.words_sequence else 0
+        perfect = total > 0 and attempt.correct_count == total
     else:
         # Nos minigames, comparamos se o player venceu (is_won/won)
         # e se o XP ganho é o XP configurado no Config/Modelo

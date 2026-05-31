@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from apps.minigames.models import CodigoAttempt, DecriptarAttempt, WordBank
+from apps.minigames.models import CodigoAttempt, DecriptarAttempt, WordBank, LogScanAttempt
 from apps.challenges.models import Season
 from .models import PlayerWordUnlock
 
@@ -62,6 +62,18 @@ def unlock_palavra_codigo(sender, instance, **kwargs):
 
 @receiver(post_save, sender=DecriptarAttempt)
 def unlock_palavras_decriptar(sender, instance, **kwargs):
+    if not instance.completed_at:
+        return
+    season = _season_ativa()
+    if not season:
+        return
+    for entry in instance.words_sequence:
+        if entry.get('solved'):
+            _unlock_palavra(instance.player, entry['palavra'], season)
+
+
+@receiver(post_save, sender=LogScanAttempt)
+def unlock_palavras_logscan(sender, instance, **kwargs):
     if not instance.completed_at:
         return
     season = _season_ativa()

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   LOGSCAN — Caça-Palavras
+   LOGSCAN — Caça-Palavras (Polished)
    ═══════════════════════════════════════════════ */
 
 #logscan-container {
@@ -12,7 +12,7 @@
 .ls-hud {
     position: sticky; top: 0; z-index: 100;
     background: rgba(11,12,16,0.97);
-    border-bottom: 1px solid rgba(69,162,158,0.3);
+    border-bottom: 1px solid rgba(57,255,20,0.3); /* Verde neon */
     backdrop-filter: blur(12px);
     padding: 12px 28px;
     display: flex;
@@ -24,7 +24,7 @@
 .hud-center { flex: 1; align-items: center; }
 .hud-right  { align-items: flex-end; }
 .hud-label  { font-size: 0.55rem; letter-spacing: 3px; color: var(--text-dim); }
-.hud-value  { font-size: 1.1rem; color: var(--neon-blue); letter-spacing: 2px; }
+.hud-value  { font-size: 1.1rem; color: #39ff14; letter-spacing: 2px; } /* Verde neon */
 .hud-value.timer-danger { color: var(--neon-red); animation: blink 0.8s ease infinite; }
 
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
@@ -53,9 +53,9 @@
 
 .ls-layout {
     display: flex;
-    gap: 28px;
+    gap: 36px; /* Aumentado para melhor respiro */
     width: 100%;
-    max-width: 1100px;
+    max-width: 1200px;
     align-items: flex-start;
 }
 
@@ -67,7 +67,7 @@
 }
 
 .ls-words-col {
-    width: 220px;
+    width: 280px; /* Aumentado para dar mais destaque às palavras */
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -85,57 +85,112 @@
 .ls-log-prefix {
     font-size: 0.62rem;
     letter-spacing: 1px;
-    color: rgba(5,217,232,0.35);
+    color: rgba(57,255,20,0.5);
     padding: 6px 10px;
-    border-left: 2px solid rgba(5,217,232,0.2);
-    background: rgba(5,217,232,0.03);
+    border-left: 2px solid rgba(57,255,20,0.4);
+    background: rgba(57,255,20,0.05);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* ── Grid ── */
+/* ── Terminal/Grid Wrapper (Melhoria de Contraste) ── */
 .ls-grid-wrapper {
+    background: #000000;
+    border: 1px solid rgba(57,255,20,0.3);
+    border-radius: 4px;
+    padding: 24px 24px 24px 110px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.9);
     overflow-x: auto;
     user-select: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.ls-grid-wrapper::after {
+    content: '';
+    position: absolute;
+    top: -100%; left: 0; right: 0;
+    height: 15%;
+    background: linear-gradient(to bottom, transparent, rgba(57,255,20,0.05) 80%, rgba(57,255,20,0.25) 100%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+@keyframes terminal-scan {
+    0% { top: -20%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+}
+
+/* ── Animações de Letras Encontradas ── */
+@keyframes cell-discover {
+    0% { transform: scale(1); background: rgba(57,255,20,0.8); color: #fff; box-shadow: 0 0 20px #39ff14; z-index: 2; }
+    50% { transform: scale(1.2); background: rgba(57,255,20,0.5); box-shadow: 0 0 30px #39ff14; z-index: 2; }
+    100% { transform: scale(1); background: rgba(57,255,20,0.08); box-shadow: 0 0 8px #39ff14; z-index: 1; }
+}
+
+@keyframes neon-breathe {
+    0% { text-shadow: 0 0 4px #39ff14; background: rgba(57,255,20,0.04); border-color: rgba(57,255,20,0.15); }
+    100% { text-shadow: 0 0 12px #39ff14; background: rgba(57,255,20,0.15); border-color: rgba(57,255,20,0.4); }
 }
 
 .ls-grid {
     border-collapse: collapse;
     margin: 0 auto;
+    counter-reset: log-row; /* Inicializa o contador para os timestamps */
+}
+
+/* Incrementa o contador a cada linha da tabela */
+.ls-grid tr {
+    counter-increment: log-row;
+}
+
+/* Cria o timestamp antes do primeiro TD de cada linha (Sem precisar alterar o JS) */
+.ls-grid tr > td:first-child::before {
+    content: "[ 08:42:" counter(log-row, decimal-leading-zero) " ] ";
+    position: absolute;
+    left: -95px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Consolas', 'Courier New', 'Lucida Console', monospace;
+    font-size: 0.7rem;
+    color: rgba(57,255,20,0.4);
+    white-space: nowrap;
+    pointer-events: none;
 }
 
 .ls-grid td {
-    width: 46px;
-    height: 46px;
+    width: 44px;
+    height: 44px;
     text-align: center;
     vertical-align: middle;
-    font-family: var(--tech-font);
-    font-size: 1.15rem;
-    font-weight: bold;
-    color: rgba(255,255,255,0.45);
-    border: 1px solid rgba(255,255,255,0.04);
+    font-family: 'Consolas', 'Courier New', 'Lucida Console', monospace;
+    font-size: 1.25rem;
+    font-weight: normal;
+    color: rgba(255,255,255,0.7);
+    border: 1px solid transparent;
     cursor: pointer;
     transition: background 0.08s, color 0.08s;
     position: relative;
 }
 
+/* Estilos de iteração baseados no novo Verde Neon do jogo */
 .ls-grid td.cell-hover {
-    background: rgba(13,202,240,0.12);
-    color: var(--neon-blue);
+    background: rgba(57,255,20,0.15);
+    color: #39ff14;
 }
 
 .ls-grid td.cell-selecting {
-    background: rgba(13,202,240,0.2);
+    background: rgba(57,255,20,0.3);
     color: #fff;
-    border-color: rgba(13,202,240,0.3);
+    border-color: rgba(57,255,20,0.5);
 }
 
 .ls-grid td.cell-found {
-    color: var(--neon-green) !important;
-    background: rgba(5,217,232,0.08) !important;
-    border-color: rgba(5,217,232,0.2) !important;
-    text-shadow: 0 0 8px var(--neon-green);
+    color: #39ff14 !important;
+    animation: cell-discover 0.5s ease-out forwards, neon-breathe 2s ease-in-out infinite alternate 0.5s;
 }
 
 .ls-grid td.cell-error {
@@ -158,57 +213,74 @@
     min-height: 1.4em;
     padding: 4px 2px;
 }
-.ls-console.txt-success { color: var(--neon-green); }
+.ls-console.txt-success { color: #39ff14; }
 .ls-console.txt-error   { color: var(--neon-red); }
 .ls-console.txt-warn    { color: var(--neon-gold); }
 
-/* ── Word list ── */
+/* ── Word list (Destaque e Animações) ── */
 .ls-word-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
 }
 
 .ls-word-item {
-    padding: 10px 12px;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 2px;
+    padding: 16px 18px; /* Maior área de respiro */
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 4px;
     background: rgba(255,255,255,0.02);
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Animação de brilho pulsante ao encontrar a palavra */
+@keyframes word-discover {
+    0%   { transform: scale(1); box-shadow: 0 0 0 rgba(57,255,20,0); }
+    50%  { transform: scale(1.03); box-shadow: 0 0 24px rgba(57,255,20,0.5); background: rgba(57,255,20,0.15); border-color: rgba(57,255,20,0.8); }
+    100% { transform: scale(1); box-shadow: 0 0 12px rgba(57,255,20,0.1); background: rgba(57,255,20,0.06); border-color: rgba(57,255,20,0.4); }
 }
 
 .ls-word-item.found {
-    border-color: rgba(5,217,232,0.3);
-    background: rgba(5,217,232,0.05);
+    animation: word-discover 0.7s ease-out forwards;
 }
 
 .ls-word-name {
     font-family: var(--tech-font);
-    font-size: 0.82rem;
+    font-size: 1.05rem; /* Fonte ampliada */
     letter-spacing: 2px;
     color: #fff;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    transition: color 0.3s;
 }
 
 .ls-word-item.found .ls-word-name {
-    color: var(--neon-green);
+    color: #39ff14;
     text-decoration: line-through;
-    text-shadow: 0 0 8px var(--neon-green);
+    text-shadow: 0 0 10px rgba(57,255,20,0.6);
 }
 
 .ls-word-hint {
-    font-size: 0.62rem;
+    font-size: 0.68rem;
     color: var(--text-dim);
-    margin-top: 4px;
+    margin-top: 6px;
     letter-spacing: 0.5px;
-    line-height: 1.4;
+    line-height: 1.5;
 }
 
 .ls-found-icon {
-    font-size: 0.75rem;
-    color: var(--neon-green);
+    font-size: 0.9rem;
+    color: #39ff14;
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.ls-word-item.found .ls-found-icon {
+    opacity: 1;
+    transform: scale(1);
 }
 
 .ls-legend {
@@ -230,7 +302,6 @@
     align-items: center;
     gap: 8px;
 }
-
 /* ══════════════════════════════════════
    RESULT
 ══════════════════════════════════════ */
@@ -309,3 +380,39 @@
 .btn-result:hover { background: var(--neon-blue); color: #000; }
 .btn-result.secondary { border-color: #444; color: var(--text-muted); }
 .btn-result.secondary:hover { border-color: var(--border-tech); color: #fff; background: transparent; }
+
+/* ── Card de Instruções ── */
+.ls-instruction-card {
+    background: rgba(13,202,240,0.05);
+    border: 1px solid rgba(13,202,240,0.2);
+    border-left: 3px solid var(--neon-blue);
+    padding: 14px 12px;
+    border-radius: 2px;
+    margin-bottom: 6px;
+}
+
+.instruction-header {
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--neon-blue);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.instruction-list {
+    margin: 0;
+    padding: 0 0 0 16px;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.instruction-list strong {
+    color: rgba(255,255,255,0.8);
+    font-weight: normal;
+}

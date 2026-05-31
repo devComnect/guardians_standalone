@@ -139,6 +139,7 @@ def calcular_xp_com_bonus(user, xp_base, fonte, contexto=None):
     'codigo':    ['termo_xp_pct',   'minigame_xp_pct'],
     'password':  ['pw_xp_pct',      'minigame_xp_pct'],
     'patrol':    ['patrol_xp_pct'],
+    'logscan':   ['logscan_xp_pct', 'minigame_xp_pct'],
     }
     tipos_ach = mapa_fonte_ach.get(fonte, [])
     for tipo_ach in tipos_ach:
@@ -662,7 +663,7 @@ def _obter_valor_trigger(user, trigger_type):
     """Busca o valor atual do player para um trigger."""
     from apps.minigames.models import (
         QuizAttempt, DecriptarAttempt, CodigoAttempt,
-        PatrolAttempt, PasswordAttempt,
+        PatrolAttempt, PasswordAttempt, LogScanAttempt,
     )
     player = getattr(user, 'player', None)
 
@@ -680,11 +681,20 @@ def _obter_valor_trigger(user, trigger_type):
             player=user, completed_at__isnull=False).count(),
         'patrol_count':    lambda: PatrolAttempt.objects.filter(
             player=user, completed=True).count(),
+        'logscan_count':   lambda: LogScanAttempt.objects.filter(
+            player=user, completed_at__isnull=False).count(),
+        'logscan_perfect': lambda: LogScanAttempt.objects.filter(
+            player=user, completed_at__isnull=False,
+            correct_count__gt=0).extra(
+            where=["correct_count = (SELECT jsonb_array_length(words_sequence) FROM minigames_logscanattempt WHERE id = minigames_logscanattempt.id LIMIT 1)"]
+        ).count() if False else _contar_logscan_perfeito(user),
         'minigame_count':  lambda: (
             DecriptarAttempt.objects.filter(player=user, completed_at__isnull=False).count() +
             CodigoAttempt.objects.filter(player=user, completed_at__isnull=False).count() +
-            PasswordAttempt.objects.filter(player=user, completed_at__isnull=False).count()
+            PasswordAttempt.objects.filter(player=user, completed_at__isnull=False).count() +
+            LogScanAttempt.objects.filter(player=user, completed_at__isnull=False).count()
         ),
+
         'all_daily_count': lambda: _contar_dias_completos(user),
         'level_reached':   lambda: player.level if player else 0,
         'streak_days':     lambda: player.streak_days if player else 0,
@@ -712,6 +722,13 @@ def _contar_quiz_perfeito(user):
             count += 1
     return count
 
+def _contar_logscan_perfeito(user):
+    from apps.minigames.models import LogScanAttempt
+    count = 0
+    for attempt in LogScanAttempt.objects.filter(player=user, completed_at__isnull=False):
+        if attempt.correct_count == len(attempt.words_sequence) and len(attempt.words_sequence) > 0:
+            count += 1
+    return count
 
 def _contar_dias_completos(user):
     """Conta dias em que o player fez TODOS os desafios disponíveis."""
