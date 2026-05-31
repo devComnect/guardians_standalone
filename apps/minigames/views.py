@@ -1372,6 +1372,7 @@ def check_logscan_selection(request):
         verificar_conquistas(request.user, 'logscan_count')
         verificar_conquistas(request.user, 'logscan_perfect')
         verificar_conquistas(request.user, 'minigame_count')
+        
 
     return JsonResponse({
         'correct':       True,
