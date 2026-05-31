@@ -49,13 +49,16 @@ def training_home(request):
 def galeria_quizzes(request):
     season = _season_ativa()
     today  = timezone.localdate()
+    amanha = today + timedelta(days=1)
 
     quizzes = Quiz.objects.filter(
         ativo=True,
         available_from__gte=season.inicio
-    ).prefetch_related('questions__options') if season else []
+    ).prefetch_related('questions__options').order_by('available_from') if season else []
 
-    cards = []
+    pendentes  = []
+    completos  = []
+    perdidos   = []
 
     for quiz in quizzes:
         attempt = QuizAttempt.objects.filter(
@@ -64,17 +67,20 @@ def galeria_quizzes(request):
 
         disponivel_hoje = quiz.is_available_today()
         expirado        = today > quiz.available_until
+        disponivel_amanha = quiz.available_from <= amanha and not expirado and not disponivel_hoje
 
-        if not attempt and not expirado and not disponivel_hoje:
-            status = 'futuro'
-        elif not attempt and disponivel_hoje:
-            status = 'disponivel'
-        elif not attempt and expirado:
-            status = 'perdido'
-        else:
+        if attempt:
             status = 'completo'
+        elif disponivel_hoje:
+            status = 'disponivel'
+        elif expirado:
+            status = 'perdido'
+        elif disponivel_amanha:
+            status = 'futuro'
+        else:
+            continue  # quizzes futuros além de 24h são ignorados
 
-        is_new = (today - quiz.available_from).days <= NOVO_THRESHOLD_DIAS
+        is_new = (today - quiz.available_from).days <= NOVO_THRESHOLD_DIAS if not expirado else False
 
         questoes = []
         if status == 'completo':
@@ -87,21 +93,41 @@ def galeria_quizzes(request):
                         'correta':   opt.is_correct,
                         'escolhida': (q.id, opt.id) in respostas_player,
                     })
-                questoes.append({'texto': q.question_text, 'opcoes': opcoes})
+                questoes.append({
+                    'texto':    q.question_text,
+                    'opcoes':   opcoes,
+                    'gabarito': q.gabarito,
+                })
 
-        cards.append({
+        card = {
             'quiz':     quiz,
             'status':   status,
             'questoes': questoes,
             'attempt':  attempt,
             'is_new':   is_new,
-        })
+        }
+
+        if status in ('disponivel', 'futuro'):
+            pendentes.append(card)
+        elif status == 'completo':
+            completos.append(card)
+        else:
+            perdidos.append(card)
+
+    cards = pendentes + completos + perdidos
+
+    mostrar_todos_perdidos = request.GET.get('ver_perdidos') == '1'
+    perdidos_visiveis      = perdidos if mostrar_todos_perdidos else perdidos[:3]
+    tem_mais_perdidos      = len(perdidos) > 3 and not mostrar_todos_perdidos
+
+    cards_visiveis = pendentes + completos + perdidos_visiveis
 
     return render(request, 'training/galeria_quizzes.html', {
-        'cards':  cards,
-        'season': season,
+        'cards':             cards_visiveis,
+        'season':            season,
+        'tem_mais_perdidos': tem_mais_perdidos,
+        'total_perdidos':    len(perdidos),
     })
-
 
 @login_required
 def galeria_termos(request):

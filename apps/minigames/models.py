@@ -80,7 +80,7 @@ class Quiz(models.Model):
         help_text='0 = sem limite de tempo'
     )
     xp_reward           = models.PositiveSmallIntegerField(default=0)
-    coin_reward         = models.PositiveSmallIntegerField(default=0)
+    coin_reward         = models.PositiveSmallIntegerField(default=5)
     available_from      = models.DateField(help_text='Data em que o quiz fica disponível')
     available_days      = models.PositiveSmallIntegerField(
         default=3,
@@ -95,6 +95,7 @@ class Quiz(models.Model):
         User, on_delete=models.SET_NULL, null=True, related_name='quizzes_criados'
     )
     criado_em           = models.DateTimeField(auto_now_add=True)
+
 
     class Meta:
         verbose_name = 'Quiz'
@@ -120,12 +121,13 @@ class Quiz(models.Model):
 class QuizQuestion(models.Model):
     quiz            = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='questions')
     question_text   = models.TextField()
-    xp_points       = models.PositiveSmallIntegerField(default=10)
+    xp_points       = models.PositiveSmallIntegerField(default=20)
     allow_multiple  = models.BooleanField(
         default=False,
         help_text='Permite múltiplas respostas corretas'
     )
     order           = models.PositiveSmallIntegerField(default=0)
+    gabarito = models.TextField(blank=True, help_text='Explicação da resposta correta (exibida na galeria de treinamentos)')
 
     class Meta:
         verbose_name = 'Questão'

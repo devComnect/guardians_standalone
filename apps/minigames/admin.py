@@ -21,34 +21,44 @@ class QuizAnswerDraftAdmin(admin.ModelAdmin):
 
 class QuizOptionInline(nested_admin.NestedTabularInline):
     model   = QuizOption
-    extra   = 4
-    fields  = ('option_text', 'is_correct')
+    extra   = 2
+    fields  = ('option_text', 'is_correct', 'order')
 
 
 class QuizQuestionInline(nested_admin.NestedStackedInline):
-    model   = QuizQuestion
-    extra   = 1
-    inlines = [QuizOptionInline]
-    fields  = ('question_text', 'xp_points', 'allow_multiple')
+    model          = QuizQuestion
+    extra          = 1
+    inlines        = [QuizOptionInline]
+    fields         = ('question_text', 'xp_points', 'allow_multiple', 'order', 'gabarito')
+    show_add_link  = True
 
 
 @admin.register(Quiz)
 class QuizAdmin(nested_admin.NestedModelAdmin):
-    list_display    = ('titulo', 'available_from', 'available_until', 'available_days', 'ativo')
-    list_filter     = ('ativo',)
-    list_editable   = ('ativo',)
-    search_fields   = ('titulo',)
-    inlines         = [QuizQuestionInline]
-    exclude         = ('criado_por', 'season', 'criado_em')
+    list_display  = ('titulo', 'season_display', 'available_from', 'available_until', 'available_days', 'ativo')
+    list_filter   = ('ativo',)
+    list_editable = ('ativo',)
+    search_fields = ('titulo',)
+    inlines       = [QuizQuestionInline]
+    exclude       = ('criado_por', 'criado_em')
+    fields        = ('titulo', 'descricao', 'season', 'available_from', 'available_days', 'time_limit_seconds', 'xp_reward', 'coin_reward', 'ativo')
 
     def get_changeform_initial_data(self, request):
-        return {'available_from': timezone.localdate()}
+        from apps.rankings.models import Season
+        season = Season.objects.filter(ativa=True).first()
+        return {
+            'available_from': timezone.localdate(),
+            'season':         season.pk if season else None,
+        }
 
     def save_model(self, request, obj, form, change):
         if not obj.pk:
             obj.criado_por = request.user
         super().save_model(request, obj, form, change)
 
+    @admin.display(description='Season')
+    def season_display(self, obj):
+        return obj.season or '—'
 
 @admin.register(QuizAttempt)
 class QuizAttemptAdmin(admin.ModelAdmin):

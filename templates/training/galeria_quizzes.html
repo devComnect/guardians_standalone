@@ -131,6 +131,12 @@
                                                 </li>
                                                 {% endfor %}
                                             </ul>
+                                            {% if q.gabarito %}
+                                            <div class="mt-2 p-2 border-start border-success ps-2">
+                                                <small class="text-success font-tech">// GABARITO</small>
+                                                <p class="text-highlight small mb-0 mt-1">{{ q.gabarito }}</p>
+                                            </div>
+                                            {% endif %}
                                         </div>
                                         {% endfor %}
                                     </div>
@@ -147,6 +153,13 @@
                     </div>
                 {% endfor %}
             </div>
+            {% if tem_mais_perdidos %}
+            <div class="text-center mt-4">
+                <a href="?ver_perdidos=1" class="btn-cyber font-tech">
+                    VER TODOS OS PERDIDOS ({{ total_perdidos }})
+                </a>
+            </div>
+            {% endif %}
         {% endif %}
     </div>
 
