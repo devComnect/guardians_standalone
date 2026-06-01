@@ -127,7 +127,7 @@ class QuizQuestion(models.Model):
         help_text='Permite múltiplas respostas corretas'
     )
     order           = models.PositiveSmallIntegerField(default=0)
-    gabarito = models.TextField(blank=True, help_text='Explicação da resposta correta (exibida na galeria de treinamentos)')
+    gabarito = models.TextField(blank=True, default='')
 
     class Meta:
         verbose_name = 'Questão'
