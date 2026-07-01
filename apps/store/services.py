@@ -109,38 +109,32 @@ def _is_prime(n):
 
 def _e_primeiro_desafio_da_semana(user):
     from apps.profiles.models import XPEvent
-    from apps.minigames.models import PatrolAttempt
     from django.utils import timezone
     from datetime import timedelta
-    
+
     hoje = timezone.localdate()
     inicio_semana = hoje - timedelta(days=hoje.weekday())
-    
-    tem_evento = XPEvent.objects.filter(
+
+    return not XPEvent.objects.filter(
         player=user,
+        fonte__in=['quiz', 'codigo', 'decriptar', 'password', 'logscan'],
         criado_em__date__gte=inicio_semana,
     ).exists()
-    
-    tem_patrulha = PatrolAttempt.objects.filter(
-        player=user,
-        date__gte=inicio_semana,
-        completed=True
-    ).exists()
-    
-    return not tem_evento and not tem_patrulha
 
 def _e_primeiro_desafio_do_dia(user):
-    from apps.challenges.models import PlayerChallenge
-    from apps.minigames.models import PatrolAttempt
+    from apps.profiles.models import XPEvent
     from django.utils import timezone
-    hoje = timezone.now().date()
-    tem_challenge = PlayerChallenge.objects.filter(
-        player=user, concluido=True, concluido_em__date=hoje
+
+    hoje = timezone.localdate()
+    inicio_hoje = timezone.make_aware(
+        timezone.datetime(hoje.year, hoje.month, hoje.day)
+    )
+
+    return not XPEvent.objects.filter(
+        player=user,
+        fonte__in=['quiz', 'codigo', 'decriptar', 'password', 'logscan'],
+        criado_em__gte=inicio_hoje,
     ).exists()
-    tem_patrulha = PatrolAttempt.objects.filter(
-        player=user, date=hoje, completed=True
-    ).exists()
-    return not tem_challenge and not tem_patrulha
 
 # ─────────────────────────────────────────────
 # GERAÇÃO DA LOJA DIÁRIA

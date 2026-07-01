@@ -972,23 +972,19 @@ def public_profile(request, player_id):
     from django.shortcuts import get_object_or_404
     from django.contrib.auth.models import User
     from django.db.models import Q
-    # 1. Busca o usuário alvo pelo ID
     target_user = get_object_or_404(User, pk=player_id)
     player_obj = getattr(target_user, 'player', None)
 
-    # Se o usuário não tiver um player configurado (admin, por exemplo)
     if not player_obj:
         messages.error(request, 'Perfil de jogador não encontrado.')
         return redirect('rankings:index')
 
-    # Se o player clicar no próprio perfil pelo ranking, redireciona para a home do perfil dele
     if target_user == request.user:
         return redirect('profiles:index')
 
     from apps.store.models import PlayerItem
     from apps.profiles.models import PlayerAchievement, SystemLog, AchievementConfig
 
-    # 2. Busca os cosméticos equipados do player alvo
     frame_ativo = PlayerItem.objects.filter(
         player=target_user, equipado=True, item__effect='COSMETIC_FRAME'
     ).select_related('item').first()
@@ -1001,16 +997,12 @@ def public_profile(request, player_id):
         player=target_user, equipado=True, item__effect='COSMETIC_TITLE'
     ).select_related('item').first()
 
-    # 3. Conquistas
-    from apps.profiles.models import PlayerAchievement
-
     conquistas_desbloqueadas = PlayerAchievement.objects.filter(
         player=target_user
     ).select_related('achievement').order_by('-desbloqueada_em')
 
     conquistas_em_destaque = conquistas_desbloqueadas.filter(em_destaque=True)
 
-    # 4. Busca os logs recentes e mascara a palavra do minigame CÓDIGO
     logs_raw = SystemLog.objects.filter(
         player=target_user
     ).filter(
@@ -1020,7 +1012,6 @@ def public_profile(request, player_id):
     logs_recentes = []
     for log in logs_raw:
         titulo = log.titulo or "SISTEMA"
-        # Mascara a palavra revelada no minigame de código
         if titulo.upper().startswith("CÓDIGO:"):
             titulo = "CÓDIGO"
         logs_recentes.append({
@@ -1031,19 +1022,14 @@ def public_profile(request, player_id):
             'coin_delta': log.coin_delta,
         })
 
-    # 5. Calcula o bônus de ofensiva (respeitando o teto)
     from apps.profiles.services import get_ofensiva_bonus_pct
     ofensiva_bonus = get_ofensiva_bonus_pct(target_user)
 
-    # 6. Configurações gerais
     config = AchievementConfig.get()
-
-    # 7. Items do player
 
     from apps.store.models import PlayerItem, ActiveEffect, StoreConfig
     from django.utils import timezone
 
-    # Itens passivos (slots)
     config_store = StoreConfig.get()
     passivos = PlayerItem.objects.filter(
         player=target_user, item__tipo='passive'
@@ -1054,45 +1040,46 @@ def public_profile(request, player_id):
         for s in range(1, config_store.max_passivos_slots + 1)
     ]
 
-    # Efeitos ativos
     efeitos_ativos = ActiveEffect.objects.filter(
         player=target_user, expires_at__gt=timezone.now()
     ).select_related('item')
 
-    # 8. Novos stats
-
-    from apps.minigames.models import QuizAttempt, PatrolAttempt, PasswordAttempt, DecriptarAttempt, CodigoAttempt
-    from django.db.models import Max, Avg, F, ExpressionWrapper, DurationField
-
-    quizzes_completos = QuizAttempt.objects.filter(
-        player=target_user, completed_at__isnull=False, abandoned=False, timer_expired=False
+    from apps.minigames.models import (
+        QuizAttempt, PatrolAttempt, PasswordAttempt,
+        DecriptarAttempt, CodigoAttempt, LogScanAttempt,
     )
-    total_quizzes = quizzes_completos.count()
+    from django.db.models import Max, Avg, F, ExpressionWrapper, DurationField
+    from apps.profiles.models import XPEvent
+    from datetime import timedelta
 
-    total_minigames = (
-        PasswordAttempt.objects.filter(player=target_user, is_won=True).count() +
-        DecriptarAttempt.objects.filter(player=target_user, completed_at__isnull=False, abandoned=False, timer_expired=False).count() +
-        CodigoAttempt.objects.filter(player=target_user, won=True).count()
+    # Cadastro central de minigames "padrão" (completed_at/started_at + xp/coins_earned).
+    # Adicionar um novo minigame aqui já propaga para total_minigames, maior_xp,
+    # tempo médio e histórico — sem precisar tocar no resto da view.
+    MINIGAME_DEFS = [
+        {'tipo': 'Quiz',      'model': QuizAttempt,     'filtro': {'completed_at__isnull': False, 'abandoned': False, 'timer_expired': False}, 'fonte': 'quiz',      'conta_minigame': False},
+        {'tipo': 'Cofre',     'model': PasswordAttempt, 'filtro': {'is_won': True},                                                             'fonte': 'password',  'conta_minigame': True},
+        {'tipo': 'Decriptar', 'model': DecriptarAttempt,'filtro': {'completed_at__isnull': False, 'abandoned': False, 'timer_expired': False}, 'fonte': 'decriptar', 'conta_minigame': True},
+        {'tipo': 'Código',    'model': CodigoAttempt,   'filtro': {'won': True},                                                                'fonte': 'codigo',    'conta_minigame': True},
+        {'tipo': 'LogScan',   'model': LogScanAttempt,  'filtro': {'completed_at__isnull': False, 'abandoned': False, 'timer_expired': False}, 'fonte': 'logscan',   'conta_minigame': True},
+    ]
+
+    total_quizzes = QuizAttempt.objects.filter(player=target_user, **MINIGAME_DEFS[0]['filtro']).count()
+
+    total_minigames = sum(
+        d['model'].objects.filter(player=target_user, **d['filtro']).count()
+        for d in MINIGAME_DEFS if d['conta_minigame']
     )
 
     total_patrulhas = PatrolAttempt.objects.filter(player=target_user, completed=True).count()
 
-    from apps.profiles.models import XPEvent
-
     maior_xp = XPEvent.objects.filter(
         player=target_user,
-        fonte__in=['quiz', 'password', 'decriptar', 'codigo', 'patrol'],
+        fonte__in=[d['fonte'] for d in MINIGAME_DEFS] + ['patrol'],
     ).aggregate(m=Max('xp_total'))['m'] or 0
 
     tempos = []
-    for Model, filtro in [
-        (QuizAttempt,     {'completed_at__isnull': False, 'abandoned': False, 'timer_expired': False}),
-        (PasswordAttempt, {'is_won': True}),
-        (DecriptarAttempt,{'completed_at__isnull': False, 'abandoned': False, 'timer_expired': False}),
-        (CodigoAttempt,   {'won': True}),
-        (PatrolAttempt,   {'completed': True}),
-    ]:
-        avg = Model.objects.filter(player=target_user, **filtro).annotate(
+    for d in MINIGAME_DEFS + [{'model': PatrolAttempt, 'filtro': {'completed': True}}]:
+        avg = d['model'].objects.filter(player=target_user, **d['filtro']).annotate(
             duracao=ExpressionWrapper(F('completed_at') - F('started_at'), output_field=DurationField())
         ).aggregate(media=Avg('duracao'))['media']
         if avg:
@@ -1101,19 +1088,10 @@ def public_profile(request, player_id):
     tempo_medio_seg = int(sum(tempos) / len(tempos)) if tempos else 0
     tempo_medio_str = f"{tempo_medio_seg // 60}m {tempo_medio_seg % 60}s" if tempo_medio_seg else "—"
 
-    # 9. Novos logs de desafios
-    from apps.profiles.models import XPEvent
-
-    FONTE_MAP = {
-        'Quiz':      'quiz',
-        'Cofre':     'password',
-        'Decriptar': 'decriptar',
-        'Código':    'codigo',
-        'Patrulha':  'patrol',
-    }
+    FONTE_MAP = {d['tipo']: d['fonte'] for d in MINIGAME_DEFS}
+    FONTE_MAP['Patrulha'] = 'patrol'
 
     def _attempt_row(obj, tipo):
-        from datetime import timedelta
         row = {
             'tipo': tipo,
             'titulo': tipo,
@@ -1138,6 +1116,9 @@ def public_profile(request, player_id):
         elif tipo == 'Decriptar':
             total_d = len(obj.words_sequence) if obj.words_sequence else '?'
             row['acertos'] = f"{obj.correct_count}/{total_d}"
+        elif tipo == 'LogScan':
+            total_lw = len(obj.words_sequence) if obj.words_sequence else '?'
+            row['acertos'] = f"{obj.correct_count}/{total_lw}"
         elif tipo == 'Patrulha':
             row['acertos'] = f"{obj.attempts_count}/10"
             row['duracao'] = None
@@ -1160,34 +1141,14 @@ def public_profile(request, player_id):
 
     historico_desafios = []
 
-    quiz_qs = QuizAttempt.objects.filter(
-        player=target_user, completed_at__isnull=False, abandoned=False, timer_expired=False
-    ).select_related('quiz').prefetch_related('quiz__questions').order_by('-completed_at')[:4]
-
-    password_qs = PasswordAttempt.objects.filter(
-        player=target_user, is_won=True
-    ).order_by('-completed_at')[:4]
-
-    decriptar_qs = DecriptarAttempt.objects.filter(
-        player=target_user, completed_at__isnull=False, abandoned=False, timer_expired=False
-    ).order_by('-completed_at')[:4]
-
-    codigo_qs = CodigoAttempt.objects.filter(
-        player=target_user, won=True
-    ).order_by('-completed_at')[:4]
+    for d in MINIGAME_DEFS:
+        qs = d['model'].objects.filter(player=target_user, **d['filtro']).order_by('-completed_at')[:4]
+        for obj in qs:
+            historico_desafios.append(_attempt_row(obj, d['tipo']))
 
     patrulha_qs = PatrolAttempt.objects.filter(
         player=target_user, completed=True
     ).order_by('-completed_at')[:4]
-
-    for obj in quiz_qs:
-        historico_desafios.append(_attempt_row(obj, 'Quiz'))
-    for obj in password_qs:
-        historico_desafios.append(_attempt_row(obj, 'Cofre'))
-    for obj in decriptar_qs:
-        historico_desafios.append(_attempt_row(obj, 'Decriptar'))
-    for obj in codigo_qs:
-        historico_desafios.append(_attempt_row(obj, 'Código'))
     for obj in patrulha_qs:
         historico_desafios.append(_attempt_row(obj, 'Patrulha'))
 
@@ -1216,8 +1177,8 @@ def public_profile(request, player_id):
         'frame_ativo': frame_ativo,
         'bg_ativo': bg_ativo,
         'titulo_ativo': titulo_ativo,
-        'conquistas_desbloqueadas': conquistas_desbloqueadas, 
-        'conquistas_em_destaque': conquistas_em_destaque, 
+        'conquistas_desbloqueadas': conquistas_desbloqueadas,
+        'conquistas_em_destaque': conquistas_em_destaque,
         'logs_recentes': logs_recentes,
         'ofensiva_bonus': ofensiva_bonus,
         'config': config,
@@ -1231,4 +1192,4 @@ def public_profile(request, player_id):
         'historico_desafios': historico_desafios,
     }
 
-    return render(request, 'profiles/public_profile.html', context) 
+    return render(request, 'profiles/public_profile.html', context)
