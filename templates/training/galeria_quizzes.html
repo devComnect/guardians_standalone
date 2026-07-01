@@ -26,57 +26,55 @@
                 <p>// SEM TEMPORADA ATIVA</p>
             </div>
         {% else %}
-            <div class="quiz-grid">
-                {% for card in cards %}
-                
-                    {% if card.status == 'futuro' %}
-                    <div class="quiz-card state-locked">
-                        <div class="card-body">
-                            <div class="card-scanlines"></div>
-                            <div class="card-top">
-                                <span class="quiz-badge font-tech">ENCRIPTADO</span>
-                            </div>
-                            <div class="card-content flex-center text-center">
-                                <i class="bi bi-lock-fill card-icon mb-2"></i>
-                                <h3 class="quiz-name font-tech">ACESSO NEGADO</h3>
-                                <p class="quiz-desc">Disponível em: <br><span class="text-highlight">{{ card.quiz.available_from }}</span></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {% elif card.status == 'disponivel' %}
-                    <div class="quiz-card state-pending">
-                        <div class="card-glow"></div>
-                        <div class="card-body">
-                            <div class="card-scanlines"></div>
-                            <div class="card-top">
-                                <span class="quiz-badge font-tech text-blink">AÇÃO REQUERIDA</span>
-                            </div>
-                            <div class="card-content flex-center text-center">
-                                <i class="bi bi-hourglass-split card-icon mb-2"></i>
-                                <h3 class="quiz-name font-tech">{{ card.quiz.titulo }}</h3>
-                                <p class="quiz-desc">Prazo limite: <br><span class="text-highlight">{{ card.quiz.available_until }}</span></p>
+            {# Seção 1: Quizzes Disponíveis / Futuros #}
+            {% if pendentes %}
+                <div class="gallery-section-title font-tech mb-3 text-warning">// DIRETRIZES PENDENTES</div>
+                <div class="quiz-grid mb-4">
+                    {% for card in pendentes %}
+                        {% if card.status == 'futuro' %}
+                        <div class="quiz-card state-locked">
+                            <div class="card-body">
+                                <div class="card-scanlines"></div>
+                                <div class="card-top">
+                                    <span class="quiz-badge font-tech">ENCRIPTADO</span>
+                                </div>
+                                <div class="card-content flex-center text-center">
+                                    <i class="bi bi-lock-fill card-icon mb-2"></i>
+                                    <h3 class="quiz-name font-tech">ACESSO NEGADO</h3>
+                                    <p class="quiz-desc">Disponível em: <br><span class="text-highlight">{{ card.quiz.available_from }}</span></p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    {% elif card.status == 'perdido' %}
-                    <div class="quiz-card state-failed">
-                        <div class="card-glow"></div>
-                        <div class="card-body">
-                            <div class="card-scanlines"></div>
-                            <div class="card-top">
-                                <span class="quiz-badge font-tech">FALHA CRÍTICA</span>
-                            </div>
-                            <div class="card-content flex-center text-center">
-                                <i class="bi bi-x-circle card-icon mb-2"></i>
-                                <h3 class="quiz-name font-tech text-strike">{{ card.quiz.titulo }}</h3>
-                                <p class="quiz-desc">Conexão perdida em: <br><span class="text-highlight">{{ card.quiz.available_until }}</span></p>
+                        {% else %}
+                        <div class="quiz-card state-pending">
+                            <div class="card-glow"></div>
+                            <div class="card-body">
+                                <div class="card-scanlines"></div>
+                                <div class="card-top">
+                                    <span class="quiz-badge font-tech text-blink">AÇÃO REQUERIDA</span>
+                                </div>
+                                <div class="card-content flex-center text-center">
+                                    <i class="bi bi-hourglass-split card-icon mb-2"></i>
+                                    <h3 class="quiz-name font-tech">{{ card.quiz.titulo }}</h3>
+                                    <p class="quiz-desc">Prazo limite: <br><span class="text-highlight">{{ card.quiz.available_until }}</span></p>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% if tem_mais_pendentes %}
+                <div class="text-center mb-5">
+                    <a href="?ver_pendentes=1" class="btn-cyber font-tech">VER TODOS OS PENDENTES ({{ total_pendentes }})</a>
+                </div>
+                {% endif %}
+            {% endif %}
 
-                    {% else %}
+            {# Seção 2: Quizzes Completos #}
+            {% if completos %}
+                <div class="gallery-section-title font-tech mb-3 text-neon-green">// SISTEMAS LIMPOS (HISTÓRICO RECENTE)</div>
+                <div class="quiz-grid mb-4">
+                    {% for card in completos %}
                     <div class="quiz-card state-success">
                         <div class="card-glow"></div>
                         <div class="card-body">
@@ -92,7 +90,7 @@
                             </div>
                             
                             <div class="card-content flex-column justify-content-between">
-                                <div>
+                                <div class="card-text-area">
                                     {% if card.quiz.descricao %}
                                         <p class="quiz-desc mb-3">{{ card.quiz.descricao }}</p>
                                     {% endif %}
@@ -104,6 +102,10 @@
                                         <div class="stat-divider"></div>
                                         <div class="stat-item">
                                             <i class="bi bi-check-circle"></i> {{ card.attempt.total_correct }} ACERTOS
+                                        </div>
+                                        <div class="stat-divider"></div>
+                                        <div class="stat-item text-blink" style="font-size: 0.65rem;" title="Data de Conclusão">
+                                            <i class="bi bi-calendar-check"></i> {{ card.attempt.completed_at|date:"d/m/Y H:i" }}
                                         </div>
                                     </div>
                                 </div>
@@ -144,21 +146,48 @@
                             </div>
                         </div>
                     </div>
-                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% if tem_mais_completos %}
+                <div class="text-center mb-5">
+                    <a href="?ver_completos=1" class="btn-cyber font-tech">VER TODOS OS COMPLETOS ({{ total_completos }})</a>
+                </div>
+                {% endif %}
+            {% endif %}
 
-                {% empty %}
-                    <div class="empty-state font-tech">
-                        <i class="bi bi-inboxes"></i>
-                        <p>// NENHUM DADO ENCONTRADO NO SETOR</p>
+            {# Seção 3: Quizzes Perdidos #}
+            {% if perdidos_visiveis %}
+                <div class="gallery-section-title font-tech mb-3 text-neon-red">// FALHAS DE CONEXÃO (PERDIDOS)</div>
+                <div class="quiz-grid mb-4">
+                    {% for card in perdidos_visiveis %}
+                    <div class="quiz-card state-failed">
+                        <div class="card-glow"></div>
+                        <div class="card-body">
+                            <div class="card-scanlines"></div>
+                            <div class="card-top">
+                                <span class="quiz-badge font-tech">FALHA CRÍTICA</span>
+                            </div>
+                            <div class="card-content flex-center text-center">
+                                <i class="bi bi-x-circle card-icon mb-2"></i>
+                                <h3 class="quiz-name font-tech text-strike">{{ card.quiz.titulo }}</h3>
+                                <p class="quiz-desc">Conexão perdida em: <br><span class="text-highlight">{{ card.quiz.available_until }}</span></p>
+                            </div>
+                        </div>
                     </div>
-                {% endfor %}
-            </div>
-            {% if tem_mais_perdidos %}
-            <div class="text-center mt-4">
-                <a href="?ver_perdidos=1" class="btn-cyber font-tech">
-                    VER TODOS OS PERDIDOS ({{ total_perdidos }})
-                </a>
-            </div>
+                    {% endfor %}
+                </div>
+                {% if tem_mais_perdidos %}
+                <div class="text-center mt-4">
+                    <a href="?ver_perdidos=1" class="btn-cyber font-tech">VER TODOS OS PERDIDOS ({{ total_perdidos }})</a>
+                </div>
+                {% endif %}
+            {% endif %}
+
+            {% if not pendentes and not completos and not perdidos_visiveis %}
+                <div class="empty-state font-tech">
+                    <i class="bi bi-inboxes"></i>
+                    <p>// NENHUM DADO ENCONTRADO NO SETOR</p>
+                </div>
             {% endif %}
         {% endif %}
     </div>

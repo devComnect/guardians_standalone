@@ -78,7 +78,7 @@ def galeria_quizzes(request):
         elif disponivel_amanha:
             status = 'futuro'
         else:
-            continue  # quizzes futuros além de 24h são ignorados
+            continue
 
         is_new = (today - quiz.available_from).days <= NOVO_THRESHOLD_DIAS if not expirado else False
 
@@ -114,19 +114,37 @@ def galeria_quizzes(request):
         else:
             perdidos.append(card)
 
-    cards = pendentes + completos + perdidos
+    # Ordena os concluídos pelo completed_at mais recente primeiro
+    completos.sort(key=lambda x: x['attempt'].completed_at, reverse=True)
 
-    mostrar_todos_perdidos = request.GET.get('ver_perdidos') == '1'
-    perdidos_visiveis      = perdidos if mostrar_todos_perdidos else perdidos[:3]
-    tem_mais_perdidos      = len(perdidos) > 3 and not mostrar_todos_perdidos
+    limite = 6
 
-    cards_visiveis = pendentes + completos + perdidos_visiveis
+    # Controle de paginação para Pendentes
+    mostrar_pendentes = request.GET.get('ver_pendentes') == '1'
+    pendentes_visiveis = pendentes if mostrar_pendentes else pendentes[:limite]
+    tem_mais_pendentes = len(pendentes) > limite and not mostrar_pendentes
+
+    # Controle de paginação para Completos
+    mostrar_completos = request.GET.get('ver_completos') == '1'
+    completos_visiveis = completos if mostrar_completos else completos[:limite]
+    tem_mais_completos = len(completos) > limite and not mostrar_completos
+
+    # Controle de paginação para Perdidos
+    mostrar_perdidos = request.GET.get('ver_perdidos') == '1'
+    perdidos_visiveis = perdidos if mostrar_perdidos else perdidos[:limite]
+    tem_mais_perdidos = len(perdidos) > limite and not mostrar_perdidos
 
     return render(request, 'training/galeria_quizzes.html', {
-        'cards':             cards_visiveis,
-        'season':            season,
-        'tem_mais_perdidos': tem_mais_perdidos,
-        'total_perdidos':    len(perdidos),
+        'pendentes':           pendentes_visiveis,
+        'tem_mais_pendentes':  tem_mais_pendentes,
+        'total_pendentes':     len(pendentes),
+        'completos':           completos_visiveis,
+        'tem_mais_completos':  tem_mais_completos,
+        'total_completos':     len(completos),
+        'perdidos_visiveis':   perdidos_visiveis,
+        'tem_mais_perdidos':   tem_mais_perdidos,
+        'total_perdidos':      len(perdidos),
+        'season':              season,
     })
 
 @login_required

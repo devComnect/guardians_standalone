@@ -294,8 +294,8 @@ def grant_coins(user, coins_base, fonte='bonus', aplicar_bonus=True, registrar=T
     if registrar:
         registrar_log(
             user=user,
-            tipo='coins',
-            titulo=f'+{coins_final}⬡ ({fonte})',
+            tipo='coin_gain',
+            titulo=f'+{coins_final}⬡ ({fonte.upper()})',
             xp_delta=0,
             coin_delta=coins_final,
             breakdown={

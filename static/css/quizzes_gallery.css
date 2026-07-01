@@ -92,12 +92,15 @@
 .quiz-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
-    align-items: start;
+    gap: 1.5rem;
+    align-items: stretch; /* Garante que os itens da linha se estiquem até à mesma altura */
 }
 
 /* ── CARDS ── */
 .quiz-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
     position: relative;
     transition: transform 0.3s;
     --card-color: #6b7280;
@@ -467,4 +470,12 @@
     border-radius: 2px;
     display: inline-block;
     animation: blink-anim 2s infinite;
+}
+
+.gallery-section-title {
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 6px;
+    margin-top: 20px;
 }
