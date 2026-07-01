@@ -146,7 +146,7 @@
                 <div class="stat-label font-tech">QUIZZES</div>
             </div>
             <div class="stat-box">
-                <div class="stat-value">{{ stats.cod_count|add:stats.dcr_count|add:stats.pw_count }}</div>
+                <div class="stat-value">{{ stats.cod_count|add:stats.dcr_count|add:stats.pw_count|add:stats.logscan_count }}</div>
                 <div class="stat-label font-tech">MINIGAMES</div>
             </div>
             <div class="stat-box">
@@ -447,7 +447,7 @@
         decriptar: Number("{{ bonus.matriz_radar.decriptar_xp }}".replace(',', '.')) || 0,
         patrulha: Number("{{ bonus.matriz_radar.patrulha_xp }}".replace(',', '.')) || 0,
         cofre: Number("{{ bonus.matriz_radar.cofre_xp }}".replace(',', '.')) || 0,
-        //moedas: Number("{{ bonus.matriz_radar.moedas }}".replace(',', '.')) || 0
+        logscan: Number("{{ bonus.matriz_radar.logscan_xp }}".replace(',', '.')) || 0,
     };
 </script>
 
@@ -481,11 +481,11 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(ctxRadar, {
             type: 'radar',
             data: {
-                labels: ['CÓDIGO', 'DECRIPTAR', 'PATRULHA', 'COFRE', 'QUIZ'],
+                labels: ['CÓDIGO', 'DECRIPTAR', 'PATRULHA', 'COFRE', 'QUIZ', 'LOGSCAN'],
                 datasets: [
                     {
                         label: 'Fundo',
-                        data: [2, 2, 2, 2, 2], 
+                        data: [2, 2, 2, 2, 2, 2], 
                         fill: true,
                         backgroundColor: 'rgba(255, 255, 255, 0.05)',
                         borderColor: 'transparent',
@@ -499,9 +499,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             parseFloat(window.RADAR_DATA.decriptar).toFixed(2),
                             parseFloat(window.RADAR_DATA.patrulha).toFixed(2),
                             parseFloat(window.RADAR_DATA.cofre).toFixed(2),
-                            parseFloat(window.RADAR_DATA.quiz).toFixed(2)
+                            parseFloat(window.RADAR_DATA.quiz).toFixed(2),
+                            parseFloat(window.RADAR_DATA.logscan).toFixed(2)
                         ],
-                        // Aplica as cores do tema dinamicamente
                         backgroundColor: hexToRgba(themeColorHex, 0.45),
                         borderColor: themeColorHex,      
                         pointBackgroundColor: '#fff', 

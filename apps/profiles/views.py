@@ -76,7 +76,7 @@ def _ctx_stats(user, player):
     """Estatísticas completas do perfil."""
     from apps.minigames.models import (
         QuizAttempt, DecriptarAttempt, CodigoAttempt,
-        PatrolAttempt, PasswordAttempt,
+        PatrolAttempt, PasswordAttempt, LogScanAttempt,
     )
     from apps.rankings.models import RankingSnapshot, Season
 
@@ -121,6 +121,16 @@ def _ctx_stats(user, player):
     except Exception:
         pw_count = pw_vitorias = 0
 
+    # LogScan
+    try:
+        logscan_total = LogScanAttempt.objects.filter(
+            player=user, completed_at__isnull=False, abandoned=False, timer_expired=False
+        )
+        logscan_count = logscan_total.count()
+        logscan_vitorias = logscan_total.filter(correct_count__gt=0).count()
+    except Exception:
+        logscan_count = logscan_vitorias = 0
+
     # Ranking
     season = Season.objects.filter(ativa=True).first()
     ranking_xp     = None
@@ -137,7 +147,7 @@ def _ctx_stats(user, player):
         ranking_moedas  = snap_moedas.posicao if snap_moedas else None
         ranking_ofensiva = snap_of.posicao if snap_of else None
 
-    desafios_total = quiz_count + dcr_count + cod_count + patrol_count + pw_count
+    desafios_total = quiz_count + dcr_count + cod_count + patrol_count + pw_count + logscan_count
 
     # . Stats de galeria
     from apps.minigames.models import Quiz
@@ -165,6 +175,8 @@ def _ctx_stats(user, player):
             'patrol_vitorias':  patrol_vitorias,
             'pw_count':         pw_count,
             'pw_vitorias':      pw_vitorias,
+            'logscan_count':    logscan_count,
+            'logscan_vitorias': logscan_vitorias,
             'ranking_xp':       ranking_xp,
             'ranking_moedas':   ranking_moedas,
             'ranking_ofensiva': ranking_ofensiva,
@@ -187,10 +199,9 @@ def _ctx_bonus(user, player):
         'decriptar_xp': 0.0,
         'patrulha_xp': 0.0,
         'cofre_xp': 0.0, 
+        'logscan_xp': 0.0,
         'moedas': 0.0,
     }
-
-    
 
     global_xp_acumulado = 0.0
     buffs_temporarios = []
@@ -212,10 +223,12 @@ def _ctx_bonus(user, player):
         elif tipo == 'patrol_xp_pct': radar_stats['patrulha_xp'] += valor
         elif tipo == 'coin_pct': radar_stats['moedas'] += valor
         elif tipo == 'pw_xp_pct': radar_stats['cofre_xp'] += valor
+        elif tipo == 'logscan_xp_pct': radar_stats['logscan_xp'] += valor
         elif tipo == 'minigame_xp_pct': 
             radar_stats['codigo_xp'] += valor
             radar_stats['decriptar_xp'] += valor
             radar_stats['cofre_xp'] += valor
+            radar_stats['logscan_xp'] += valor
 
     perks_ativos = Perk.objects.filter(
         classe=player.classe, level_required__lte=player.level, ativo=True
@@ -227,6 +240,7 @@ def _ctx_bonus(user, player):
         elif perk.tipo == 'xp_codigo': radar_stats['codigo_xp'] += perk.valor
         elif perk.tipo == 'xp_decriptar': radar_stats['decriptar_xp'] += perk.valor
         elif perk.tipo == 'xp_password':  radar_stats['cofre_xp'] += perk.valor
+        elif perk.tipo == 'xp_logscan':   radar_stats['logscan_xp'] += perk.valor
         elif perk.tipo == 'coin_bonus': radar_stats['moedas'] += perk.valor
 
     from apps.store.services import get_passive_bonus_xp_pct
@@ -235,13 +249,13 @@ def _ctx_bonus(user, player):
         player=user, slot_index__isnull=False, item__tipo='passive'
     ).select_related('item')
 
-    # Simula cada fonte para capturar bônus específicos por minigame
     fontes_radar = {
         'quiz_xp':     'quiz',
         'codigo_xp':   'codigo',
         'decriptar_xp':'decriptar',
         'patrulha_xp': 'patrol',
         'cofre_xp':    'password',
+        'logscan_xp':  'logscan',
     }
 
     for chave_radar, fonte_sim in fontes_radar.items():
@@ -275,16 +289,15 @@ def _ctx_bonus(user, player):
         radar_stats['codigo_xp'] += global_xp_acumulado
         radar_stats['decriptar_xp'] += global_xp_acumulado
         radar_stats['patrulha_xp'] += global_xp_acumulado
+        radar_stats['logscan_xp'] += global_xp_acumulado
 
     ofensiva_config = OfensivaConfig.get()
     teto_ofensiva = ofensiva_config.teto_bonus_ofensiva
 
-    # Extensão de teto via perk
     from apps.profiles.services import get_perk_valor
     teto_extra = get_perk_valor(user, 'ofensiva_teto')
     teto_ofensiva += int(teto_extra)
 
-    # Extensão de teto via item ativo
     from apps.store.models import ActiveEffect as _AE
     efeito_cap = _AE.objects.filter(
         player=user, effect='STREAK_CAP_BOOST', expires_at__gt=agora
@@ -295,7 +308,7 @@ def _ctx_bonus(user, player):
     bonus_ofensiva = min(player.ofensiva, teto_ofensiva)
     multiplicador_ofensiva = bonus_ofensiva / 100
 
-    CHAVES_XP = ('quiz_xp', 'codigo_xp', 'decriptar_xp', 'patrulha_xp', 'cofre_xp')
+    CHAVES_XP = ('quiz_xp', 'codigo_xp', 'decriptar_xp', 'patrulha_xp', 'cofre_xp', 'logscan_xp')
     for chave in CHAVES_XP:
         base = radar_stats[chave]
         radar_stats[chave] = round(base + (1 + base / 100) * multiplicador_ofensiva * 100, 2)
@@ -320,8 +333,9 @@ def _ctx_skills(user, player):
     """
     from apps.minigames.models import (
         QuizAttempt, DecriptarAttempt, CodigoAttempt,
-        PatrolAttempt, PasswordAttempt,
+        PatrolAttempt, PasswordAttempt, LogScanAttempt,
     )
+    from django.db.models import Avg
 
     def _taxa(total, sucesso):
         return round((sucesso / total * 100) if total > 0 else 0, 1)
@@ -329,6 +343,11 @@ def _ctx_skills(user, player):
     quiz_tot  = QuizAttempt.objects.filter(player=user, completed_at__isnull=False)
     dcr_tot   = DecriptarAttempt.objects.filter(player=user, completed_at__isnull=False)
     cod_tot   = CodigoAttempt.objects.filter(player=user, completed_at__isnull=False)
+    
+    # LogScan
+    logscan_tot = LogScanAttempt.objects.filter(
+        player=user, completed_at__isnull=False, abandoned=False, timer_expired=False
+    )
 
     try:
         pat_tot = PatrolAttempt.objects.filter(player=user, completed=True)
@@ -347,6 +366,7 @@ def _ctx_skills(user, player):
     quiz_xp_medio = quiz_tot.aggregate(m=Avg('xp_earned'))['m'] or 0
     dcr_xp_medio  = dcr_tot.aggregate(m=Avg('xp_earned'))['m'] or 0
     cod_xp_medio  = cod_tot.aggregate(m=Avg('xp_earned'))['m'] or 0
+    logscan_xp_medio = logscan_tot.aggregate(m=Avg('xp_earned'))['m'] or 0
 
     skills = [
         {
@@ -377,6 +397,15 @@ def _ctx_skills(user, player):
             'xp_medio':  round(cod_xp_medio, 0),
         },
         {
+            'nome':      'LogScan',
+            'icone':     'bi-upc-scan',
+            'cor':       '#00ff9f',
+            'total':     logscan_tot.count(),
+            'taxa':      _taxa(logscan_tot.count(),
+                               logscan_tot.filter(correct_count__gt=0).count()),
+            'xp_medio':  round(logscan_xp_medio, 0),
+        },
+        {
             'nome':      'Patrulha',
             'icone':     'bi-shield-fill',
             'cor':       '#05d9e8',
@@ -398,7 +427,6 @@ def _ctx_skills(user, player):
         },
     ]
 
-    # Ordena por taxa de sucesso para mostrar o mais forte primeiro
     skills_sorted = sorted(skills, key=lambda x: x['taxa'], reverse=True)
 
     return {'skills': skills_sorted}
@@ -407,7 +435,7 @@ def _ctx_skills(user, player):
 def _ctx_atividade_semanal(user):
     from apps.minigames.models import (
         QuizAttempt, DecriptarAttempt, CodigoAttempt,
-        PatrolAttempt, PasswordAttempt
+        PatrolAttempt, PasswordAttempt, LogScanAttempt
     )
     from django.utils import timezone
     from datetime import datetime, time, timedelta
@@ -437,7 +465,14 @@ def _ctx_atividade_semanal(user):
         except Exception:
             pw_dia = 0
 
-        total_dia = quiz_dia + dcr_dia + cod_dia + patrol_dia + pw_dia
+        try:
+            logscan_dia = LogScanAttempt.objects.filter(
+                player=user, date=dia, completed_at__isnull=False, abandoned=False, timer_expired=False
+            ).count()
+        except Exception:
+            logscan_dia = 0
+
+        total_dia = quiz_dia + dcr_dia + cod_dia + patrol_dia + pw_dia + logscan_dia
         
         detalhes = {}
         if quiz_dia:     detalhes['Quiz']     = quiz_dia
@@ -445,6 +480,7 @@ def _ctx_atividade_semanal(user):
         if cod_dia:      detalhes['Código']   = cod_dia
         if patrol_dia:   detalhes['Patrulha'] = patrol_dia
         if pw_dia:       detalhes['Cofre']    = pw_dia
+        if logscan_dia:  detalhes['LogScan']  = logscan_dia
 
         dias.append({
             'data':     dia,
