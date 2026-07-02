@@ -90,18 +90,18 @@ class Perk(models.Model):
     ]
 
     TIPO_CHOICES = [
-        # Bônus de XP
-        ('xp_global',    'Bônus XP Global (%)'),
+        ('global_xp_pct', 'Bônus XP Global (%)'),
         ('xp_quiz',      'Bônus XP em Quiz (%)'),
         ('xp_decriptar', 'Bônus XP em Decriptar (%)'),
         ('xp_codigo',    'Bônus XP em Código (%)'),
         ('xp_password',  'Bônus XP em Cofre de Senhas (%)'),
-        # Gameplay
         ('vida_extra',       'Vida Extra em Decriptar (+N)'),
         ('dica_gratis',      'Dica Gratuita por sessão'),
         ('streak_shield',    'Proteção de Streak (dias)'),
         ('coin_bonus',       'Bônus de Moedas (%)'),
         ('tentativa_extra',  'Tentativa Extra no Código (+N)'),
+        ('shop_discount',    'Desconto na Loja (%)'),
+        ('ofensiva_teto',    'Aumento do Teto de Ofensiva (%)'),
     ]
 
     classe          = models.CharField(max_length=20, choices=CLASSE_CHOICES)

@@ -55,7 +55,12 @@ _LOOT_PESOS = {
 # ─────────────────────────────────────────────
 
 def _calcular_preco_final(item, user):
-    """Verifica se o player tem Cartão Clonado (ID 102) em slot ativo."""
+    """Aplica desconto de item (Cartão Clonado) e perk de classe (shop_discount), somados."""
+    from apps.profiles.services import get_perk_valor
+
+    pct_total = 0
+    tem_desconto = False
+
     player_item = PlayerItem.objects.filter(
         player=user,
         item__item_id=102,
@@ -63,10 +68,19 @@ def _calcular_preco_final(item, user):
     ).select_related('item').first()
 
     if player_item:
-        pct = player_item.item.value / 100
-        desconto = int(item.cost * pct)
-        return max(0, item.cost - desconto), True
-    return item.cost, False
+        pct_total += player_item.item.value
+        tem_desconto = True
+
+    pct_perk = get_perk_valor(user, 'shop_discount')
+    if pct_perk:
+        pct_total += pct_perk
+        tem_desconto = True
+
+    if not tem_desconto:
+        return item.cost, False
+
+    desconto = int(item.cost * pct_total / 100)
+    return max(0, item.cost - desconto), True
 
 
 def _slots_passivos_ocupados(user):

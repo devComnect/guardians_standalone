@@ -1,66 +1,49 @@
+# profiles/management/commands/seed_perks.py
 from django.core.management.base import BaseCommand
 from apps.profiles.models import Perk
 
-
-PERKS = [
-    # ── GUARDIAN ──────────────────────────────────────────
-    # Tank: vida, streak, coins
-    ('guardian', 'xp_global',    'Guardião Iniciante',    'Bônus de XP em todas as atividades.',          5,  1),
-    ('guardian', 'coin_bonus',   'Tesouro do Guardião',   'Bônus de moedas em todas as recompensas.',     10, 5),
-    ('guardian', 'vida_extra',   'Escudo Adicional',      'Vida extra no Decriptar.',                      1, 10),
-    ('guardian', 'streak_shield','Proteção de Streak',    'Protege o streak por 1 dia caso falhe.',        1, 20),
-    ('guardian', 'xp_global',    'Guardião Veterano',     'Bônus de XP ampliado.',                        15, 30),
-    ('guardian', 'coin_bonus',   'Cofre do Guardião',     'Bônus de moedas ampliado.',                    20, 40),
-    ('guardian', 'vida_extra',   'Muralha Viva',          'Mais uma vida extra no Decriptar.',             1, 50),
-
-    # ── ANALYST ───────────────────────────────────────────
-    # Suporte: XP em quiz, dicas
-    ('analyst',  'xp_quiz',      'Foco Analítico',        'Bônus de XP em quizzes.',                      10, 1),
-    ('analyst',  'dica_gratis',  'Consulta Gratuita',     'Dica gratuita por sessão no Decriptar/Código.',  1, 5),
-    ('analyst',  'xp_global',    'Mente Estratégica',     'Bônus de XP global.',                           8, 10),
-    ('analyst',  'xp_quiz',      'Especialista em Dados', 'Bônus de XP em quizzes ampliado.',             20, 20),
-    ('analyst',  'coin_bonus',   'Analista Sênior',       'Bônus de moedas por desempenho.',               15, 30),
-    ('analyst',  'dica_gratis',  'Banco de Dados Mental', 'Dica gratuita adicional por sessão.',            1, 40),
-    ('analyst',  'xp_quiz',      'Analista Mestre',       'Bônus máximo em quizzes.',                     30, 50),
-
-    # ── SENTINEL ──────────────────────────────────────────
-    # Vigilante: Decriptar e Código
-    ('sentinel', 'xp_decriptar', 'Olho Treinado',         'Bônus de XP no Decriptar.',                    10, 1),
-    ('sentinel', 'xp_codigo',    'Leitor de Padrões',     'Bônus de XP no Código.',                       10, 5),
-    ('sentinel', 'vida_extra',   'Resiliência',           'Vida extra no Decriptar.',                       1, 10),
-    ('sentinel', 'xp_decriptar', 'Sentinela Avançado',    'Bônus de XP no Decriptar ampliado.',           20, 20),
-    ('sentinel', 'xp_codigo',    'Criptoanálise',         'Bônus de XP no Código ampliado.',              20, 30),
-    ('sentinel', 'tentativa_extra','Protocolo Extra',     'Tentativa extra no Código.',                     1, 40),
-    ('sentinel', 'xp_decriptar', 'Sentinel Supremo',      'Bônus máximo no Decriptar.',                   30, 50),
-
-    # ── HACKER ────────────────────────────────────────────
-    # Ofensivo: XP global alto, cofre de senhas
-    ('hacker',   'xp_global',    'Acesso Root',           'Bônus de XP global.',                          10, 1),
-    ('hacker',   'xp_password',  'Quebrador de Senhas',   'Bônus de XP no Cofre de Senhas.',              15, 5),
-    ('hacker',   'coin_bonus',   'Black Market',          'Bônus de moedas em todas as recompensas.',     10, 10),
-    ('hacker',   'xp_global',    'Exploit Avançado',      'Bônus de XP global ampliado.',                 18, 20),
-    ('hacker',   'xp_password',  'Engenheiro Reverso',    'Bônus de XP no Cofre ampliado.',               25, 30),
-    ('hacker',   'coin_bonus',   'Mercado Paralelo',      'Bônus de moedas ampliado.',                    20, 40),
-    ('hacker',   'xp_global',    'God Mode',              'Bônus máximo de XP global.',                   25, 50),
-]
-
-
 class Command(BaseCommand):
-    help = 'Popula os perks padrão de cada classe'
+    help = 'Popula/reseta os perks das 4 classes.'
 
     def handle(self, *args, **kwargs):
-        created = 0
-        for classe, tipo, nome, descricao, valor, level_req in PERKS:
-            _, was_created = Perk.objects.get_or_create(
-                classe=classe, nome=nome,
-                defaults={
-                    'tipo':           tipo,
-                    'descricao':      descricao,
-                    'valor':          valor,
-                    'level_required': level_req,
-                }
-            )
-            if was_created:
-                created += 1
+        Perk.objects.filter(classe__in=['guardian', 'analyst', 'sentinel', 'hacker']).delete()
 
-        self.stdout.write(self.style.SUCCESS(f'✅ {created} perk(s) criados.'))
+        Perk.objects.bulk_create([
+            # GUARDIAN — Banqueiro
+            Perk(classe='guardian', tipo='xp_quiz',    nome='Investimento Inicial', descricao='Bônus de XP em Quiz.', valor=10, level_required=1),
+            Perk(classe='guardian', tipo='coin_bonus', nome='Juros I',              descricao='Bônus de moedas.',     valor=10, level_required=5),
+            Perk(classe='guardian', tipo='xp_quiz',    nome='Carteira Diversificada', descricao='Bônus de XP em Quiz.', valor=15, level_required=10),
+            Perk(classe='guardian', tipo='coin_bonus', nome='Juros II',             descricao='Bônus de moedas.',     valor=15, level_required=20),
+            Perk(classe='guardian', tipo='shop_discount', nome='Cartão Corporativo', descricao='Desconto na loja.',  valor=10, level_required=30),
+            Perk(classe='guardian', tipo='coin_bonus', nome='Juros III',            descricao='Bônus de moedas.',     valor=25, level_required=40),
+            Perk(classe='guardian', tipo='xp_quiz',    nome='Fundo Soberano',       descricao='Bônus de XP em Quiz.', valor=22, level_required=50),
+
+            # ANALYST — Late Game
+            Perk(classe='analyst', tipo='xp_decriptar',   nome='Análise Inicial',    descricao='Bônus de XP em Decriptar.', valor=8, level_required=1),
+            Perk(classe='analyst', tipo='global_xp_pct',  nome='Eficiência I',       descricao='Bônus de XP global.',       valor=3, level_required=5),
+            Perk(classe='analyst', tipo='xp_decriptar',   nome='Análise Avançada',   descricao='Bônus de XP em Decriptar.', valor=12, level_required=10),
+            Perk(classe='analyst', tipo='global_xp_pct',  nome='Eficiência II',      descricao='Bônus de XP global.',       valor=6, level_required=20),
+            Perk(classe='analyst', tipo='coin_bonus',     nome='Troco',              descricao='Bônus de moedas.',          valor=5, level_required=30),
+            Perk(classe='analyst', tipo='global_xp_pct',  nome='Eficiência III',     descricao='Bônus de XP global.',       valor=9, level_required=40),
+            Perk(classe='analyst', tipo='global_xp_pct',  nome='Otimização Total',   descricao='Bônus de XP global.',       valor=15, level_required=50),
+
+            # SENTINEL — Defensor Consistente
+            Perk(classe='sentinel', tipo='xp_password',    nome='Vigilância Inicial', descricao='Bônus de XP em Cofre de Senhas.', valor=10, level_required=1),
+            Perk(classe='sentinel', tipo='coin_bonus',      nome='Ronda I',            descricao='Bônus de moedas.',                 valor=8, level_required=5),
+            Perk(classe='sentinel', tipo='global_xp_pct',   nome='Postura Defensiva',  descricao='Bônus de XP global.',              valor=4, level_required=10),
+            Perk(classe='sentinel', tipo='xp_password',     nome='Vigilância Avançada', descricao='Bônus de XP em Cofre de Senhas.', valor=15, level_required=20),
+            Perk(classe='sentinel', tipo='ofensiva_teto',   nome='Escudo de Streak',   descricao='Aumenta o teto de bônus de ofensiva.', valor=15, level_required=30),
+            Perk(classe='sentinel', tipo='global_xp_pct',   nome='Protocolo Firme',    descricao='Bônus de XP global.',              valor=7, level_required=40),
+            Perk(classe='sentinel', tipo='xp_password',     nome='Muralha',            descricao='Bônus de XP em Cofre de Senhas.', valor=25, level_required=50),
+
+            # HACKER — Especialista Agressivo
+            Perk(classe='hacker', tipo='xp_codigo',  nome='Exploit Inicial',    descricao='Bônus de XP em Código.', valor=12, level_required=1),
+            Perk(classe='hacker', tipo='coin_bonus', nome='Mercado Negro I',    descricao='Bônus de moedas.',       valor=8,  level_required=5),
+            Perk(classe='hacker', tipo='xp_codigo',  nome='Exploit Avançado',   descricao='Bônus de XP em Código.', valor=16, level_required=10),
+            Perk(classe='hacker', tipo='coin_bonus', nome='Mercado Negro II',   descricao='Bônus de moedas.',       valor=10, level_required=20),
+            Perk(classe='hacker', tipo='coin_bonus', nome='Mercado Negro III',  descricao='Bônus de moedas.',       valor=12, level_required=30),
+            Perk(classe='hacker', tipo='xp_codigo',  nome='Zero-Day',           descricao='Bônus de XP em Código.', valor=22, level_required=40),
+            Perk(classe='hacker', tipo='xp_codigo',  nome='Root Access',        descricao='Bônus de XP em Código.', valor=35, level_required=50),
+        ])
+
+        self.stdout.write(self.style.SUCCESS('Perks das 4 classes recriados.'))
