@@ -104,6 +104,11 @@ class Perk(models.Model):
         ('ofensiva_teto',    'Aumento do Teto de Ofensiva (%)'),
     ]
 
+    TIPOS_PERCENTUAIS = {
+        'global_xp_pct', 'xp_quiz', 'xp_decriptar', 'xp_codigo', 'xp_password',
+        'coin_bonus', 'shop_discount', 'ofensiva_teto',
+    }
+
     classe          = models.CharField(max_length=20, choices=CLASSE_CHOICES)
     tipo            = models.CharField(max_length=20, choices=TIPO_CHOICES)
     nome            = models.CharField(max_length=100)
@@ -119,6 +124,12 @@ class Perk(models.Model):
 
     def __str__(self):
         return f'[{self.get_classe_display()}] Lv.{self.level_required} — {self.nome}'
+    
+    @property
+    def valor_formatado(self):
+        if self.tipo in self.TIPOS_PERCENTUAIS:
+            return f'+{self.valor:g}%'
+        return f'+{self.valor:g}'
 
 
 # ─────────────────────────────────────────────

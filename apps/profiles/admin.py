@@ -348,6 +348,27 @@ class PlayerAdmin(admin.ModelAdmin):
             messages.WARNING,
         )
 
+@admin.register(Perk)
+class PerkAdmin(admin.ModelAdmin):
+    list_display   = ('classe_badge', 'nome', 'tipo', 'valor', 'level_required', 'ativo')
+    list_display_links = ('nome',)
+    list_editable   = ('valor', 'level_required', 'ativo')
+    list_filter     = ('classe', 'tipo', 'ativo')
+    search_fields   = ('nome', 'descricao')
+    ordering        = ('classe', 'level_required')
+
+    def classe_badge(self, obj):
+        cores = {
+            'guardian': '#0dcaf0',
+            'analyst':  '#bd00ff',
+            'sentinel': '#fcee0a',
+            'hacker':   '#ff2a6d',
+        }
+        cor = cores.get(obj.classe, '#adb5bd')
+        return format_html('<span style="color:{}; font-weight:bold;">⬤ {}</span>',
+                           cor, obj.get_classe_display())
+    classe_badge.short_description = 'Classe'
+
 @admin.register(XPEvent)
 class XPEventAdmin(admin.ModelAdmin):
     list_display = ('player', 'fonte', 'xp_base', 'xp_bonus', 'xp_total', 'descricao', 'criado_em')

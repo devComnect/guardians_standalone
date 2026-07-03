@@ -131,6 +131,21 @@
         cursor: not-allowed;
         box-shadow: none !important;
     }
+
+    .perk-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .perk-valor {
+        font-size: 0.85rem;
+        font-weight: bold;
+        color: var(--class-color);
+        white-space: nowrap;
+        text-shadow: 0 0 8px var(--class-color);
+    }
     
     /* Scrollbar minimalista para as perks */
     .perks-list::-webkit-scrollbar { width: 4px; }
@@ -172,7 +187,10 @@
                     {% for perk in info.perks %}
                         <div class="perk-item">
                             <div class="perk-level">REQ: LEVEL {{ perk.level_required }}</div>
-                            <div class="perk-name">{{ perk.nome }}</div>
+                            <div class="perk-header">
+                                <div class="perk-name">{{ perk.nome }}</div>
+                                <div class="perk-valor">{{ perk.valor_formatado }}</div>
+                            </div>
                             <div class="perk-desc">{{ perk.descricao }}</div>
                         </div>
                     {% empty %}
@@ -193,7 +211,7 @@
                         </button>
                     {% else %}
                         <button class="btn btn-choose-class btn-selecionar" data-classe="{{ key }}" data-nome="{{ info.nome }}">
-                            INJETAR PROTOCOLO
+                            SELECIONAR CLASSE
                         </button>
                     {% endif %}
                 </div>

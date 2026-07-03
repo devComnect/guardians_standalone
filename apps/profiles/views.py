@@ -235,7 +235,7 @@ def _ctx_bonus(user, player):
     ).order_by('level_required')
 
     for perk in perks_ativos:
-        if perk.tipo == 'xp_global': global_xp_acumulado += perk.valor
+        if perk.tipo == 'global_xp_pct': global_xp_acumulado += perk.valor
         elif perk.tipo == 'xp_quiz': radar_stats['quiz_xp'] += perk.valor
         elif perk.tipo == 'xp_codigo': radar_stats['codigo_xp'] += perk.valor
         elif perk.tipo == 'xp_decriptar': radar_stats['decriptar_xp'] += perk.valor
@@ -872,10 +872,26 @@ def selecao_classe_view(request):
     
     # Estrutura de base das classes e suas cores
     classes_info = {
-        'guardian': {'nome': 'GUARDIAN', 'desc': 'Especialista em defesa e resiliência de sistemas.', 'cor': '#0dcaf0', 'icone': 'bi-shield-fill-check', 'perks': []},
-        'analyst':  {'nome': 'ANALYST',  'desc': 'Foco em extração de dados e inteligência tática.', 'cor': '#bd00ff', 'icone': 'bi-radar', 'perks': []},
-        'sentinel': {'nome': 'SENTINEL', 'desc': 'Vigilância contínua e administração de privilégios.', 'cor': '#fcee0a', 'icone': 'bi-eye-fill', 'perks': []},
-        'hacker':   {'nome': 'HACKER',   'desc': 'Especialista em ofensiva, scripts e invasão pura.', 'cor': '#ff2a6d', 'icone': 'bi-terminal-fill', 'perks': []},
+        'guardian': {
+            'nome': 'GUARDIAN',
+            'desc': 'O Banqueiro. Maximiza ganho de moedas e desconto na loja — ideal para quem quer acumular recursos e itens raros rapidamente, sacrificando parte do XP global.',
+            'cor': '#0dcaf0', 'icone': 'bi-shield-fill-check', 'perks': []
+        },
+        'analyst': {
+            'nome': 'ANALYST',
+            'desc': 'O Late Game. Ganha pouco no início, mas escala o maior bônus de XP global do jogo — a melhor escolha pra quem joga a temporada inteira e foca em Decriptar.',
+            'cor': '#bd00ff', 'icone': 'bi-radar', 'perks': []
+        },
+        'sentinel': {
+            'nome': 'SENTINEL',
+            'desc': 'O Defensor Consistente. Perks equilibrados entre XP global e Cofre de Senhas, com reforço no teto de bônus de ofensiva — recompensa quem joga todo dia sem falhar.',
+            'cor': '#fcee0a', 'icone': 'bi-eye-fill', 'perks': []
+        },
+        'hacker': {
+            'nome': 'HACKER',
+            'desc': 'O Especialista Agressivo. Zero bônus global — todo o poder vem de dominar os desafios de Código, com o maior multiplicador de XP focado do jogo.',
+            'cor': '#ff2a6d', 'icone': 'bi-terminal-fill', 'perks': []
+        },
     }
     
     # Popula as classes com seus perks correspondentes organizados por level

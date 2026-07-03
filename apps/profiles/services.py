@@ -53,7 +53,7 @@ def calcular_xp_com_bonus(user, xp_base, fonte, contexto=None):
         breakdown.append({
             "fonte":        perk.nome,
             "categoria":    "Perk Global",
-            "tipo":         "xp_global",
+            "tipo":         "global_xp_pct",
             "pct":          perk.valor,
             "xp_adicionado": int(xp_base * perk.valor / 100),
         })
