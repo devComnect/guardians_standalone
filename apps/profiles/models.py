@@ -295,6 +295,7 @@ class Achievement(models.Model):
         ('streak_days',      'Streak de dias consecutivos'),
         ('ofensiva',         'Pontos de ofensiva'),
         ('xp_total',         'XP total acumulado'),
+        ('lexico_count', 'Nº de léxicos descobertos'),
         # Loja / social
         ('shop_count',       'Nº de itens comprados na loja'),
         ('feedback_count',   'Nº de feedbacks enviados'),

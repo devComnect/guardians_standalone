@@ -149,6 +149,7 @@ class Item(models.Model):
         ('XP_BEAST_CASH', '+XP% se saldo terminar em 6'),
         ('XP_PRIME_CASH', '+XP% se saldo for primo'),
         ('XP_FIRST_DAILY','+XP% no primeiro desafio do dia'),
+        ('XP_PER_LEXICO', '+XP% por léxico descoberto'),
         # Cosméticos
         ('COSMETIC_FRAME',      'Frame de perfil'),
         ('COSMETIC_BACKGROUND', 'Background de perfil'),

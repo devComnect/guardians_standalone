@@ -746,6 +746,13 @@ def get_passive_bonus_xp_pct(user, fonte=None, contexto=None, retornar_breakdown
             else:
                 motivo = f"coins ({player.coins}) >= 10 ❌"
 
+        elif effect == 'XP_PER_LEXICO':
+            from apps.training.models import PlayerWordUnlock
+            lexicos = PlayerWordUnlock.objects.filter(player=user, season__ativa=True).count()
+            raw     = lexicos * item.value
+            b       = raw if item.max_bonus == 0 else min(raw, item.max_bonus)
+            motivo  = f"{lexicos} léxicos x {item.value}% = {b}%"
+
         elif effect == 'XP_ODD_CASH':
             if player.coins % 2 != 0:
                 b      = item.value

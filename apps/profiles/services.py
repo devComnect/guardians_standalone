@@ -667,6 +667,7 @@ def _obter_valor_trigger(user, trigger_type):
         QuizAttempt, DecriptarAttempt, CodigoAttempt,
         PatrolAttempt, PasswordAttempt, LogScanAttempt,
     )
+    from apps.training.models import PlayerWordUnlock
     player = getattr(user, 'player', None)
 
     mapa = {
@@ -690,6 +691,8 @@ def _obter_valor_trigger(user, trigger_type):
             correct_count__gt=0).extra(
             where=["correct_count = (SELECT jsonb_array_length(words_sequence) FROM minigames_logscanattempt WHERE id = minigames_logscanattempt.id LIMIT 1)"]
         ).count() if False else _contar_logscan_perfeito(user),
+        'lexico_count': lambda: PlayerWordUnlock.objects.filter(
+            player=user, season__ativa=True).count(),
         'minigame_count':  lambda: (
             DecriptarAttempt.objects.filter(player=user, completed_at__isnull=False).count() +
             CodigoAttempt.objects.filter(player=user, completed_at__isnull=False).count() +

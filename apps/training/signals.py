@@ -21,6 +21,13 @@ def _unlock_palavra(player, palavra_str, season):
         _verificar_notificacoes_lexico(player, word, season)
 
 
+@receiver(post_save, sender=PlayerWordUnlock)
+def verificar_conquistas_lexico(sender, instance, created, **kwargs):
+    if not created:
+        return
+    from apps.profiles.services import verificar_conquistas
+    verificar_conquistas(instance.player, 'lexico_count')
+
 def _verificar_notificacoes_lexico(player, word, season):
     from apps.profiles.log_service import registrar_log
 

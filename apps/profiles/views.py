@@ -874,22 +874,22 @@ def selecao_classe_view(request):
     classes_info = {
         'guardian': {
             'nome': 'GUARDIAN',
-            'desc': 'O Banqueiro. Maximiza ganho de moedas e desconto na loja — ideal para quem quer acumular recursos e itens raros rapidamente, sacrificando parte do XP global.',
+            'desc': 'Maximiza ganho de moedas e desconto na loja — ideal para quem quer acumular recursos e itens raros rapidamente, sacrificando parte do XP global.',
             'cor': '#0dcaf0', 'icone': 'bi-shield-fill-check', 'perks': []
         },
         'analyst': {
             'nome': 'ANALYST',
-            'desc': 'O Late Game. Ganha pouco no início, mas escala o maior bônus de XP global do jogo — a melhor escolha pra quem joga a temporada inteira e foca em Decriptar.',
+            'desc': 'Escala o maior bônus de XP global do jogo — a melhor escolha pra quem joga a temporada inteira e foca em Decriptar.',
             'cor': '#bd00ff', 'icone': 'bi-radar', 'perks': []
         },
         'sentinel': {
             'nome': 'SENTINEL',
-            'desc': 'O Defensor Consistente. Perks equilibrados entre Patrulha, LogScan e Cofre. Com reforço no teto de bônus de ofensiva — recompensa quem joga todo dia sem falhar.',
+            'desc': 'Perks equilibrados entre Patrulha, LogScan e Cofre. Com reforço no teto de bônus de ofensiva — recompensa quem joga todo dia sem falhar.',
             'cor': '#fcee0a', 'icone': 'bi-eye-fill', 'perks': []
         },
         'hacker': {
             'nome': 'HACKER',
-            'desc': 'O Especialista Agressivo. Zero bônus global — todo o poder vem de dominar os desafios de Código, com o maior multiplicador de XP focado do jogo.',
+            'desc': 'Zero bônus global — todo o poder vem de dominar os desafios de Código, com o maior multiplicador de XP focado do jogo.',
             'cor': '#ff2a6d', 'icone': 'bi-terminal-fill', 'perks': []
         },
     }
