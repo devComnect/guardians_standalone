@@ -64,6 +64,8 @@ def calcular_xp_com_bonus(user, xp_base, fonte, contexto=None):
         'decriptar': 'xp_decriptar',
         'codigo':    'xp_codigo',
         'password':  'xp_password',
+        'logscan':   'xp_logscan',
+        'patrol':    'xp_patrol',
     }
     tipo_especifico = mapa_fonte.get(fonte)
     if tipo_especifico:

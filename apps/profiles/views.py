@@ -884,7 +884,7 @@ def selecao_classe_view(request):
         },
         'sentinel': {
             'nome': 'SENTINEL',
-            'desc': 'O Defensor Consistente. Perks equilibrados entre XP global e Cofre de Senhas, com reforço no teto de bônus de ofensiva — recompensa quem joga todo dia sem falhar.',
+            'desc': 'O Defensor Consistente. Perks equilibrados entre Patrulha, LogScan e Cofre. Com reforço no teto de bônus de ofensiva — recompensa quem joga todo dia sem falhar.',
             'cor': '#fcee0a', 'icone': 'bi-eye-fill', 'perks': []
         },
         'hacker': {

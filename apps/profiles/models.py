@@ -95,6 +95,8 @@ class Perk(models.Model):
         ('xp_decriptar', 'Bônus XP em Decriptar (%)'),
         ('xp_codigo',    'Bônus XP em Código (%)'),
         ('xp_password',  'Bônus XP em Cofre de Senhas (%)'),
+        ('xp_logscan',   'Bônus XP em LogScan (%)'),
+        ('xp_patrol',    'Bônus XP em Patrulha Diária (%)'),
         ('vida_extra',       'Vida Extra em Decriptar (+N)'),
         ('dica_gratis',      'Dica Gratuita por sessão'),
         ('streak_shield',    'Proteção de Streak (dias)'),
@@ -102,11 +104,12 @@ class Perk(models.Model):
         ('tentativa_extra',  'Tentativa Extra no Código (+N)'),
         ('shop_discount',    'Desconto na Loja (%)'),
         ('ofensiva_teto',    'Aumento do Teto de Ofensiva (%)'),
+        ('lexico_xp_pct',    'Bônus XP por Léxico Desbloqueado (% por palavra)'),
     ]
 
     TIPOS_PERCENTUAIS = {
         'global_xp_pct', 'xp_quiz', 'xp_decriptar', 'xp_codigo', 'xp_password',
-        'coin_bonus', 'shop_discount', 'ofensiva_teto',
+        'xp_logscan', 'xp_patrol', 'coin_bonus', 'shop_discount', 'ofensiva_teto',
     }
 
     classe          = models.CharField(max_length=20, choices=CLASSE_CHOICES)
