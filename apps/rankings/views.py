@@ -93,8 +93,20 @@ def temporadas_anteriores(request):
         {'pos': 11, 'nome': 'Marcos Pedroso',           'valor': '244 XP'},
     ]
 
+    s3_tabela = [
+        {'pos': 4,  'nome': 'Raysa Melo',                'valor': '11813 XP'},
+        {'pos': 5,  'nome': 'Chrysthyanne Rodrigues',            'valor': '11767 XP'},
+        {'pos': 6,  'nome': 'Renato Ragga',                'valor': '8073 XP'},
+        {'pos': 7,  'nome': 'Lucas Kaizer',             'valor': '4545 XP'},
+        {'pos': 8,  'nome': 'Fabio Silva',                   'valor': '1327 XP'},
+        {'pos': 9,  'nome': 'Rafael Silva',                 'valor': '1253 XP'},
+        {'pos': 10, 'nome': 'Danilo Neto',              'valor': '922 XP'},
+        {'pos': 11, 'nome': 'Marcos Pedroso', 'valor': '843 XP'},
+        {'pos': 12, 'nome': 'Paulo Cruz',               'valor': '286 XP'},
+    ]
+
     return render(request, 'rankings/temporadas_anteriores.html', {
         's1_tabela': s1_tabela,
         's2_tabela': s2_tabela,
+        's3_tabela': s3_tabela,
     })
-

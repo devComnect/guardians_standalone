@@ -36,7 +36,7 @@
         <div class="seasons-slide active" data-season="SEASON 1">
             <div class="season-countdown-bar" style="margin-bottom:1.5rem;">
                 <p class="season-label">TEMPORADA ENCERRADA</p>
-                <p class="season-name">SEASON CLAUSURA 2025</p>
+                <p class="season-name">SEASON CLAUSURA (09/2025 - 12/2025)</p>
             </div>
 
             <div class="podium-section">
@@ -77,7 +77,7 @@
         <div class="seasons-slide" data-season="SEASON 2">
             <div class="season-countdown-bar" style="margin-bottom:1.5rem;">
                 <p class="season-label">TEMPORADA ENCERRADA</p>
-                <p class="season-name">SEASON APERTURA 1 - 2026</p>
+                <p class="season-name">SEASON APERTURA 1 (01/2026 - 03/2026)</p>
             </div>
 
             <div class="podium-section">
@@ -104,6 +104,47 @@
             <div class="rank-table">
                 <div class="rank-table-header font-tech"><span>#</span><span>PLAYER</span><span></span><span>XP</span></div>
                 {% for entry in s2_tabela %}
+                <div class="rank-row">
+                    <span class="rank-pos font-tech">{{ entry.pos }}</span>
+                    <div class="rank-player"><div class="rank-player-info"><span class="rank-name">{{ entry.nome }}</span></div></div>
+                    <span class="rank-classe font-tech"></span>
+                    <span class="rank-valor font-tech">{{ entry.valor }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- SEASON 3 -->
+        <div class="seasons-slide" data-season="SEASON 3">
+            <div class="season-countdown-bar" style="margin-bottom:1.5rem;">
+                <p class="season-label">TEMPORADA ENCERRADA</p>
+                <p class="season-name">SEASON CLAUSURA 1 (04/2026 - 07/2026)  </p>
+            </div>
+
+            <div class="podium-section">
+                <div class="podium-card pos-2" style="pointer-events:none;">
+                    <div class="podium-crown"><i class="bi bi-award-fill"></i></div>
+                    <div class="podium-info"><span class="podium-name">Eduardo Pinheiro</span></div>
+                    <div class="podium-valor font-tech">20278 XP</div>
+                    <div class="podium-base"><span class="podium-number font-tech">#2</span></div>
+                </div>
+                <div class="podium-card pos-1" style="pointer-events:none;">
+                    <div class="podium-crown"><i class="bi bi-trophy-fill"></i></div>
+                    <div class="podium-info"><span class="podium-name">Fernando Zanella</span></div>
+                    <div class="podium-valor font-tech">22209 XP</div>
+                    <div class="podium-base"><span class="podium-number font-tech">#1</span></div>
+                </div>
+                <div class="podium-card pos-3" style="pointer-events:none;">
+                    <div class="podium-crown"><i class="bi bi-patch-check-fill"></i></div>
+                    <div class="podium-info"><span class="podium-name">Matheus Silva</span></div>
+                    <div class="podium-valor font-tech">14097 XP</div>
+                    <div class="podium-base"><span class="podium-number font-tech">#3</span></div>
+                </div>
+            </div>
+
+            <div class="rank-table">
+                <div class="rank-table-header font-tech"><span>#</span><span>PLAYER</span><span></span><span>XP</span></div>
+                {% for entry in s3_tabela %}
                 <div class="rank-row">
                     <span class="rank-pos font-tech">{{ entry.pos }}</span>
                     <div class="rank-player"><div class="rank-player-info"><span class="rank-name">{{ entry.nome }}</span></div></div>
